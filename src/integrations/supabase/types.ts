@@ -14,16 +14,398 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      applied_logs: {
+        Row: {
+          applied_at: string
+          id: string
+          notes: string | null
+          opportunity_id: string
+          pitch_id: string | null
+          status: Database["public"]["Enums"]["application_status"] | null
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string
+          id?: string
+          notes?: string | null
+          opportunity_id: string
+          pitch_id?: string | null
+          status?: Database["public"]["Enums"]["application_status"] | null
+          user_id: string
+        }
+        Update: {
+          applied_at?: string
+          id?: string
+          notes?: string | null
+          opportunity_id?: string
+          pitch_id?: string | null
+          status?: Database["public"]["Enums"]["application_status"] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applied_logs_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applied_logs_pitch_id_fkey"
+            columns: ["pitch_id"]
+            isOneToOne: false
+            referencedRelation: "pitches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applied_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      opportunities: {
+        Row: {
+          audience_size: number | null
+          created_at: string
+          deadline: string | null
+          description: string | null
+          event_date: string | null
+          event_name: string
+          event_url: string | null
+          fee_estimate_max: number | null
+          fee_estimate_min: number | null
+          id: string
+          is_active: boolean | null
+          location: string | null
+          organizer_email: string | null
+          organizer_name: string | null
+          scraped_at: string
+          source: string | null
+        }
+        Insert: {
+          audience_size?: number | null
+          created_at?: string
+          deadline?: string | null
+          description?: string | null
+          event_date?: string | null
+          event_name: string
+          event_url?: string | null
+          fee_estimate_max?: number | null
+          fee_estimate_min?: number | null
+          id?: string
+          is_active?: boolean | null
+          location?: string | null
+          organizer_email?: string | null
+          organizer_name?: string | null
+          scraped_at?: string
+          source?: string | null
+        }
+        Update: {
+          audience_size?: number | null
+          created_at?: string
+          deadline?: string | null
+          description?: string | null
+          event_date?: string | null
+          event_name?: string
+          event_url?: string | null
+          fee_estimate_max?: number | null
+          fee_estimate_min?: number | null
+          id?: string
+          is_active?: boolean | null
+          location?: string | null
+          organizer_email?: string | null
+          organizer_name?: string | null
+          scraped_at?: string
+          source?: string | null
+        }
+        Relationships: []
+      }
+      opportunity_scores: {
+        Row: {
+          ai_reason: string | null
+          ai_score: number | null
+          calculated_at: string
+          deadline_urgency_score: number | null
+          fee_alignment_score: number | null
+          id: string
+          opportunity_id: string
+          topic_match_score: number | null
+          user_id: string
+        }
+        Insert: {
+          ai_reason?: string | null
+          ai_score?: number | null
+          calculated_at?: string
+          deadline_urgency_score?: number | null
+          fee_alignment_score?: number | null
+          id?: string
+          opportunity_id: string
+          topic_match_score?: number | null
+          user_id: string
+        }
+        Update: {
+          ai_reason?: string | null
+          ai_score?: number | null
+          calculated_at?: string
+          deadline_urgency_score?: number | null
+          fee_alignment_score?: number | null
+          id?: string
+          opportunity_id?: string
+          topic_match_score?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_scores_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunity_scores_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      opportunity_topics: {
+        Row: {
+          id: string
+          opportunity_id: string
+          relevance_score: number | null
+          topic_id: string
+        }
+        Insert: {
+          id?: string
+          opportunity_id: string
+          relevance_score?: number | null
+          topic_id: string
+        }
+        Update: {
+          id?: string
+          opportunity_id?: string
+          relevance_score?: number | null
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_topics_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunity_topics_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pitches: {
+        Row: {
+          edited: boolean | null
+          email_body: string
+          generated_at: string
+          id: string
+          opportunity_id: string
+          subject_line: string
+          tone: string | null
+          user_id: string
+          variant: string | null
+        }
+        Insert: {
+          edited?: boolean | null
+          email_body: string
+          generated_at?: string
+          id?: string
+          opportunity_id: string
+          subject_line: string
+          tone?: string | null
+          user_id: string
+          variant?: string | null
+        }
+        Update: {
+          edited?: boolean | null
+          email_body?: string
+          generated_at?: string
+          id?: string
+          opportunity_id?: string
+          subject_line?: string
+          tone?: string | null
+          user_id?: string
+          variant?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pitches_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pitches_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          bio: string | null
+          created_at: string
+          fee_range_max: number | null
+          fee_range_min: number | null
+          id: string
+          linkedin_url: string | null
+          name: string | null
+          past_talks: string[] | null
+          twitter_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          fee_range_max?: number | null
+          fee_range_min?: number | null
+          id: string
+          linkedin_url?: string | null
+          name?: string | null
+          past_talks?: string[] | null
+          twitter_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          fee_range_max?: number | null
+          fee_range_min?: number | null
+          id?: string
+          linkedin_url?: string | null
+          name?: string | null
+          past_talks?: string[] | null
+          twitter_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      topics: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_topics: {
+        Row: {
+          created_at: string
+          id: string
+          proficiency_level:
+            | Database["public"]["Enums"]["proficiency_level"]
+            | null
+          topic_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          proficiency_level?:
+            | Database["public"]["Enums"]["proficiency_level"]
+            | null
+          topic_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          proficiency_level?:
+            | Database["public"]["Enums"]["proficiency_level"]
+            | null
+          topic_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_topics_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_topics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      application_status:
+        | "applied"
+        | "replied"
+        | "booked"
+        | "declined"
+        | "pending"
+      proficiency_level: "beginner" | "intermediate" | "expert"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +532,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      application_status: [
+        "applied",
+        "replied",
+        "booked",
+        "declined",
+        "pending",
+      ],
+      proficiency_level: ["beginner", "intermediate", "expert"],
+    },
   },
 } as const
