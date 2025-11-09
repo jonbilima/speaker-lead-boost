@@ -1,1 +1,7 @@
 project_id = "jzrgcbgqpowmknjyjhon"
+
+[functions.rank-opportunities]
+verify_jwt = true
+
+[functions.generate-pitch]
+verify_jwt = true

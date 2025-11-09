@@ -12,21 +12,23 @@ import { toast } from "sonner";
 const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [allTopics, setAllTopics] = useState<{ id: string; name: string }[]>([]);
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     bio: "",
-    topics: "",
-    feeRange: "",
+    selectedTopics: [] as string[],
+    feeRangeMin: "1000",
+    feeRangeMax: "50000",
     pastTalks: "",
     linkedinUrl: "",
     twitterUrl: "",
   });
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
@@ -34,21 +36,121 @@ const Profile = () => {
         return;
       }
 
-      setFormData(prev => ({ ...prev, email: session.user.email || "" }));
+      // Load all available topics
+      const { data: topicsData } = await supabase
+        .from('topics')
+        .select('id, name')
+        .order('name');
+      
+      if (topicsData) {
+        setAllTopics(topicsData);
+      }
+
+      // Load existing profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*, user_topics(topic_id)')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profile) {
+        setFormData({
+          name: profile.name || "",
+          email: session.user.email || "",
+          bio: profile.bio || "",
+          selectedTopics: profile.user_topics?.map((ut: any) => ut.topic_id) || [],
+          feeRangeMin: profile.fee_range_min?.toString() || "1000",
+          feeRangeMax: profile.fee_range_max?.toString() || "50000",
+          pastTalks: profile.past_talks?.join('\n') || "",
+          linkedinUrl: profile.linkedin_url || "",
+          twitterUrl: profile.twitter_url || "",
+        });
+      } else {
+        setFormData(prev => ({ ...prev, email: session.user.email || "" }));
+      }
+
       setLoading(false);
     };
 
-    checkAuth();
+    init();
   }, [navigate]);
+
+  const handleTopicToggle = (topicId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedTopics: prev.selectedTopics.includes(topicId)
+        ? prev.selectedTopics.filter(id => id !== topicId)
+        : [...prev.selectedTopics, topicId]
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     
-    // TODO: Save to database once tables are created
-    toast.success("Profile saved successfully!");
-    setSaving(false);
-    navigate("/dashboard");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Session expired");
+        navigate("/auth");
+        return;
+      }
+
+      // Save profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          name: formData.name,
+          bio: formData.bio,
+          fee_range_min: parseInt(formData.feeRangeMin),
+          fee_range_max: parseInt(formData.feeRangeMax),
+          past_talks: formData.pastTalks.split('\n').filter(t => t.trim()),
+          linkedin_url: formData.linkedinUrl,
+          twitter_url: formData.twitterUrl,
+        })
+        .eq('id', session.user.id);
+
+      if (profileError) throw profileError;
+
+      // Delete existing topics
+      await supabase
+        .from('user_topics')
+        .delete()
+        .eq('user_id', session.user.id);
+
+      // Insert new topics
+      if (formData.selectedTopics.length > 0) {
+        const { error: topicsError } = await supabase
+          .from('user_topics')
+          .insert(
+            formData.selectedTopics.map(topicId => ({
+              user_id: session.user.id,
+              topic_id: topicId,
+            }))
+          );
+
+        if (topicsError) throw topicsError;
+      }
+
+      toast.success("Profile saved! Finding opportunities for you...");
+
+      // Trigger opportunity ranking
+      const { error: rankError } = await supabase.functions.invoke('rank-opportunities', {
+        body: { user_id: session.user.id }
+      });
+
+      if (rankError) {
+        console.error('Ranking error:', rankError);
+        toast.info("Profile saved, but ranking will happen later");
+      }
+
+      navigate("/dashboard");
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error("Failed to save profile");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
@@ -61,7 +163,6 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary">
-      {/* Header */}
       <header className="border-b border-border bg-background/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
@@ -130,24 +231,46 @@ const Profile = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="topics">Speaking Topics *</Label>
-                <Input
-                  id="topics"
-                  placeholder="e.g., AI, Leadership, Marketing (comma-separated)"
-                  value={formData.topics}
-                  onChange={(e) => setFormData({ ...formData, topics: e.target.value })}
-                  required
-                />
+                <Label>Speaking Topics * (select at least one)</Label>
+                <div className="flex flex-wrap gap-2 p-4 border rounded-md bg-muted/20">
+                  {allTopics.map(topic => (
+                    <button
+                      key={topic.id}
+                      type="button"
+                      onClick={() => handleTopicToggle(topic.id)}
+                      className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
+                        formData.selectedTopics.includes(topic.id)
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-background border border-border hover:bg-muted'
+                      }`}
+                    >
+                      {topic.name}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="feeRange">Fee Range</Label>
-                <Input
-                  id="feeRange"
-                  placeholder="e.g., $1K-$5K, $10K-$20K"
-                  value={formData.feeRange}
-                  onChange={(e) => setFormData({ ...formData, feeRange: e.target.value })}
-                />
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="feeRangeMin">Minimum Fee ($)</Label>
+                  <Input
+                    id="feeRangeMin"
+                    type="number"
+                    value={formData.feeRangeMin}
+                    onChange={(e) => setFormData({ ...formData, feeRangeMin: e.target.value })}
+                    min="0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="feeRangeMax">Maximum Fee ($)</Label>
+                  <Input
+                    id="feeRangeMax"
+                    type="number"
+                    value={formData.feeRangeMax}
+                    onChange={(e) => setFormData({ ...formData, feeRangeMax: e.target.value })}
+                    min="0"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -187,9 +310,9 @@ const Profile = () => {
               <Button 
                 type="submit" 
                 className="w-full bg-gradient-to-r from-primary to-accent"
-                disabled={saving}
+                disabled={saving || formData.selectedTopics.length === 0}
               >
-                {saving ? "Saving..." : "Save Profile"}
+                {saving ? "Saving..." : "Save Profile & Find Opportunities"}
               </Button>
             </form>
           </CardContent>
