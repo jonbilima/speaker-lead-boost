@@ -72,7 +72,28 @@ const Dashboard = () => {
       if (!scores || scores.length === 0) {
         // No scores yet, trigger ranking
         toast.info("Finding opportunities for you...");
-        await supabase.functions.invoke('rank-opportunities');
+        const { data: rankData, error: rankError } = await supabase.functions.invoke('rank-opportunities');
+        
+        if (rankError || rankData?.error) {
+          const errorMsg = rankError?.message || rankData?.message || '';
+          
+          // Check if error is due to incomplete profile
+          if (errorMsg.includes('No topics selected') || errorMsg.includes('complete your profile')) {
+            toast.error('Please complete your profile with speaking topics first', {
+              action: {
+                label: 'Go to Profile',
+                onClick: () => navigate('/profile')
+              }
+            });
+            setLoading(false);
+            return;
+          }
+          
+          toast.error('Failed to rank opportunities. Please try again.');
+          setLoading(false);
+          return;
+        }
+        
         // Retry after ranking
         setTimeout(() => loadOpportunities(userId), 3000);
         return;
