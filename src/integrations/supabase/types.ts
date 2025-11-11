@@ -300,6 +300,45 @@ export type Database = {
         }
         Relationships: []
       }
+      scraping_logs: {
+        Row: {
+          completed_at: string | null
+          error_message: string | null
+          id: string
+          last_page_scraped: number | null
+          opportunities_found: number | null
+          opportunities_inserted: number | null
+          opportunities_updated: number | null
+          source: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          last_page_scraped?: number | null
+          opportunities_found?: number | null
+          opportunities_inserted?: number | null
+          opportunities_updated?: number | null
+          source: string
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          last_page_scraped?: number | null
+          opportunities_found?: number | null
+          opportunities_inserted?: number | null
+          opportunities_updated?: number | null
+          source?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
       topics: {
         Row: {
           category: string | null
