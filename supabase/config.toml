@@ -5,3 +5,12 @@ verify_jwt = true
 
 [functions.generate-pitch]
 verify_jwt = true
+
+[functions.scrape-sessionize]
+verify_jwt = false
+
+[functions.scrape-eventbrite]
+verify_jwt = false
+
+[functions.extract-opportunity-topics]
+verify_jwt = false
