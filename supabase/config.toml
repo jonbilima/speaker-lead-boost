@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.extract-opportunity-topics]
 verify_jwt = false
+
+[functions.scrape-test]
+verify_jwt = false
+
+[functions.scrape-papercall]
+verify_jwt = false
