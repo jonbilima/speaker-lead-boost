@@ -102,6 +102,18 @@ export default function AdminScraping() {
     }
   };
 
+  const getSourceBadge = (source: string) => {
+    const variants: Record<string, { label: string; className: string }> = {
+      'sessionize': { label: 'Sessionize', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
+      'eventbrite': { label: 'Eventbrite', className: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' },
+      'test': { label: 'Test', className: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200' },
+      'papercall': { label: 'PaperCall', className: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' },
+    };
+    
+    const config = variants[source] || { label: source, className: '' };
+    return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
+  };
+
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -112,7 +124,59 @@ export default function AdminScraping() {
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Test Data</CardTitle>
+              <CardDescription>Generate 15 realistic mock CFP opportunities for testing</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={() => triggerScraping('Test', 'scrape-test')}
+                disabled={scraping['Test']}
+                className="w-full"
+              >
+                {scraping['Test'] ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Play className="mr-2 h-4 w-4" />
+                    Generate Test Data
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>PaperCall.io</CardTitle>
+              <CardDescription>Scrape open CFPs from PaperCall.io event directory</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={() => triggerScraping('PaperCall', 'scrape-papercall')}
+                disabled={scraping['PaperCall']}
+                className="w-full"
+              >
+                {scraping['PaperCall'] ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Scraping...
+                  </>
+                ) : (
+                  <>
+                    <Play className="mr-2 h-4 w-4" />
+                    Scrape PaperCall
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Sessionize</CardTitle>
@@ -235,7 +299,7 @@ export default function AdminScraping() {
 
                       return (
                         <TableRow key={log.id}>
-                          <TableCell className="font-medium capitalize">{log.source}</TableCell>
+                          <TableCell className="font-medium">{getSourceBadge(log.source)}</TableCell>
                           <TableCell>{getStatusBadge(log.status)}</TableCell>
                           <TableCell>{format(new Date(log.started_at), 'MMM d, HH:mm')}</TableCell>
                           <TableCell>{duration ? `${duration}s` : '-'}</TableCell>
