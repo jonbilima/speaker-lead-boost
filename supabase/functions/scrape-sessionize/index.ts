@@ -74,13 +74,13 @@ serve(async (req) => {
   let logId: string | null = null;
 
   try {
-    console.log('Starting CFPList scraping...');
+    console.log('Starting WikiCFP scraping...');
 
     // Create scraping log
     const { data: logData, error: logError } = await supabase
       .from('scraping_logs')
       .insert({
-        source: 'cfplist',
+        source: 'wikicfp',
         status: 'running',
         started_at: new Date().toISOString(),
       })
@@ -90,22 +90,20 @@ serve(async (req) => {
     if (logError) throw logError;
     logId = logData.id;
 
-    // Fetch CFPList.com popular CFPs page
-    console.log('Fetching CFPList.com/PopularCFPs...');
-    const response = await fetch('https://www.cfplist.com/PopularCFPs', {
+    // Fetch WikiCFP.com call for papers page
+    console.log('Fetching WikiCFP.com/cfp/call...');
+    const response = await fetch('http://www.wikicfp.com/cfp/call', {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Referer': 'https://www.cfplist.com/',
+        'Referer': 'http://www.wikicfp.com/',
         'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
       }
     });
     
     if (!response.ok) {
-      throw new Error(`CFPList returned ${response.status}`);
+      throw new Error(`WikiCFP returned ${response.status}`);
     }
 
     const html = await response.text();
@@ -115,118 +113,131 @@ serve(async (req) => {
       throw new Error('Failed to parse HTML');
     }
 
-    // Find all table rows with CFP data
-    const rows = doc.querySelectorAll('table tr');
-    console.log(`Found ${rows.length} table rows`);
+    // Find all CFP rows in the main table (WikiCFP uses a specific table structure)
+    const rows = doc.querySelectorAll('table.contsec tr');
+    console.log(`Found ${rows.length} CFP rows`);
 
     let inserted = 0;
     let updated = 0;
-    let processed = 0;
-    const maxCFPs = 20; // Limit to 20 CFPs per run to avoid timeouts
+    const maxCfps = 20; // Limit to prevent timeouts
 
-    // Skip header row and limit to maxCFPs
-    for (const row of Array.from(rows).slice(1)) {
-      if (processed >= maxCFPs) break;
+    for (let i = 0; i < Math.min(rows.length, maxCfps); i++) {
+      const row = rows[i];
+      const cells = row.querySelectorAll('td');
       
-      try {
-        const cells = row.querySelectorAll('td');
-        if (cells.length < 3) continue; // Skip invalid rows
+      // WikiCFP table structure: Event | Where | When | Deadline | Notification
+      if (cells.length < 4) continue; // Skip header or invalid rows
 
-        const link = cells[0]?.querySelector('a');
+      try {
+        // First cell contains event name and link
+        const eventCell = cells[0];
+        const link = eventCell.querySelector('a');
         if (!link) continue;
 
-        const title = link.textContent?.trim() || 'Unnamed Event';
-        const href = link.getAttribute('href');
-        if (!href) continue;
+        const eventName = link.textContent?.trim();
+        const eventPath = link.getAttribute('href');
 
-        const eventUrl = `https://www.cfplist.com${href}`;
+        if (!eventName || !eventPath) continue;
+
+        // Build full URL
+        const eventUrl = eventPath.startsWith('http') 
+          ? eventPath 
+          : `http://www.wikicfp.com${eventPath}`;
+
+        console.log(`Processing CFP: ${eventName}`);
+
+        // Extract location from "Where" column (2nd cell)
+        const location = cells[1]?.textContent?.trim().substring(0, 200) || null;
+
+        // Extract event date from "When" column (3rd cell)
         const eventDateStr = cells[2]?.textContent?.trim();
         const eventDate = parseDate(eventDateStr);
 
-        console.log(`Processing: ${title}`);
+        // Extract deadline from "Deadline" column (4th cell)
+        const deadlineStr = cells[3]?.textContent?.trim();
+        const deadline = parseDate(deadlineStr);
 
-        // Fetch detail page for more information
-        await delay(1000); // Rate limiting: 1 second between requests
+        // Fetch detail page for description
+        await delay(800); // Rate limiting: 800ms between requests
         
+        let description = null;
         const detailResponse = await fetch(eventUrl, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Referer': 'https://www.cfplist.com/',
+            'Referer': 'http://www.wikicfp.com/cfp/call',
             'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
           }
         });
-        let description = null;
-        let deadline = null;
-        let location = null;
 
         if (detailResponse.ok) {
           const detailHtml = await detailResponse.text();
           const detailDoc = new DOMParser().parseFromString(detailHtml, 'text/html');
           
           if (detailDoc) {
-            // Extract description (look for main content area)
-            const contentDivs = detailDoc.querySelectorAll('div');
-            let fullText = '';
-            for (const div of Array.from(contentDivs)) {
-              const text = div.textContent?.trim() || '';
-              if (text.length > fullText.length) {
-                fullText = text;
+            // Extract description from the event detail page
+            const descTable = detailDoc.querySelector('table.gglu');
+            if (descTable) {
+              const descCells = descTable.querySelectorAll('td');
+              // Look for the cell containing description text
+              for (const cell of descCells) {
+                const text = cell.textContent?.trim();
+                if (text && text.length > 100) {
+                  description = text.substring(0, 2000);
+                  break;
+                }
               }
-            }
-            description = fullText.substring(0, 2000) || null;
-            
-            // Try to extract deadline and location from text
-            if (description) {
-              deadline = extractDeadline(description);
-              location = extractLocation(description);
             }
           }
         }
 
-        // Check if opportunity already exists
+        // Check if this opportunity already exists
         const { data: existing } = await supabase
           .from('opportunities')
           .select('id')
           .eq('event_url', eventUrl)
-          .maybeSingle();
-
-        const opportunityData = {
-          event_name: title,
-          event_url: eventUrl,
-          deadline: deadline,
-          location: location,
-          description: description,
-          organizer_name: null,
-          organizer_email: null,
-          event_date: eventDate,
-          source: 'cfplist',
-          scraped_at: new Date().toISOString(),
-          is_active: true,
-        };
+          .single();
 
         if (existing) {
-          // Update scraped_at timestamp
+          // Update scraped_at timestamp and other fields
           await supabase
             .from('opportunities')
-            .update({ scraped_at: new Date().toISOString() })
+            .update({ 
+              scraped_at: new Date().toISOString(),
+              deadline,
+              event_date: eventDate,
+              location,
+              description: description || undefined,
+            })
             .eq('id', existing.id);
           updated++;
+          console.log(`Updated existing CFP: ${eventName}`);
         } else {
           // Insert new opportunity
-          await supabase
+          const { error: insertError } = await supabase
             .from('opportunities')
-            .insert(opportunityData);
-          inserted++;
-        }
+            .insert({
+              event_name: eventName,
+              event_url: eventUrl,
+              description,
+              deadline,
+              event_date: eventDate,
+              location,
+              source: 'wikicfp',
+              scraped_at: new Date().toISOString(),
+              is_active: true,
+            });
 
-        processed++;
+          if (insertError) {
+            console.error(`Error inserting ${eventName}:`, insertError);
+          } else {
+            inserted++;
+            console.log(`Inserted new CFP: ${eventName}`);
+          }
+        }
       } catch (error) {
-        console.error(`Error processing CFP:`, error);
-        // Continue with next CFP
+        console.error(`Error processing row ${i}:`, error);
       }
     }
 
@@ -236,18 +247,17 @@ serve(async (req) => {
       .update({
         status: 'success',
         completed_at: new Date().toISOString(),
-        opportunities_found: processed,
+        opportunities_found: inserted + updated,
         opportunities_inserted: inserted,
         opportunities_updated: updated,
       })
       .eq('id', logId);
 
-    console.log(`CFPList scraping complete: ${inserted} inserted, ${updated} updated out of ${processed} processed`);
+    console.log(`WikiCFP scraping complete: ${inserted} inserted, ${updated} updated`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        found: processed,
         inserted,
         updated,
       }),
@@ -255,7 +265,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('CFPList scraping error:', error);
+    console.error('WikiCFP scraping error:', error);
 
     // Update log with error
     if (logId) {
