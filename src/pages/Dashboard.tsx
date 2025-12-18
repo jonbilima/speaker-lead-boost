@@ -4,9 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mic2, LogOut, User, Sparkles, Calendar, DollarSign, MapPin } from "lucide-react";
+import { LogOut, User, Sparkles, Calendar, DollarSign, MapPin, Mic } from "lucide-react";
 import { toast } from "sonner";
 import { OpportunityModal } from "@/components/OpportunityModal";
+import { Logo } from "@/components/Logo";
 
 interface Opportunity {
   id: string;
@@ -220,11 +221,9 @@ const Dashboard = () => {
       <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <Mic2 className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              SpeakFlow
+            <Logo size="md" />
+            <span className="text-xl font-bold bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
+              nextmic
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -270,13 +269,13 @@ const Dashboard = () => {
           <h2 className="text-xl font-semibold mb-4">Top Opportunities</h2>
           {opportunities.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              <Mic2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <Mic className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p className="mb-2">No opportunities yet</p>
               <p className="text-sm">
                 Complete your profile to start receiving personalized speaking gigs
               </p>
               <Button 
-                className="mt-4 bg-gradient-to-r from-primary to-accent"
+                className="mt-4 bg-gradient-to-r from-accent to-primary"
                 onClick={() => navigate("/profile")}
               >
                 Complete Profile

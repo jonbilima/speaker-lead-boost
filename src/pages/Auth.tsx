@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mic2 } from "lucide-react";
 import { toast } from "sonner";
+import { Logo } from "@/components/Logo";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -68,11 +68,9 @@ const Auth = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
-              <Mic2 className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              SpeakFlow
+            <Logo size="lg" />
+            <span className="text-2xl font-bold bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
+              nextmic
             </span>
           </div>
           <p className="text-muted-foreground">Your speaking career, automated</p>
@@ -115,7 +113,7 @@ const Auth = () => {
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full bg-gradient-to-r from-primary to-accent" 
+                    className="w-full bg-gradient-to-r from-accent to-primary" 
                     disabled={loading}
                   >
                     {loading ? "Signing in..." : "Sign In"}
@@ -149,7 +147,7 @@ const Auth = () => {
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full bg-gradient-to-r from-primary to-accent" 
+                    className="w-full bg-gradient-to-r from-accent to-primary" 
                     disabled={loading}
                   >
                     {loading ? "Creating account..." : "Create Account"}

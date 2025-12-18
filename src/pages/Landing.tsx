@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mic2, TrendingUp, Zap, Mail, Award, Target } from "lucide-react";
+import { TrendingUp, Zap, Mail, Award, Target, Mic } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Logo } from "@/components/Logo";
 
 const Landing = () => {
   const [email, setEmail] = useState("");
@@ -23,11 +24,9 @@ const Landing = () => {
       <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm fixed w-full z-50">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
-              <Mic2 className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              SpeakFlow
+            <Logo size="md" />
+            <span className="text-xl font-bold bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
+              nextmic
             </span>
           </div>
           <Button onClick={() => navigate("/auth")} variant="outline" size="sm">
@@ -48,7 +47,7 @@ const Landing = () => {
             
             <h1 className="text-5xl md:text-7xl font-bold leading-tight">
               Get Booked Before{" "}
-              <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-accent via-primary to-accent bg-clip-text text-transparent">
                 They Post the Call
               </span>
             </h1>
@@ -67,7 +66,7 @@ const Landing = () => {
                 required
                 className="h-12 text-base"
               />
-              <Button type="submit" size="lg" className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity shadow-lg">
+              <Button type="submit" size="lg" className="bg-gradient-to-r from-accent to-primary hover:opacity-90 transition-opacity shadow-lg">
                 Join Waitlist
               </Button>
             </form>
@@ -110,7 +109,7 @@ const Landing = () => {
                 description: "Wake up to your hottest gigs in your inbox, ranked and ready to pitch.",
               },
               {
-                icon: Mic2,
+                icon: Mic,
                 title: "Speaker-First Design",
                 description: "Built by speakers, for speakers. Clean, fast, and focused on getting you booked.",
               },
@@ -120,7 +119,7 @@ const Landing = () => {
                 className="group p-6 rounded-2xl bg-card border border-border hover:border-accent/50 hover:shadow-xl transition-all duration-300"
                 style={{ boxShadow: "var(--shadow-card)" }}
               >
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent/10 to-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <feature.icon className="h-6 w-6 text-accent" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
@@ -136,12 +135,12 @@ const Landing = () => {
       {/* CTA Section */}
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-4xl">
-          <div className="bg-gradient-to-r from-primary to-accent rounded-3xl p-12 text-center shadow-2xl" style={{ boxShadow: "var(--shadow-glow)" }}>
+          <div className="bg-gradient-to-r from-accent to-primary rounded-3xl p-12 text-center shadow-2xl" style={{ boxShadow: "var(--shadow-glow)" }}>
             <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
               Ready to Get Fully Booked?
             </h2>
             <p className="text-primary-foreground/90 text-lg mb-8">
-              Join the waitlist and be first to access SpeakFlow when we launch.
+              Join the waitlist and be first to access nextmic when we launch.
             </p>
             <form onSubmit={handleWaitlist} className="max-w-md mx-auto flex gap-3">
               <Input
@@ -163,7 +162,7 @@ const Landing = () => {
       {/* Footer */}
       <footer className="border-t border-border py-8 px-4 mt-20">
         <div className="container mx-auto text-center text-sm text-muted-foreground">
-          <p>&copy; 2025 SpeakFlow. Get booked faster.</p>
+          <p>&copy; 2025 nextmic. Get booked faster.</p>
         </div>
       </footer>
     </div>
