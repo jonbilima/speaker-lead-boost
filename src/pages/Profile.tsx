@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mic2, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { Logo } from "@/components/Logo";
 
 const Profile = () => {
   const [loading, setLoading] = useState(true);
@@ -170,11 +171,9 @@ const Profile = () => {
             Back
           </Button>
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <Mic2 className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              SpeakFlow
+            <Logo size="md" />
+            <span className="text-xl font-bold bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
+              nextmic
             </span>
           </div>
         </div>
@@ -309,7 +308,7 @@ const Profile = () => {
 
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-to-r from-primary to-accent"
+                className="w-full bg-gradient-to-r from-accent to-primary"
                 disabled={saving || formData.selectedTopics.length === 0}
               >
                 {saving ? "Saving..." : "Save Profile & Find Opportunities"}
