@@ -67,11 +67,8 @@ const Auth = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-4">
+          <div className="inline-flex items-center mb-4">
             <Logo size="lg" />
-            <span className="text-2xl font-bold bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
-              nextmic
-            </span>
           </div>
           <p className="text-muted-foreground">Your speaking career, automated</p>
         </div>

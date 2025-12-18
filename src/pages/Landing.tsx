@@ -23,11 +23,8 @@ const Landing = () => {
       {/* Header */}
       <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm fixed w-full z-50">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center">
             <Logo size="md" />
-            <span className="text-xl font-bold bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
-              nextmic
-            </span>
           </div>
           <Button onClick={() => navigate("/auth")} variant="outline" size="sm">
             Sign In

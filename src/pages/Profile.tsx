@@ -170,11 +170,8 @@ const Profile = () => {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center">
             <Logo size="md" />
-            <span className="text-xl font-bold bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
-              nextmic
-            </span>
           </div>
         </div>
       </header>
