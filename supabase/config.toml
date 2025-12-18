@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.scrape-papercall]
 verify_jwt = false
+
+[functions.scrape-with-apify]
+verify_jwt = false

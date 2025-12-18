@@ -47,18 +47,18 @@ export default function AdminScraping() {
     fetchLogs();
   }, []);
 
-  const triggerScraping = async (source: string, functionName: string) => {
+  const triggerScraping = async (source: string, functionName: string, body?: Record<string, unknown>) => {
     setScraping(prev => ({ ...prev, [source]: true }));
     
     try {
       const { data, error } = await supabase.functions.invoke(functionName, {
-        body: { manual_trigger: true }
+        body: body || { manual_trigger: true }
       });
 
       if (error) throw error;
 
       toast.success(`${source} scraping completed`, {
-        description: `Found: ${data.found}, Inserted: ${data.inserted}, Updated: ${data.updated}`
+        description: `Found: ${data.found || data.opportunities_found || 0}, Inserted: ${data.inserted || data.opportunities_inserted || 0}, Updated: ${data.updated || data.opportunities_updated || 0}`
       });
 
       fetchLogs();
@@ -124,137 +124,245 @@ export default function AdminScraping() {
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>Test Data</CardTitle>
-              <CardDescription>Generate 15 realistic mock CFP opportunities for testing</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                onClick={() => triggerScraping('Test', 'scrape-test')}
-                disabled={scraping['Test']}
-                className="w-full"
-              >
-                {scraping['Test'] ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Play className="mr-2 h-4 w-4" />
-                    Generate Test Data
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
+        {/* Original Scrapers */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Standard Scrapers</h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Card>
+              <CardHeader>
+                <CardTitle>Test Data</CardTitle>
+                <CardDescription>Generate 15 realistic mock CFP opportunities for testing</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={() => triggerScraping('Test', 'scrape-test')}
+                  disabled={scraping['Test']}
+                  className="w-full"
+                >
+                  {scraping['Test'] ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-2 h-4 w-4" />
+                      Generate Test Data
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>PaperCall.io</CardTitle>
-              <CardDescription>Scrape open CFPs from PaperCall.io event directory</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                onClick={() => triggerScraping('PaperCall', 'scrape-papercall')}
-                disabled={scraping['PaperCall']}
-                className="w-full"
-              >
-                {scraping['PaperCall'] ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Scraping...
-                  </>
-                ) : (
-                  <>
-                    <Play className="mr-2 h-4 w-4" />
-                    Scrape PaperCall
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>PaperCall.io</CardTitle>
+                <CardDescription>Scrape open CFPs from PaperCall.io event directory</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={() => triggerScraping('PaperCall', 'scrape-papercall')}
+                  disabled={scraping['PaperCall']}
+                  className="w-full"
+                >
+                  {scraping['PaperCall'] ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Scraping...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-2 h-4 w-4" />
+                      Scrape PaperCall
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Sessionize</CardTitle>
-              <CardDescription>Scrape speaking opportunities from Sessionize CFP API</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={() => triggerScraping('Sessionize', 'scrape-sessionize')}
-                disabled={scraping['sessionize']}
-                className="w-full"
-              >
-                {scraping['sessionize'] ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Scraping...
-                  </>
-                ) : (
-                  <>
-                    <Play className="mr-2 h-4 w-4" />
-                    Scrape Sessionize
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Sessionize</CardTitle>
+                <CardDescription>Scrape speaking opportunities from Sessionize CFP API</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={() => triggerScraping('Sessionize', 'scrape-sessionize')}
+                  disabled={scraping['Sessionize']}
+                  className="w-full"
+                >
+                  {scraping['Sessionize'] ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Scraping...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-2 h-4 w-4" />
+                      Scrape Sessionize
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Eventbrite</CardTitle>
-              <CardDescription>Scrape speaking opportunities from Eventbrite API</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={() => triggerScraping('Eventbrite', 'scrape-eventbrite')}
-                disabled={scraping['eventbrite']}
-                className="w-full"
-              >
-                {scraping['eventbrite'] ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Scraping...
-                  </>
-                ) : (
-                  <>
-                    <Play className="mr-2 h-4 w-4" />
-                    Scrape Eventbrite
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Eventbrite</CardTitle>
+                <CardDescription>Scrape speaking opportunities from Eventbrite API</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={() => triggerScraping('Eventbrite', 'scrape-eventbrite')}
+                  disabled={scraping['Eventbrite']}
+                  className="w-full"
+                >
+                  {scraping['Eventbrite'] ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Scraping...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-2 h-4 w-4" />
+                      Scrape Eventbrite
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Topic Extraction</CardTitle>
-              <CardDescription>Extract and tag topics for recent opportunities</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={triggerTopicExtraction}
-                disabled={scraping['topics']}
-                className="w-full"
-                variant="secondary"
-              >
-                {scraping['topics'] ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Extracting...
-                  </>
-                ) : (
-                  <>
-                    <Play className="mr-2 h-4 w-4" />
-                    Extract Topics
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Topic Extraction</CardTitle>
+                <CardDescription>Extract and tag topics for recent opportunities</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={triggerTopicExtraction}
+                  disabled={scraping['topics']}
+                  className="w-full"
+                  variant="secondary"
+                >
+                  {scraping['topics'] ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Extracting...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-2 h-4 w-4" />
+                      Extract Topics
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Apify Scrapers */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+              Apify Powered
+            </Badge>
+            Advanced Scrapers
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Uses Apify for JavaScript rendering, anti-bot protection, and more reliable scraping.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Card className="border-green-200 dark:border-green-800">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  PaperCall.io
+                  <Badge variant="outline" className="text-xs">Apify</Badge>
+                </CardTitle>
+                <CardDescription>Enhanced scraping with JavaScript rendering</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={() => triggerScraping('papercall-apify', 'scrape-with-apify', { source: 'papercall' })}
+                  disabled={scraping['papercall-apify']}
+                  className="w-full"
+                  variant="outline"
+                >
+                  {scraping['papercall-apify'] ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Scraping...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-2 h-4 w-4" />
+                      Scrape with Apify
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-green-200 dark:border-green-800">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  WikiCFP
+                  <Badge variant="outline" className="text-xs">Apify</Badge>
+                </CardTitle>
+                <CardDescription>Academic conferences and CFPs</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={() => triggerScraping('wikicfp-apify', 'scrape-with-apify', { source: 'wikicfp' })}
+                  disabled={scraping['wikicfp-apify']}
+                  className="w-full"
+                  variant="outline"
+                >
+                  {scraping['wikicfp-apify'] ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Scraping...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-2 h-4 w-4" />
+                      Scrape with Apify
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-green-200 dark:border-green-800">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  Confs.tech
+                  <Badge variant="outline" className="text-xs">Apify</Badge>
+                </CardTitle>
+                <CardDescription>Tech conferences worldwide</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={() => triggerScraping('confs-tech-apify', 'scrape-with-apify', { source: 'confs_tech' })}
+                  disabled={scraping['confs-tech-apify']}
+                  className="w-full"
+                  variant="outline"
+                >
+                  {scraping['confs-tech-apify'] ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Scraping...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-2 h-4 w-4" />
+                      Scrape with Apify
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         <Card>
