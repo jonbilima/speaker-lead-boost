@@ -9,7 +9,7 @@ const corsHeaders = {
 // Apify actor configurations for different sources
 const APIFY_ACTORS = {
   papercall: {
-    actorId: 'apify/web-scraper',
+    actorId: 'apify~web-scraper',
     input: {
       startUrls: [{ url: 'https://www.papercall.io/events' }],
       globs: [{ glob: 'https://www.papercall.io/cfps/*' }],
@@ -53,7 +53,7 @@ const APIFY_ACTORS = {
     }
   },
   wikicfp: {
-    actorId: 'apify/web-scraper',
+    actorId: 'apify~web-scraper',
     input: {
       startUrls: [{ url: 'http://www.wikicfp.com/cfp/call' }],
       pageFunction: `async function pageFunction(context) {
@@ -91,7 +91,7 @@ const APIFY_ACTORS = {
     }
   },
   confs_tech: {
-    actorId: 'apify/web-scraper',
+    actorId: 'apify~web-scraper',
     input: {
       startUrls: [{ url: 'https://confs.tech/' }],
       pageFunction: `async function pageFunction(context) {
