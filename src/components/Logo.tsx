@@ -12,9 +12,9 @@ export const Logo = ({ className, size = 'md' }: LogoProps) => {
   
   return (
     <img 
-      src="/images/nextmic-logo.jpeg" 
+      src="/images/nextmic-logo.svg" 
       alt="nextmic" 
-      className={`${sizeClasses[size]} w-auto rounded-lg ${className || ''}`}
+      className={`${sizeClasses[size]} w-auto ${className || ''}`}
     />
   );
 };
