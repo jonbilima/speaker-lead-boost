@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "npm:resend@2.0.0";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -390,11 +390,14 @@ async function sendDigestToUser(supabase: any, user: any, preferences: any, base
       html: emailHtml,
     });
 
-    // Update log with email ID
-    await supabase
-      .from('email_digest_logs')
-      .update({ email_id: emailResponse.id })
-      .eq('id', trackingId);
+    // Update log with email ID if available
+    const emailId = emailResponse?.data?.id;
+    if (emailId) {
+      await supabase
+        .from('email_digest_logs')
+        .update({ email_id: emailId })
+        .eq('id', trackingId);
+    }
 
     console.log(`Digest sent to ${userEmail}`);
   } catch (error) {
