@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Sparkles, Calendar, DollarSign, MapPin, Mic } from "lucide-react";
 import { toast } from "sonner";
 import { OpportunityModal } from "@/components/OpportunityModal";
 import { AppLayout } from "@/components/AppLayout";
+import { DashboardStats } from "@/components/dashboard/DashboardStats";
+import { UpcomingDeadlines } from "@/components/dashboard/UpcomingDeadlines";
+import { RecentActivity } from "@/components/dashboard/RecentActivity";
+import { CalendarWidget } from "@/components/dashboard/CalendarWidget";
+import { QuickActions } from "@/components/dashboard/QuickActions";
+import { TopOpportunities } from "@/components/dashboard/TopOpportunities";
 
 interface Opportunity {
   id: string;
@@ -27,50 +29,120 @@ interface Opportunity {
   topics: string[];
 }
 
+interface Deadline {
+  id: string;
+  event_name: string;
+  deadline: string;
+  daysRemaining: number;
+}
+
+interface ActivityItem {
+  id: string;
+  activity_type: string;
+  created_at: string;
+  subject?: string | null;
+  notes?: string | null;
+}
+
+interface CalendarEntry {
+  id: string;
+  title: string;
+  start_date: string;
+  start_time?: string | null;
+  location?: string | null;
+  is_virtual?: boolean;
+  entry_type: string;
+}
+
+interface Stats {
+  today: number;
+  week: number;
+  applied: number;
+  accepted: number;
+}
+
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [deadlines, setDeadlines] = useState<Deadline[]>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [calendarEntries, setCalendarEntries] = useState<CalendarEntry[]>([]);
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [stats, setStats] = useState({ today: 0, week: 0, applied: 0 });
+  const [stats, setStats] = useState<Stats>({ today: 0, week: 0, applied: 0, accepted: 0 });
   const navigate = useNavigate();
 
-  const loadOpportunities = async (userId: string) => {
+  const loadDashboardData = useCallback(async (userId: string) => {
     try {
-      // Fetch ranked opportunities with topics
-      const { data: scores, error } = await supabase
-        .from('opportunity_scores')
-        .select(`
-          ai_score,
-          ai_reason,
-          opportunities (
-            id,
-            event_name,
-            organizer_name,
-            organizer_email,
-            description,
-            deadline,
-            fee_estimate_min,
-            fee_estimate_max,
-            event_date,
-            location,
-            audience_size,
-            event_url,
-            opportunity_topics (
-              topics (
-                name
+      // Load all data in parallel
+      const [scoresResult, deadlinesResult, activitiesResult, calendarResult] = await Promise.all([
+        // Fetch opportunity scores with opportunities
+        supabase
+          .from('opportunity_scores')
+          .select(`
+            ai_score,
+            ai_reason,
+            pipeline_stage,
+            calculated_at,
+            opportunities (
+              id,
+              event_name,
+              organizer_name,
+              organizer_email,
+              description,
+              deadline,
+              fee_estimate_min,
+              fee_estimate_max,
+              event_date,
+              location,
+              audience_size,
+              event_url,
+              opportunity_topics (
+                topics (
+                  name
+                )
               )
             )
-          )
-        `)
-        .eq('user_id', userId)
-        .order('ai_score', { ascending: false })
-        .limit(10);
+          `)
+          .eq('user_id', userId)
+          .order('ai_score', { ascending: false })
+          .limit(10),
+        
+        // Fetch upcoming deadlines (next 14 days)
+        supabase
+          .from('opportunities')
+          .select('id, event_name, deadline')
+          .gte('deadline', new Date().toISOString())
+          .lte('deadline', new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString())
+          .order('deadline', { ascending: true })
+          .limit(10),
+        
+        // Fetch recent activities
+        supabase
+          .from('outreach_activities')
+          .select('id, activity_type, created_at, subject, notes')
+          .eq('speaker_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(5),
+        
+        // Fetch upcoming calendar entries
+        supabase
+          .from('speaker_calendar')
+          .select('id, title, start_date, start_time, location, is_virtual, entry_type')
+          .eq('speaker_id', userId)
+          .gte('start_date', new Date().toISOString().split('T')[0])
+          .order('start_date', { ascending: true })
+          .limit(3)
+      ]);
 
-      if (error) throw error;
-
-      if (!scores || scores.length === 0) {
+      // Process opportunities
+      if (scoresResult.error) throw scoresResult.error;
+      
+      const scores = scoresResult.data || [];
+      
+      if (scores.length === 0) {
         // No scores yet, trigger ranking
         toast.info("Finding opportunities for you...");
         const { data: rankData, error: rankError } = await supabase.functions.invoke('rank-opportunities');
@@ -78,7 +150,6 @@ const Dashboard = () => {
         if (rankError || rankData?.error) {
           const errorMsg = rankError?.message || rankData?.message || '';
           
-          // Check if error is due to incomplete profile
           if (errorMsg.includes('No topics selected') || errorMsg.includes('complete your profile')) {
             toast.error('Please complete your profile with speaking topics first', {
               action: {
@@ -95,8 +166,7 @@ const Dashboard = () => {
           return;
         }
         
-        // Retry after ranking
-        setTimeout(() => loadOpportunities(userId), 3000);
+        setTimeout(() => loadDashboardData(userId), 3000);
         return;
       }
 
@@ -122,33 +192,71 @@ const Dashboard = () => {
 
       // Calculate stats
       const now = new Date();
-      const today = formattedOpps.filter(o => {
-        if (!o.deadline) return false;
-        const deadline = new Date(o.deadline);
-        return deadline.toDateString() === now.toDateString();
-      }).length;
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-      const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-      const week = formattedOpps.filter(o => {
-        if (!o.deadline) return false;
-        const deadline = new Date(o.deadline);
-        return deadline <= weekFromNow;
-      }).length;
+      const todayCount = scores.filter((s: any) => 
+        new Date(s.calculated_at) >= todayStart
+      ).length;
 
-      // Get applied count
-      const { data: appliedData } = await supabase
-        .from('applied_logs')
-        .select('id')
-        .eq('user_id', userId);
+      const weekCount = scores.filter((s: any) => 
+        new Date(s.calculated_at) >= weekAgo
+      ).length;
 
-      setStats({
-        today,
-        week,
-        applied: appliedData?.length || 0
-      });
+      const appliedCount = scores.filter((s: any) => 
+        s.pipeline_stage === 'applied'
+      ).length;
+
+      const acceptedCount = scores.filter((s: any) => 
+        s.pipeline_stage === 'accepted'
+      ).length;
+
+      setStats({ today: todayCount, week: weekCount, applied: appliedCount, accepted: acceptedCount });
+
+      // Process deadlines
+      if (!deadlinesResult.error && deadlinesResult.data) {
+        const formattedDeadlines: Deadline[] = deadlinesResult.data.map((d: any) => ({
+          id: d.id,
+          event_name: d.event_name,
+          deadline: d.deadline,
+          daysRemaining: Math.ceil((new Date(d.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        }));
+        setDeadlines(formattedDeadlines);
+      }
+
+      // Process activities
+      if (!activitiesResult.error && activitiesResult.data) {
+        setActivities(activitiesResult.data);
+      }
+
+      // Process calendar entries
+      if (!calendarResult.error && calendarResult.data) {
+        setCalendarEntries(calendarResult.data);
+      }
 
     } catch (error) {
-      console.error('Load opportunities error:', error);
+      console.error('Load dashboard error:', error);
+      toast.error('Failed to load dashboard data');
+    }
+  }, [navigate]);
+
+  const handleRefreshOpportunities = async () => {
+    if (!user) return;
+    
+    setRefreshing(true);
+    try {
+      const { error } = await supabase.functions.invoke('rank-opportunities');
+      if (error) throw error;
+      
+      toast.success('Refreshing opportunities...');
+      setTimeout(() => {
+        loadDashboardData(user.id);
+        setRefreshing(false);
+      }, 3000);
+    } catch (error) {
+      console.error('Refresh error:', error);
+      toast.error('Failed to refresh opportunities');
+      setRefreshing(false);
     }
   };
 
@@ -162,7 +270,7 @@ const Dashboard = () => {
       }
       
       setUser(session.user);
-      await loadOpportunities(session.user.id);
+      await loadDashboardData(session.user.id);
       setLoading(false);
     };
 
@@ -177,24 +285,7 @@ const Dashboard = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const formatDeadline = (deadline: string | null) => {
-    if (!deadline) return "No deadline";
-    const days = Math.ceil((new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-    if (days < 0) return "Passed";
-    if (days === 0) return "Today";
-    if (days === 1) return "Tomorrow";
-    if (days < 7) return `${days} days`;
-    if (days < 30) return `${Math.floor(days / 7)} weeks`;
-    return `${Math.floor(days / 30)} months`;
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "bg-green-500";
-    if (score >= 60) return "bg-yellow-500";
-    return "bg-muted";
-  };
+  }, [navigate, loadDashboardData]);
 
   const handleViewDetails = (opp: Opportunity) => {
     setSelectedOpp(opp);
@@ -202,7 +293,7 @@ const Dashboard = () => {
   };
 
   if (loading) {
-    return null; // AppLayout handles loading state
+    return null;
   }
 
   return (
@@ -215,97 +306,38 @@ const Dashboard = () => {
           </p>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid md:grid-cols-3 gap-4">
-          <Card className="p-5">
-            <div className="text-sm text-muted-foreground mb-1">Today's Opportunities</div>
-            <div className="text-3xl font-bold">{stats.today}</div>
-          </Card>
-          <Card className="p-5">
-            <div className="text-sm text-muted-foreground mb-1">This Week</div>
-            <div className="text-3xl font-bold">{stats.week}</div>
-          </Card>
-          <Card className="p-5">
-            <div className="text-sm text-muted-foreground mb-1">Applied</div>
-            <div className="text-3xl font-bold">{stats.applied}</div>
-          </Card>
-        </div>
+        {/* Stats Row */}
+        <DashboardStats
+          todayCount={stats.today}
+          weekCount={stats.week}
+          appliedCount={stats.applied}
+          acceptedCount={stats.accepted}
+        />
 
-        {/* Opportunities List */}
-        <Card className="p-5">
-          <h2 className="text-xl font-semibold mb-4">Top Opportunities</h2>
-          {opportunities.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Mic className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="mb-2">No opportunities yet</p>
-              <p className="text-sm">
-                Complete your profile to start receiving personalized speaking gigs
-              </p>
-              <Button 
-                className="mt-4 bg-violet-600 hover:bg-violet-700"
-                onClick={() => navigate("/profile")}
-              >
-                Complete Profile
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {opportunities.map((opp) => (
-                <Card key={opp.id} className="p-4 hover:border-violet-300 transition-colors cursor-pointer" onClick={() => handleViewDetails(opp)}>
-                  <div className="flex items-start gap-4">
-                    <div className={`w-14 h-14 rounded-lg ${getScoreColor(opp.ai_score)} flex items-center justify-center flex-shrink-0`}>
-                      <span className="text-xl font-bold text-white">{opp.ai_score}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div>
-                          <h3 className="font-semibold">{opp.event_name}</h3>
-                          {opp.organizer_name && (
-                            <p className="text-sm text-muted-foreground">{opp.organizer_name}</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {opp.topics.map((topic, i) => (
-                          <Badge key={i} variant="secondary">{topic}</Badge>
-                        ))}
-                      </div>
-                      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                        {opp.deadline && (
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            {formatDeadline(opp.deadline)}
-                          </div>
-                        )}
-                        {opp.fee_estimate_min && opp.fee_estimate_max && (
-                          <div className="flex items-center gap-1">
-                            <DollarSign className="h-4 w-4" />
-                            ${opp.fee_estimate_min.toLocaleString()} - ${opp.fee_estimate_max.toLocaleString()}
-                          </div>
-                        )}
-                        {opp.location && (
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-4 w-4" />
-                            {opp.location}
-                          </div>
-                        )}
-                      </div>
-                      <div className="mt-3 flex gap-2">
-                        <Button size="sm" className="bg-violet-600 hover:bg-violet-700" onClick={(e) => { e.stopPropagation(); handleViewDetails(opp); }}>
-                          View Details
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleViewDetails(opp); }}>
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          Generate Pitch
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-        </Card>
+        {/* Quick Actions */}
+        <QuickActions 
+          onRefreshOpportunities={handleRefreshOpportunities}
+          isRefreshing={refreshing}
+        />
+
+        {/* Main Grid */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Left Column - Top Opportunities */}
+          <div className="lg:col-span-2">
+            <TopOpportunities
+              opportunities={opportunities}
+              onViewDetails={handleViewDetails}
+              loading={loading}
+            />
+          </div>
+
+          {/* Right Column - Widgets */}
+          <div className="space-y-6">
+            <UpcomingDeadlines deadlines={deadlines} />
+            <RecentActivity activities={activities} />
+            <CalendarWidget entries={calendarEntries} />
+          </div>
+        </div>
       </div>
 
       <OpportunityModal
@@ -313,7 +345,7 @@ const Dashboard = () => {
         open={modalOpen}
         onOpenChange={setModalOpen}
         onApplied={() => {
-          if (user) loadOpportunities(user.id);
+          if (user) loadDashboardData(user.id);
         }}
       />
     </AppLayout>
