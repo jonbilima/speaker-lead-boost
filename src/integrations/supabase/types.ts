@@ -272,6 +272,97 @@ export type Database = {
         }
         Relationships: []
       }
+      email_digest_logs: {
+        Row: {
+          clicked_at: string | null
+          created_at: string
+          email_id: string | null
+          id: string
+          opened_at: string | null
+          sent_at: string
+          speaker_id: string
+        }
+        Insert: {
+          clicked_at?: string | null
+          created_at?: string
+          email_id?: string | null
+          id?: string
+          opened_at?: string | null
+          sent_at?: string
+          speaker_id: string
+        }
+        Update: {
+          clicked_at?: string | null
+          created_at?: string
+          email_id?: string | null
+          id?: string
+          opened_at?: string | null
+          sent_at?: string
+          speaker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_digest_logs_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_digest_preferences: {
+        Row: {
+          created_at: string
+          id: string
+          include_deadlines: boolean
+          include_follow_ups: boolean
+          include_market_insights: boolean
+          include_new_matches: boolean
+          include_pipeline_summary: boolean
+          is_enabled: boolean
+          send_day: string
+          send_time: string
+          speaker_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          include_deadlines?: boolean
+          include_follow_ups?: boolean
+          include_market_insights?: boolean
+          include_new_matches?: boolean
+          include_pipeline_summary?: boolean
+          is_enabled?: boolean
+          send_day?: string
+          send_time?: string
+          speaker_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          include_deadlines?: boolean
+          include_follow_ups?: boolean
+          include_market_insights?: boolean
+          include_new_matches?: boolean
+          include_pipeline_summary?: boolean
+          is_enabled?: boolean
+          send_day?: string
+          send_time?: string
+          speaker_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_digest_preferences_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_templates: {
         Row: {
           body_template: string
