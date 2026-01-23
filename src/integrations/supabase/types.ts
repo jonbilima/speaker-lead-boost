@@ -142,6 +142,82 @@ export type Database = {
           },
         ]
       }
+      coach_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          is_favorite: boolean
+          messages: Json
+          mode: string | null
+          speaker_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          messages?: Json
+          mode?: string | null
+          speaker_id: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          messages?: Json
+          mode?: string | null
+          speaker_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_conversations_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coach_usage: {
+        Row: {
+          created_at: string
+          id: string
+          message_count: number
+          speaker_id: string
+          updated_at: string
+          year_month: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_count?: number
+          speaker_id: string
+          updated_at?: string
+          year_month: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_count?: number
+          speaker_id?: string
+          updated_at?: string
+          year_month?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_usage_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       confirmed_bookings: {
         Row: {
           amount_paid: number
