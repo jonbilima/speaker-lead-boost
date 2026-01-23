@@ -395,8 +395,11 @@ export default function PackageView() {
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-12 text-sm text-muted-foreground">
+        <div className="text-center mt-12 text-sm text-muted-foreground space-y-2">
           <p>Powered by NextMic</p>
+          <p className="text-xs opacity-75">
+            Anonymous analytics (device type, page views) are collected to improve this service.
+          </p>
         </div>
       </div>
     </div>
