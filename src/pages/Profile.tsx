@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
 import { EmailSettingsSection } from "@/components/settings/EmailSettingsSection";
 import { InvoiceSettingsSection } from "@/components/settings/InvoiceSettingsSection";
+import { ConnectedAccountsSection } from "@/components/settings/ConnectedAccountsSection";
 
 const Profile = () => {
   const [loading, setLoading] = useState(true);
@@ -355,6 +356,9 @@ const Profile = () => {
             </form>
           </CardContent>
         </Card>
+
+        {/* Connected Accounts */}
+        <ConnectedAccountsSection />
 
         {/* Email Settings */}
         {userId && <EmailSettingsSection userId={userId} />}
