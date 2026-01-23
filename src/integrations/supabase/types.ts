@@ -272,6 +272,59 @@ export type Database = {
         }
         Relationships: []
       }
+      email_templates: {
+        Row: {
+          body_template: string
+          category: string
+          created_at: string
+          id: string
+          is_default: boolean | null
+          last_used_at: string | null
+          name: string
+          speaker_id: string
+          subject_template: string
+          times_used: number | null
+          updated_at: string
+          variables: string[] | null
+        }
+        Insert: {
+          body_template: string
+          category?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          last_used_at?: string | null
+          name: string
+          speaker_id: string
+          subject_template: string
+          times_used?: number | null
+          updated_at?: string
+          variables?: string[] | null
+        }
+        Update: {
+          body_template?: string
+          category?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          last_used_at?: string | null
+          name?: string
+          speaker_id?: string
+          subject_template?: string
+          times_used?: number | null
+          updated_at?: string
+          variables?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_templates_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fee_benchmarks: {
         Row: {
           audience_size_bucket: string | null
