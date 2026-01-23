@@ -4,10 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, User, Sparkles, Calendar, DollarSign, MapPin, Mic } from "lucide-react";
+import { Sparkles, Calendar, DollarSign, MapPin, Mic } from "lucide-react";
 import { toast } from "sonner";
 import { OpportunityModal } from "@/components/OpportunityModal";
-import { Logo } from "@/components/Logo";
+import { AppLayout } from "@/components/AppLayout";
 
 interface Opportunity {
   id: string;
@@ -179,12 +179,6 @@ const Dashboard = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    toast.success("Signed out successfully");
-    navigate("/");
-  };
-
   const formatDeadline = (deadline: string | null) => {
     if (!deadline) return "No deadline";
     const days = Math.ceil((new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
@@ -208,61 +202,37 @@ const Dashboard = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
-      </div>
-    );
+    return null; // AppLayout handles loading state
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary">
-      {/* Header */}
-      <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center">
-            <Logo size="md" />
-          </div>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/profile")}>
-              <User className="h-4 w-4 mr-2" />
-              Profile
-            </Button>
-            <Button variant="ghost" size="sm" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Welcome back! 👋</h1>
+    <AppLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">Welcome back! 👋</h1>
           <p className="text-muted-foreground">
             Your speaking opportunities dashboard
           </p>
         </div>
 
         {/* Quick Stats */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <Card className="p-6">
+        <div className="grid md:grid-cols-3 gap-4">
+          <Card className="p-5">
             <div className="text-sm text-muted-foreground mb-1">Today's Opportunities</div>
             <div className="text-3xl font-bold">{stats.today}</div>
           </Card>
-          <Card className="p-6">
+          <Card className="p-5">
             <div className="text-sm text-muted-foreground mb-1">This Week</div>
             <div className="text-3xl font-bold">{stats.week}</div>
           </Card>
-          <Card className="p-6">
+          <Card className="p-5">
             <div className="text-sm text-muted-foreground mb-1">Applied</div>
             <div className="text-3xl font-bold">{stats.applied}</div>
           </Card>
         </div>
 
         {/* Opportunities List */}
-        <Card className="p-6">
+        <Card className="p-5">
           <h2 className="text-xl font-semibold mb-4">Top Opportunities</h2>
           {opportunities.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
@@ -272,7 +242,7 @@ const Dashboard = () => {
                 Complete your profile to start receiving personalized speaking gigs
               </p>
               <Button 
-                className="mt-4 bg-gradient-to-r from-accent to-primary"
+                className="mt-4 bg-violet-600 hover:bg-violet-700"
                 onClick={() => navigate("/profile")}
               >
                 Complete Profile
@@ -281,15 +251,15 @@ const Dashboard = () => {
           ) : (
             <div className="space-y-4">
               {opportunities.map((opp) => (
-                <Card key={opp.id} className="p-4 hover:border-primary transition-colors cursor-pointer" onClick={() => handleViewDetails(opp)}>
+                <Card key={opp.id} className="p-4 hover:border-violet-300 transition-colors cursor-pointer" onClick={() => handleViewDetails(opp)}>
                   <div className="flex items-start gap-4">
-                    <div className={`w-16 h-16 rounded-lg ${getScoreColor(opp.ai_score)} flex items-center justify-center flex-shrink-0`}>
-                      <span className="text-2xl font-bold text-white">{opp.ai_score}</span>
+                    <div className={`w-14 h-14 rounded-lg ${getScoreColor(opp.ai_score)} flex items-center justify-center flex-shrink-0`}>
+                      <span className="text-xl font-bold text-white">{opp.ai_score}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div>
-                          <h3 className="font-semibold text-lg">{opp.event_name}</h3>
+                          <h3 className="font-semibold">{opp.event_name}</h3>
                           {opp.organizer_name && (
                             <p className="text-sm text-muted-foreground">{opp.organizer_name}</p>
                           )}
@@ -321,7 +291,7 @@ const Dashboard = () => {
                         )}
                       </div>
                       <div className="mt-3 flex gap-2">
-                        <Button size="sm" variant="default" onClick={(e) => { e.stopPropagation(); handleViewDetails(opp); }}>
+                        <Button size="sm" className="bg-violet-600 hover:bg-violet-700" onClick={(e) => { e.stopPropagation(); handleViewDetails(opp); }}>
                           View Details
                         </Button>
                         <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleViewDetails(opp); }}>
@@ -336,7 +306,7 @@ const Dashboard = () => {
             </div>
           )}
         </Card>
-      </main>
+      </div>
 
       <OpportunityModal
         opportunity={selectedOpp}
@@ -346,7 +316,7 @@ const Dashboard = () => {
           if (user) loadOpportunities(user.id);
         }}
       />
-    </div>
+    </AppLayout>
   );
 };
 

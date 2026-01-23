@@ -6,9 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { Logo } from "@/components/Logo";
+import { AppLayout } from "@/components/AppLayout";
 
 const Profile = () => {
   const [loading, setLoading] = useState(true);
@@ -155,30 +154,14 @@ const Profile = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
-      </div>
-    );
+    return null; // AppLayout handles loading state
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary">
-      <header className="border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <div className="flex items-center">
-            <Logo size="md" />
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8 max-w-3xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Speaker Profile</h1>
+    <AppLayout>
+      <div className="max-w-3xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">Speaker Profile</h1>
           <p className="text-muted-foreground">
             Tell us about yourself to get better opportunities
           </p>
@@ -236,8 +219,8 @@ const Profile = () => {
                       onClick={() => handleTopicToggle(topic.id)}
                       className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
                         formData.selectedTopics.includes(topic.id)
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-background border border-border hover:bg-muted'
+                          ? 'bg-violet-600 text-white'
+                          : 'bg-background border border-border hover:bg-violet-50'
                       }`}
                     >
                       {topic.name}
@@ -305,7 +288,7 @@ const Profile = () => {
 
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-to-r from-accent to-primary"
+                className="w-full bg-violet-600 hover:bg-violet-700"
                 disabled={saving || formData.selectedTopics.length === 0}
               >
                 {saving ? "Saving..." : "Save Profile & Find Opportunities"}
@@ -313,8 +296,8 @@ const Profile = () => {
             </form>
           </CardContent>
         </Card>
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   );
 };
 
