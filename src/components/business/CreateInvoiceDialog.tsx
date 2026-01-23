@@ -10,6 +10,7 @@ import { Plus, Trash2, FileText, Send, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
+import { useEmailSender } from "@/hooks/useEmailSender";
 
 interface CreateInvoiceDialogProps {
   open: boolean;
@@ -34,6 +35,7 @@ const PRESET_ITEMS = [
 ];
 
 export function CreateInvoiceDialog({ open, onOpenChange, userId, onSuccess }: CreateInvoiceDialogProps) {
+  const { sendEmail, isSending: emailSending } = useEmailSender();
   const [saving, setSaving] = useState(false);
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { id: crypto.randomUUID(), description: "Speaking Fee", quantity: 1, rate: 0, amount: 0 }
@@ -119,10 +121,25 @@ export function CreateInvoiceDialog({ open, onOpenChange, userId, onSuccess }: C
 
     setSaving(true);
     try {
+      // Get contact email if sending
+      let contactEmail = null;
+      if (send && selectedContactId) {
+        const selectedContact = contacts.find(c => c.id === selectedContactId);
+        if (selectedContact) {
+          const { data: contactData } = await supabase
+            .from("contacts")
+            .select("email, name")
+            .eq("id", selectedContactId)
+            .single();
+          contactEmail = contactData?.email;
+        }
+      }
+
+      const invoiceNumber = generateInvoiceNumber();
       const invoiceData: any = {
         speaker_id: userId,
         contact_id: selectedContactId || null,
-        invoice_number: generateInvoiceNumber(),
+        invoice_number: invoiceNumber,
         status: send ? "sent" : "draft",
         issue_date: new Date().toISOString().split("T")[0],
         due_date: dueDate,
@@ -136,11 +153,27 @@ export function CreateInvoiceDialog({ open, onOpenChange, userId, onSuccess }: C
         sent_at: send ? new Date().toISOString() : null,
       };
 
-      const { error } = await supabase
+      const { data: newInvoice, error } = await supabase
         .from("invoices")
-        .insert(invoiceData);
+        .insert(invoiceData)
+        .select("id")
+        .single();
 
       if (error) throw error;
+
+      // Send email if requested and contact has email
+      if (send && contactEmail) {
+        const selectedContact = contacts.find(c => c.id === selectedContactId);
+        const invoiceHtml = generateInvoiceEmailBody(invoiceNumber, selectedContact?.name || "Client", total, dueDate);
+        
+        await sendEmail({
+          to: contactEmail,
+          subject: `Invoice ${invoiceNumber} from NextMic`,
+          body: invoiceHtml,
+          relatedType: "invoice",
+          relatedId: newInvoice?.id,
+        });
+      }
 
       toast.success(send ? "Invoice sent!" : "Invoice saved as draft");
       onSuccess();
@@ -159,6 +192,16 @@ export function CreateInvoiceDialog({ open, onOpenChange, userId, onSuccess }: C
     } finally {
       setSaving(false);
     }
+  };
+
+  const generateInvoiceEmailBody = (invoiceNum: string, clientName: string, amount: number, due: string) => {
+    return `Dear ${clientName},
+
+Please find attached Invoice ${invoiceNum} for ${formatCurrency(amount)}.
+
+Payment is due by ${format(new Date(due), "MMMM d, yyyy")}.
+
+${paymentInstructions ? `Payment Instructions:\n${paymentInstructions}\n\n` : ""}${notes ? `Notes:\n${notes}\n\n` : ""}Thank you for your business!`;
   };
 
   const formatCurrency = (amount: number) => {
@@ -335,13 +378,13 @@ export function CreateInvoiceDialog({ open, onOpenChange, userId, onSuccess }: C
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
+          <Button variant="outline" onClick={() => handleSave(false)} disabled={saving || emailSending}>
             <Save className="h-4 w-4 mr-2" />
             Save Draft
           </Button>
-          <Button onClick={() => handleSave(true)} disabled={saving}>
+          <Button onClick={() => handleSave(true)} disabled={saving || emailSending}>
             <Send className="h-4 w-4 mr-2" />
-            Send Invoice
+            {emailSending ? "Sending..." : "Send Invoice"}
           </Button>
         </DialogFooter>
       </DialogContent>
