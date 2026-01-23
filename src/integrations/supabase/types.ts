@@ -1235,6 +1235,77 @@ export type Database = {
           },
         ]
       }
+      testimonials: {
+        Row: {
+          author_company: string | null
+          author_email: string | null
+          author_name: string
+          author_photo_url: string | null
+          author_title: string | null
+          created_at: string
+          event_date: string | null
+          event_name: string | null
+          id: string
+          is_featured: boolean | null
+          quote: string
+          rating: number | null
+          received_at: string | null
+          request_opened_at: string | null
+          request_sent_at: string | null
+          request_token: string | null
+          source: string
+          speaker_id: string
+        }
+        Insert: {
+          author_company?: string | null
+          author_email?: string | null
+          author_name: string
+          author_photo_url?: string | null
+          author_title?: string | null
+          created_at?: string
+          event_date?: string | null
+          event_name?: string | null
+          id?: string
+          is_featured?: boolean | null
+          quote: string
+          rating?: number | null
+          received_at?: string | null
+          request_opened_at?: string | null
+          request_sent_at?: string | null
+          request_token?: string | null
+          source?: string
+          speaker_id: string
+        }
+        Update: {
+          author_company?: string | null
+          author_email?: string | null
+          author_name?: string
+          author_photo_url?: string | null
+          author_title?: string | null
+          created_at?: string
+          event_date?: string | null
+          event_name?: string | null
+          id?: string
+          is_featured?: boolean | null
+          quote?: string
+          rating?: number | null
+          received_at?: string | null
+          request_opened_at?: string | null
+          request_sent_at?: string | null
+          request_token?: string | null
+          source?: string
+          speaker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "testimonials_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       topics: {
         Row: {
           category: string | null
