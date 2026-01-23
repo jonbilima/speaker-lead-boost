@@ -1636,6 +1636,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_public_testimonial: {
+        Args: { p_token: string }
+        Returns: {
+          author_company: string
+          author_name: string
+          author_photo_url: string
+          author_title: string
+          event_date: string
+          event_name: string
+          id: string
+          quote: string
+          rating: number
+          speaker_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -7,22 +7,22 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.scrape-sessionize]
-verify_jwt = false
+verify_jwt = true
 
 [functions.scrape-eventbrite]
-verify_jwt = false
+verify_jwt = true
 
 [functions.extract-opportunity-topics]
-verify_jwt = false
+verify_jwt = true
 
 [functions.scrape-test]
-verify_jwt = false
+verify_jwt = true
 
 [functions.scrape-papercall]
-verify_jwt = false
+verify_jwt = true
 
 [functions.scrape-with-apify]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-followup]
 verify_jwt = true
