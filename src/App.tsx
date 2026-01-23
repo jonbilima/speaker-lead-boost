@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -10,11 +10,8 @@ import Profile from "./pages/Profile";
 import Pipeline from "./pages/Pipeline";
 import CalendarPage from "./pages/CalendarPage";
 import Assets from "./pages/Assets";
-import Intelligence from "./pages/Intelligence";
-import Revenue from "./pages/Revenue";
 import Coach from "./pages/Coach";
 import Templates from "./pages/Templates";
-import Leads from "./pages/Leads";
 import Topics from "./pages/Topics";
 import Find from "./pages/Find";
 import Business from "./pages/Business";
@@ -40,11 +37,8 @@ const App = () => (
           <Route path="/pipeline" element={<Pipeline />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/assets" element={<Assets />} />
-          <Route path="/intelligence" element={<Intelligence />} />
-          <Route path="/revenue" element={<Revenue />} />
           <Route path="/coach" element={<Coach />} />
           <Route path="/templates" element={<Templates />} />
-          <Route path="/leads" element={<Leads />} />
           <Route path="/topics" element={<Topics />} />
           <Route path="/find" element={<Find />} />
           <Route path="/business" element={<Business />} />
@@ -52,6 +46,12 @@ const App = () => (
           <Route path="/testimonial/:token" element={<TestimonialSubmit />} />
           <Route path="/admin/scraping" element={<AdminScraping />} />
           <Route path="/p/:trackingCode" element={<PackageView />} />
+          
+          {/* Redirects for legacy routes */}
+          <Route path="/intelligence" element={<Navigate to="/find" replace />} />
+          <Route path="/leads" element={<Navigate to="/business" replace />} />
+          <Route path="/revenue" element={<Navigate to="/business" replace />} />
+          
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
