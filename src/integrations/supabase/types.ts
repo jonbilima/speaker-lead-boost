@@ -1458,6 +1458,88 @@ export type Database = {
           },
         ]
       }
+      watched_speaker_bookings: {
+        Row: {
+          discovered_at: string
+          event_date: string | null
+          event_name: string
+          id: string
+          organization_name: string | null
+          source_url: string | null
+          watched_speaker_id: string
+        }
+        Insert: {
+          discovered_at?: string
+          event_date?: string | null
+          event_name: string
+          id?: string
+          organization_name?: string | null
+          source_url?: string | null
+          watched_speaker_id: string
+        }
+        Update: {
+          discovered_at?: string
+          event_date?: string | null
+          event_name?: string
+          id?: string
+          organization_name?: string | null
+          source_url?: string | null
+          watched_speaker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watched_speaker_bookings_watched_speaker_id_fkey"
+            columns: ["watched_speaker_id"]
+            isOneToOne: false
+            referencedRelation: "watched_speakers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      watched_speakers: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          speaker_id: string
+          watched_linkedin_url: string | null
+          watched_name: string
+          watched_topics: string[] | null
+          watched_website: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          speaker_id: string
+          watched_linkedin_url?: string | null
+          watched_name: string
+          watched_topics?: string[] | null
+          watched_website?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          speaker_id?: string
+          watched_linkedin_url?: string | null
+          watched_name?: string
+          watched_topics?: string[] | null
+          watched_website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watched_speakers_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
