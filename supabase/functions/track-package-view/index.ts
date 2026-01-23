@@ -6,6 +6,23 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Hash IP address for privacy (one-way hash)
+async function hashIp(ip: string): Promise<string> {
+  const salt = "nextmic-analytics-v1"; // Static salt for consistent hashing
+  const data = new TextEncoder().encode(ip + salt);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
+}
+
+// Extract device type from user agent (no fingerprinting)
+function getDeviceType(userAgent: string | null): string {
+  if (!userAgent) return "unknown";
+  if (/mobile/i.test(userAgent)) return "mobile";
+  if (/tablet|ipad/i.test(userAgent)) return "tablet";
+  return "desktop";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -27,17 +44,23 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get viewer info from headers
-    const userAgent = req.headers.get("user-agent") || null;
+    // Privacy-preserving analytics
+    const userAgent = req.headers.get("user-agent");
     const forwardedFor = req.headers.get("x-forwarded-for");
-    const viewerIp = forwardedFor ? forwardedFor.split(",")[0].trim() : null;
+    const rawIp = forwardedFor ? forwardedFor.split(",")[0].trim() : null;
+    
+    // Hash IP instead of storing raw (for deduplication only)
+    const hashedIp = rawIp ? await hashIp(rawIp) : null;
+    
+    // Store device type instead of full user agent (privacy-preserving)
+    const deviceType = getDeviceType(userAgent);
 
-    // Insert the view event
+    // Insert the view event with anonymized data
     const { error } = await supabase.from("package_views").insert({
       package_id: packageId,
       event_type: eventType,
-      viewer_ip: viewerIp,
-      user_agent: userAgent,
+      viewer_ip: hashedIp, // Hashed, not raw IP
+      user_agent: deviceType, // Device type only, not full UA
     });
 
     if (error) {

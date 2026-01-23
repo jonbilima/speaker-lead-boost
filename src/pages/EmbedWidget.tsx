@@ -116,30 +116,46 @@ const EmbedWidget = () => {
     e.preventDefault();
     if (!speaker) return;
 
-    setSubmitting(true);
-
-    const { error } = await supabase.from("inbound_leads").insert({
-      speaker_id: speaker.id,
-      name: formData.name,
-      email: formData.email,
-      company: formData.company || null,
-      event_name: formData.event_name || null,
-      event_type: formData.event_type || null,
-      event_date: formData.event_date || null,
-      estimated_audience: formData.estimated_audience || null,
-      budget_range: formData.budget_range || null,
-      message: formData.message || null,
-      source: "widget",
-    });
-
-    setSubmitting(false);
-
-    if (error) {
-      toast.error("Failed to submit inquiry. Please try again.");
+    // Client-side validation
+    if (!formData.name.trim()) {
+      toast.error("Please enter your name");
+      return;
+    }
+    
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!formData.email.trim() || !emailRegex.test(formData.email)) {
+      toast.error("Please enter a valid email address");
       return;
     }
 
-    setSubmitted(true);
+    setSubmitting(true);
+
+    try {
+      // Use secure edge function for lead submission
+      const { data, error } = await supabase.functions.invoke("submit-lead", {
+        body: {
+          speaker_id: speaker.id,
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          company: formData.company?.trim() || null,
+          event_name: formData.event_name?.trim() || null,
+          event_type: formData.event_type || null,
+          event_date: formData.event_date || null,
+          estimated_audience: formData.estimated_audience?.trim() || null,
+          budget_range: formData.budget_range || null,
+          message: formData.message?.trim() || null,
+        },
+      });
+
+      if (error) throw error;
+
+      setSubmitted(true);
+    } catch (error: any) {
+      console.error("Submit error:", error);
+      toast.error(error.message || "Failed to submit inquiry. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const renderMiniCalendar = () => {

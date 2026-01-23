@@ -91,8 +91,29 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    // Check usage limits
+    // Per-request rate limiting (prevent rapid-fire requests)
     const yearMonth = new Date().toISOString().slice(0, 7);
+    
+    // Check last conversation update to enforce cooldown
+    const { data: lastConversation } = await supabase
+      .from("coach_conversations")
+      .select("updated_at")
+      .eq("speaker_id", user.id)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (lastConversation) {
+      const secondsSinceLastRequest = (Date.now() - new Date(lastConversation.updated_at).getTime()) / 1000;
+      if (secondsSinceLastRequest < 2) {
+        return new Response(
+          JSON.stringify({ error: "Please wait a moment before sending another message." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // Check monthly usage limits
     const { data: usage } = await supabase
       .from("coach_usage")
       .select("message_count")

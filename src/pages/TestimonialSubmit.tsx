@@ -95,28 +95,40 @@ export default function TestimonialSubmit() {
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !request) return;
+    if (!file || !token) return;
+
+    // Client-side validation
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Please upload a JPEG, PNG, or WebP image");
+      return;
+    }
+    
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      toast.error("Image must be under 5MB");
+      return;
+    }
 
     setUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${request.speaker_id}/testimonials/public-${Date.now()}.${fileExt}`;
+      // Use secure edge function for upload
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("token", token);
 
-      const { error: uploadError } = await supabase.storage
-        .from('speaker-assets')
-        .upload(fileName, file);
+      const { data, error } = await supabase.functions.invoke("upload-testimonial-photo", {
+        body: formData,
+      });
 
-      if (uploadError) throw uploadError;
+      if (error) throw error;
+      if (!data?.url) throw new Error("No URL returned");
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('speaker-assets')
-        .getPublicUrl(fileName);
-
-      setAuthorPhotoUrl(publicUrl);
+      setAuthorPhotoUrl(data.url);
       toast.success("Photo uploaded!");
     } catch (error: any) {
       console.error('Upload error:', error);
-      toast.error("Failed to upload photo");
+      toast.error(error.message || "Failed to upload photo");
     } finally {
       setUploading(false);
     }

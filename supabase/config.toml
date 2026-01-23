@@ -35,3 +35,9 @@ verify_jwt = false
 
 [functions.ai-coach]
 verify_jwt = true
+
+[functions.upload-testimonial-photo]
+verify_jwt = false
+
+[functions.submit-lead]
+verify_jwt = false
