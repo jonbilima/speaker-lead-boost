@@ -6,9 +6,11 @@ import { MobileBottomNav } from "@/components/mobile/MobileBottomNav";
 import { FloatingActionButton } from "@/components/mobile/FloatingActionButton";
 import { PWAInstallPrompt } from "@/components/mobile/PWAInstallPrompt";
 import { ToolkitDrawer } from "@/components/toolkit/ToolkitDrawer";
+import { KeyboardShortcutsDialog } from "@/components/KeyboardShortcutsDialog";
 import { Button } from "@/components/ui/button";
 import { Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -18,6 +20,10 @@ export function AppLayout({ children }: AppLayoutProps) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [toolkitOpen, setToolkitOpen] = useState(false);
+
+  const { showHelp, setShowHelp } = useKeyboardShortcuts({
+    onOpenToolkit: () => setToolkitOpen(true),
+  });
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -103,6 +109,9 @@ export function AppLayout({ children }: AppLayoutProps) {
         
         {/* Toolkit Drawer */}
         <ToolkitDrawer open={toolkitOpen} onOpenChange={setToolkitOpen} />
+        
+        {/* Keyboard Shortcuts Help */}
+        <KeyboardShortcutsDialog open={showHelp} onOpenChange={setShowHelp} />
       </div>
     </SidebarProvider>
   );

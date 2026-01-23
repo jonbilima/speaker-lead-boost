@@ -2,8 +2,9 @@ import { Draggable } from "@hello-pangea/dnd";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, DollarSign, Clock, Building2 } from "lucide-react";
+import { Calendar, MapPin, DollarSign, Clock, Building2, Zap } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { FollowUpIndicator } from "./FollowUpIndicator";
 
 export interface PipelineOpportunity {
   id: string;
@@ -29,9 +30,10 @@ interface PipelineCardProps {
   index: number;
   onClick: () => void;
   onResearchOrganizer?: (organizerName: string, organizerEmail?: string | null) => void;
+  onOpenToolkit?: (context: any) => void;
 }
 
-export function PipelineCard({ opportunity, index, onClick, onResearchOrganizer }: PipelineCardProps) {
+export function PipelineCard({ opportunity, index, onClick, onResearchOrganizer, onOpenToolkit }: PipelineCardProps) {
   const getScoreColor = (score: number) => {
     if (score >= 80) return "bg-green-500 text-white";
     if (score >= 60) return "bg-yellow-500 text-white";
@@ -98,6 +100,17 @@ export function PipelineCard({ opportunity, index, onClick, onResearchOrganizer 
                   Research
                 </Button>
               )}
+            </div>
+          )}
+
+          {/* Follow-up Indicator for Applied stage */}
+          {opportunity.pipeline_stage === "pitched" && (
+            <div className="mb-2">
+              <FollowUpIndicator
+                matchId={opportunity.score_id}
+                pipelineStage={opportunity.pipeline_stage}
+                compact
+              />
             </div>
           )}
 
