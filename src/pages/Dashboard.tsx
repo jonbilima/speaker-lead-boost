@@ -13,6 +13,7 @@ import { TopOpportunities } from "@/components/dashboard/TopOpportunities";
 import { FollowUpsDue } from "@/components/dashboard/FollowUpsDue";
 import { FollowUpEmailDialog } from "@/components/dashboard/FollowUpEmailDialog";
 import { InboundLeadsWidget } from "@/components/dashboard/InboundLeadsWidget";
+import { OrganizerResearchSheet } from "@/components/organizer/OrganizerResearchSheet";
 import { useFollowUpReminders } from "@/hooks/useFollowUpReminders";
 
 interface Opportunity {
@@ -78,6 +79,8 @@ const Dashboard = () => {
   const [stats, setStats] = useState<Stats>({ today: 0, week: 0, applied: 0, accepted: 0 });
   const [followUpEmailOpen, setFollowUpEmailOpen] = useState(false);
   const [selectedFollowUp, setSelectedFollowUp] = useState<{ opportunityId: string; reminderType: string } | null>(null);
+  const [researchSheetOpen, setResearchSheetOpen] = useState(false);
+  const [researchOrganizer, setResearchOrganizer] = useState<{ name: string; email?: string | null } | null>(null);
   const navigate = useNavigate();
   
   const { reminders, refresh: refreshReminders } = useFollowUpReminders(user?.id || null);
@@ -300,6 +303,11 @@ const Dashboard = () => {
     setModalOpen(true);
   };
 
+  const handleResearchOrganizer = (organizerName: string, organizerEmail?: string | null) => {
+    setResearchOrganizer({ name: organizerName, email: organizerEmail });
+    setResearchSheetOpen(true);
+  };
+
   if (loading) {
     return null;
   }
@@ -335,6 +343,7 @@ const Dashboard = () => {
             <TopOpportunities
               opportunities={opportunities}
               onViewDetails={handleViewDetails}
+              onResearchOrganizer={handleResearchOrganizer}
               loading={loading}
             />
           </div>
@@ -356,6 +365,13 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      <OrganizerResearchSheet
+        open={researchSheetOpen}
+        onOpenChange={setResearchSheetOpen}
+        organizerName={researchOrganizer?.name || null}
+        organizerEmail={researchOrganizer?.email}
+      />
 
       <OpportunityModal
         opportunity={selectedOpp}
