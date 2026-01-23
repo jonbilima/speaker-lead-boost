@@ -10,6 +10,7 @@ import { PipelineColumn } from "@/components/pipeline/PipelineColumn";
 import { PipelineDetailModal } from "@/components/pipeline/PipelineDetailModal";
 import { PipelineOpportunity } from "@/components/pipeline/PipelineCard";
 import { createFollowUpReminders, getUserFollowUpIntervals } from "@/hooks/useFollowUpReminders";
+import { AcceptedBookingPrompt } from "@/components/pipeline/AcceptedBookingPrompt";
 
 const PIPELINE_STAGES = [
   { id: "new", label: "New", color: "border-gray-400", bgColor: "bg-gray-100" },
@@ -25,6 +26,13 @@ const Pipeline = () => {
   const [loading, setLoading] = useState(true);
   const [selectedOpp, setSelectedOpp] = useState<PipelineOpportunity | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [bookingPromptOpen, setBookingPromptOpen] = useState(false);
+  const [acceptedOpp, setAcceptedOpp] = useState<{
+    matchId: string;
+    eventName: string;
+    eventDate: string | null;
+    userId: string;
+  } | null>(null);
 
   const loadOpportunities = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -154,6 +162,20 @@ const Pipeline = () => {
             console.error("Error creating follow-up reminders:", reminderError);
           }
         }
+
+        // Prompt to add booking when moved to "accepted" stage
+        if (newStage === "accepted") {
+          const opp = opportunities.find((o) => o.score_id === draggableId);
+          if (opp) {
+            setAcceptedOpp({
+              matchId: draggableId,
+              eventName: opp.event_name,
+              eventDate: opp.event_date,
+              userId: session.user.id,
+            });
+            setBookingPromptOpen(true);
+          }
+        }
       }
       toast.success(`Moved to ${PIPELINE_STAGES.find((s) => s.id === newStage)?.label}`);
     }
@@ -254,6 +276,18 @@ const Pipeline = () => {
         onOpenChange={setModalOpen}
         onActivityLogged={loadOpportunities}
       />
+
+      {acceptedOpp && (
+        <AcceptedBookingPrompt
+          open={bookingPromptOpen}
+          onOpenChange={setBookingPromptOpen}
+          matchId={acceptedOpp.matchId}
+          eventName={acceptedOpp.eventName}
+          eventDate={acceptedOpp.eventDate}
+          userId={acceptedOpp.userId}
+          onSuccess={loadOpportunities}
+        />
+      )}
     </AppLayout>
   );
 };

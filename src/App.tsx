@@ -11,6 +11,7 @@ import Pipeline from "./pages/Pipeline";
 import CalendarPage from "./pages/CalendarPage";
 import Assets from "./pages/Assets";
 import Intelligence from "./pages/Intelligence";
+import Revenue from "./pages/Revenue";
 import AdminScraping from "./pages/AdminScraping";
 import NotFound from "./pages/NotFound";
 
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/assets" element={<Assets />} />
           <Route path="/intelligence" element={<Intelligence />} />
+          <Route path="/revenue" element={<Revenue />} />
           <Route path="/admin/scraping" element={<AdminScraping />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
