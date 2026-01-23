@@ -14,6 +14,7 @@ import Intelligence from "./pages/Intelligence";
 import Revenue from "./pages/Revenue";
 import Coach from "./pages/Coach";
 import Templates from "./pages/Templates";
+import TestimonialSubmit from "./pages/TestimonialSubmit";
 import AdminScraping from "./pages/AdminScraping";
 import PackageView from "./pages/PackageView";
 import NotFound from "./pages/NotFound";
@@ -38,6 +39,7 @@ const App = () => (
           <Route path="/revenue" element={<Revenue />} />
           <Route path="/coach" element={<Coach />} />
           <Route path="/templates" element={<Templates />} />
+          <Route path="/testimonial/:token" element={<TestimonialSubmit />} />
           <Route path="/admin/scraping" element={<AdminScraping />} />
           <Route path="/p/:trackingCode" element={<PackageView />} />
           <Route path="*" element={<NotFound />} />
