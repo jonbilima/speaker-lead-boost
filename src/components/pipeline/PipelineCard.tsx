@@ -1,7 +1,8 @@
 import { Draggable } from "@hello-pangea/dnd";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, DollarSign, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar, MapPin, DollarSign, Clock, Building2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export interface PipelineOpportunity {
@@ -9,6 +10,7 @@ export interface PipelineOpportunity {
   score_id: string;
   event_name: string;
   organizer_name: string | null;
+  organizer_email?: string | null;
   description: string | null;
   deadline: string | null;
   event_date: string | null;
@@ -26,9 +28,10 @@ interface PipelineCardProps {
   opportunity: PipelineOpportunity;
   index: number;
   onClick: () => void;
+  onResearchOrganizer?: (organizerName: string, organizerEmail?: string | null) => void;
 }
 
-export function PipelineCard({ opportunity, index, onClick }: PipelineCardProps) {
+export function PipelineCard({ opportunity, index, onClick, onResearchOrganizer }: PipelineCardProps) {
   const getScoreColor = (score: number) => {
     if (score >= 80) return "bg-green-500 text-white";
     if (score >= 60) return "bg-yellow-500 text-white";
@@ -49,6 +52,13 @@ export function PipelineCard({ opportunity, index, onClick }: PipelineCardProps)
     if (min && max) return `$${min.toLocaleString()} - $${max.toLocaleString()}`;
     if (min) return `$${min.toLocaleString()}+`;
     return `Up to $${max?.toLocaleString()}`;
+  };
+
+  const handleResearchClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (opportunity.organizer_name && onResearchOrganizer) {
+      onResearchOrganizer(opportunity.organizer_name, opportunity.organizer_email);
+    }
   };
 
   return (
@@ -73,9 +83,22 @@ export function PipelineCard({ opportunity, index, onClick }: PipelineCardProps)
           </div>
 
           {opportunity.organizer_name && (
-            <p className="text-xs text-muted-foreground mb-2 line-clamp-1">
-              {opportunity.organizer_name}
-            </p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-muted-foreground line-clamp-1 flex-1">
+                {opportunity.organizer_name}
+              </p>
+              {onResearchOrganizer && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-xs text-violet-600 hover:text-violet-700 hover:bg-violet-50"
+                  onClick={handleResearchClick}
+                >
+                  <Building2 className="h-3 w-3 mr-1" />
+                  Research
+                </Button>
+              )}
+            </div>
           )}
 
           <div className="space-y-1.5 text-xs text-muted-foreground">

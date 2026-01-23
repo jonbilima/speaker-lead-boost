@@ -11,6 +11,7 @@ import { PipelineDetailModal } from "@/components/pipeline/PipelineDetailModal";
 import { PipelineOpportunity } from "@/components/pipeline/PipelineCard";
 import { createFollowUpReminders, getUserFollowUpIntervals } from "@/hooks/useFollowUpReminders";
 import { AcceptedBookingPrompt } from "@/components/pipeline/AcceptedBookingPrompt";
+import { OrganizerResearchSheet } from "@/components/organizer/OrganizerResearchSheet";
 
 const PIPELINE_STAGES = [
   { id: "new", label: "New", color: "border-gray-400", bgColor: "bg-gray-100" },
@@ -27,6 +28,8 @@ const Pipeline = () => {
   const [selectedOpp, setSelectedOpp] = useState<PipelineOpportunity | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [bookingPromptOpen, setBookingPromptOpen] = useState(false);
+  const [researchSheetOpen, setResearchSheetOpen] = useState(false);
+  const [researchOrganizer, setResearchOrganizer] = useState<{ name: string; email?: string | null } | null>(null);
   const [acceptedOpp, setAcceptedOpp] = useState<{
     matchId: string;
     eventName: string;
@@ -201,6 +204,11 @@ const Pipeline = () => {
       });
   };
 
+  const handleResearchOrganizer = (organizerName: string, organizerEmail?: string | null) => {
+    setResearchOrganizer({ name: organizerName, email: organizerEmail });
+    setResearchSheetOpen(true);
+  };
+
   const stats = PIPELINE_STAGES.map((stage) => ({
     ...stage,
     count: getOpportunitiesByStage(stage.id).length,
@@ -262,6 +270,7 @@ const Pipeline = () => {
                     stage={stage}
                     opportunities={getOpportunitiesByStage(stage.id)}
                     onCardClick={handleCardClick}
+                    onResearchOrganizer={handleResearchOrganizer}
                   />
                 ))}
               </div>
@@ -269,6 +278,13 @@ const Pipeline = () => {
           </div>
         )}
       </div>
+
+      <OrganizerResearchSheet
+        open={researchSheetOpen}
+        onOpenChange={setResearchSheetOpen}
+        organizerName={researchOrganizer?.name || null}
+        organizerEmail={researchOrganizer?.email}
+      />
 
       <PipelineDetailModal
         opportunity={selectedOpp}

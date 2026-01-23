@@ -1,13 +1,14 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Calendar, DollarSign, MapPin, Mic, ArrowRight } from "lucide-react";
+import { Sparkles, Calendar, DollarSign, MapPin, Mic, ArrowRight, Building2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface Opportunity {
   id: string;
   event_name: string;
   organizer_name: string | null;
+  organizer_email?: string | null;
   deadline: string | null;
   fee_estimate_min: number | null;
   fee_estimate_max: number | null;
@@ -19,10 +20,11 @@ interface Opportunity {
 interface TopOpportunitiesProps {
   opportunities: Opportunity[];
   onViewDetails: (opp: Opportunity) => void;
+  onResearchOrganizer?: (organizerName: string, organizerEmail?: string | null) => void;
   loading?: boolean;
 }
 
-export const TopOpportunities = ({ opportunities, onViewDetails, loading }: TopOpportunitiesProps) => {
+export const TopOpportunities = ({ opportunities, onViewDetails, onResearchOrganizer, loading }: TopOpportunitiesProps) => {
   const formatDeadline = (deadline: string | null) => {
     if (!deadline) return "No deadline";
     const days = Math.ceil((new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
@@ -38,6 +40,13 @@ export const TopOpportunities = ({ opportunities, onViewDetails, loading }: TopO
     if (score >= 80) return "bg-green-500";
     if (score >= 60) return "bg-yellow-500";
     return "bg-muted";
+  };
+
+  const handleResearchClick = (e: React.MouseEvent, opp: Opportunity) => {
+    e.stopPropagation();
+    if (opp.organizer_name && onResearchOrganizer) {
+      onResearchOrganizer(opp.organizer_name, opp.organizer_email);
+    }
   };
 
   if (loading) {
@@ -97,7 +106,20 @@ export const TopOpportunities = ({ opportunities, onViewDetails, loading }: TopO
                     <div>
                       <h3 className="font-semibold">{opp.event_name}</h3>
                       {opp.organizer_name && (
-                        <p className="text-sm text-muted-foreground">{opp.organizer_name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm text-muted-foreground">{opp.organizer_name}</p>
+                          {onResearchOrganizer && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-xs text-violet-600 hover:text-violet-700 hover:bg-violet-50"
+                              onClick={(e) => handleResearchClick(e, opp)}
+                            >
+                              <Building2 className="h-3 w-3 mr-1" />
+                              Research
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>

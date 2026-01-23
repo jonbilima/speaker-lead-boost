@@ -10,9 +10,10 @@ interface PipelineColumnProps {
   };
   opportunities: PipelineOpportunity[];
   onCardClick: (opportunity: PipelineOpportunity) => void;
+  onResearchOrganizer?: (organizerName: string, organizerEmail?: string | null) => void;
 }
 
-export function PipelineColumn({ stage, opportunities, onCardClick }: PipelineColumnProps) {
+export function PipelineColumn({ stage, opportunities, onCardClick, onResearchOrganizer }: PipelineColumnProps) {
   return (
     <div className="flex flex-col min-w-[280px] max-w-[280px]">
       <div className={`${stage.bgColor} rounded-t-lg px-3 py-2 border-b-2 ${stage.color}`}>
@@ -44,6 +45,7 @@ export function PipelineColumn({ stage, opportunities, onCardClick }: PipelineCo
                   opportunity={opp}
                   index={index}
                   onClick={() => onCardClick(opp)}
+                  onResearchOrganizer={onResearchOrganizer}
                 />
               ))
             )}
