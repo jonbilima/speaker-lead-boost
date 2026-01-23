@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
 import { EmailSettingsSection } from "@/components/settings/EmailSettingsSection";
+import { InvoiceSettingsSection } from "@/components/settings/InvoiceSettingsSection";
 
 const Profile = () => {
   const [loading, setLoading] = useState(true);
@@ -357,6 +358,9 @@ const Profile = () => {
 
         {/* Email Settings */}
         {userId && <EmailSettingsSection userId={userId} />}
+
+        {/* Invoice Settings */}
+        {userId && <InvoiceSettingsSection userId={userId} />}
       </div>
     </AppLayout>
   );
