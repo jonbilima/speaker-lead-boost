@@ -1,18 +1,12 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import {
-  LayoutDashboard,
-  Kanban,
+  Home,
+  Search,
+  LayoutGrid,
+  Briefcase,
   Calendar,
-  FolderOpen,
-  Lightbulb,
-  User,
   LogOut,
-  DollarSign,
-  Sparkles,
-  FileText,
-  Users,
-  Target,
 } from "lucide-react";
 import {
   Sidebar,
@@ -32,17 +26,11 @@ import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
 const menuItems = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Pipeline", url: "/pipeline", icon: Kanban },
-  { title: "AI Coach", url: "/coach", icon: Sparkles },
-  { title: "Templates", url: "/templates", icon: FileText },
-  { title: "Leads", url: "/leads", icon: Users },
-  { title: "Topics", url: "/topics", icon: Target },
-  { title: "Revenue", url: "/revenue", icon: DollarSign },
+  { title: "Home", url: "/dashboard", icon: Home },
+  { title: "Find", url: "/find", icon: Search },
+  { title: "Pipeline", url: "/pipeline", icon: LayoutGrid },
+  { title: "Business", url: "/business", icon: Briefcase },
   { title: "Calendar", url: "/calendar", icon: Calendar },
-  { title: "Assets", url: "/assets", icon: FolderOpen },
-  { title: "Intelligence", url: "/intelligence", icon: Lightbulb },
-  { title: "Profile", url: "/profile", icon: User },
 ];
 
 export function AppSidebar() {
@@ -50,32 +38,39 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const [overdueCount, setOverdueCount] = useState(0);
+  const [actionCount, setActionCount] = useState(0);
 
   const isActive = (path: string) => location.pathname === path;
 
-  // Fetch overdue follow-up count
+  // Fetch action items count (overdue follow-ups, deadlines, etc.)
   useEffect(() => {
-    const fetchOverdueCount = async () => {
+    const fetchActionCount = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
       const today = new Date().toISOString().split("T")[0];
-      const { count, error } = await supabase
+      
+      // Count overdue follow-ups
+      const { count: overdueCount } = await supabase
         .from("follow_up_reminders")
         .select("*", { count: "exact", head: true })
         .eq("speaker_id", session.user.id)
         .eq("is_completed", false)
         .lt("due_date", today);
 
-      if (!error && count !== null) {
-        setOverdueCount(count);
-      }
+      // Count new leads
+      const { count: newLeadsCount } = await supabase
+        .from("inbound_leads")
+        .select("*", { count: "exact", head: true })
+        .eq("speaker_id", session.user.id)
+        .eq("status", "new");
+
+      const total = (overdueCount || 0) + (newLeadsCount || 0);
+      setActionCount(total);
     };
 
-    fetchOverdueCount();
-    // Refresh every 60 seconds
-    const interval = setInterval(fetchOverdueCount, 60000);
+    fetchActionCount();
+    const interval = setInterval(fetchActionCount, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -90,8 +85,8 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
           {collapsed ? (
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">N</span>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-sm">N</span>
             </div>
           ) : (
             <Logo size="sm" />
@@ -111,8 +106,8 @@ export function AppSidebar() {
                     tooltip={item.title}
                     className={`
                       transition-all duration-200
-                      hover:bg-violet-100 hover:text-violet-700
-                      data-[active=true]:bg-violet-100 data-[active=true]:text-violet-700
+                      hover:bg-sidebar-accent hover:text-sidebar-accent-foreground
+                      data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-primary
                       data-[active=true]:font-medium
                     `}
                   >
@@ -122,12 +117,12 @@ export function AppSidebar() {
                     }} className="relative">
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
-                      {item.url === "/pipeline" && overdueCount > 0 && (
+                      {item.url === "/dashboard" && actionCount > 0 && (
                         <Badge 
                           variant="destructive" 
                           className="absolute -top-1 -right-1 h-5 min-w-5 flex items-center justify-center p-0 text-xs"
                         >
-                          {overdueCount}
+                          {actionCount}
                         </Badge>
                       )}
                     </a>
@@ -145,7 +140,7 @@ export function AppSidebar() {
             <SidebarMenuButton
               tooltip="Sign Out"
               onClick={handleSignOut}
-              className="hover:bg-red-50 hover:text-red-600 transition-colors"
+              className="hover:bg-destructive/10 hover:text-destructive transition-colors"
             >
               <LogOut className="h-4 w-4" />
               <span>Sign Out</span>
