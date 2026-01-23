@@ -2,6 +2,9 @@ import { ReactNode, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { MobileBottomNav } from "@/components/mobile/MobileBottomNav";
+import { FloatingActionButton } from "@/components/mobile/FloatingActionButton";
+import { PWAInstallPrompt } from "@/components/mobile/PWAInstallPrompt";
 import { supabase } from "@/integrations/supabase/client";
 
 interface AppLayoutProps {
@@ -46,15 +49,26 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <AppSidebar />
+        {/* Desktop Sidebar - hidden on mobile */}
+        <div className="hidden md:block">
+          <AppSidebar />
+        </div>
+        
         <SidebarInset className="flex-1">
-          <header className="h-14 flex items-center gap-4 border-b border-border px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          {/* Desktop Header - hidden on mobile */}
+          <header className="hidden md:flex h-14 items-center gap-4 border-b border-border px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
           </header>
-          <main className="flex-1 p-6">
+          
+          <main className="flex-1 p-4 md:p-6 pb-24 md:pb-6">
             {children}
           </main>
         </SidebarInset>
+        
+        {/* Mobile Components */}
+        <MobileBottomNav />
+        <FloatingActionButton />
+        <PWAInstallPrompt />
       </div>
     </SidebarProvider>
   );

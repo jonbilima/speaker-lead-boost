@@ -12,6 +12,8 @@ import { PipelineOpportunity } from "@/components/pipeline/PipelineCard";
 import { createFollowUpReminders, getUserFollowUpIntervals } from "@/hooks/useFollowUpReminders";
 import { AcceptedBookingPrompt } from "@/components/pipeline/AcceptedBookingPrompt";
 import { OrganizerResearchSheet } from "@/components/organizer/OrganizerResearchSheet";
+import { MobilePipeline } from "@/components/pipeline/MobilePipeline";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const PIPELINE_STAGES = [
   { id: "new", label: "New", color: "border-gray-400", bgColor: "bg-gray-100" },
@@ -23,6 +25,7 @@ const PIPELINE_STAGES = [
 ];
 
 const Pipeline = () => {
+  const isMobile = useIsMobile();
   const [opportunities, setOpportunities] = useState<PipelineOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOpp, setSelectedOpp] = useState<PipelineOpportunity | null>(null);
@@ -30,6 +33,7 @@ const Pipeline = () => {
   const [bookingPromptOpen, setBookingPromptOpen] = useState(false);
   const [researchSheetOpen, setResearchSheetOpen] = useState(false);
   const [researchOrganizer, setResearchOrganizer] = useState<{ name: string; email?: string | null } | null>(null);
+  const [mobileStage, setMobileStage] = useState("new");
   const [acceptedOpp, setAcceptedOpp] = useState<{
     matchId: string;
     eventName: string;
@@ -209,6 +213,20 @@ const Pipeline = () => {
     setResearchSheetOpen(true);
   };
 
+  const handleMobileStageMove = async (oppId: string, newStage: string) => {
+    // Simulate drag end for mobile swipe
+    const fakeResult: DropResult = {
+      draggableId: oppId,
+      source: { droppableId: mobileStage, index: 0 },
+      destination: { droppableId: newStage, index: 0 },
+      type: "DEFAULT",
+      mode: "FLUID",
+      reason: "DROP",
+      combine: null,
+    };
+    await handleDragEnd(fakeResult);
+  };
+
   const stats = PIPELINE_STAGES.map((stage) => ({
     ...stage,
     count: getOpportunitiesByStage(stage.id).length,
@@ -260,7 +278,19 @@ const Pipeline = () => {
               Complete your profile and we'll match you with speaking opportunities
             </p>
           </Card>
+        ) : isMobile ? (
+          /* Mobile View */
+          <MobilePipeline
+            stages={PIPELINE_STAGES}
+            opportunities={opportunities}
+            currentStage={mobileStage}
+            onStageChange={setMobileStage}
+            onCardClick={handleCardClick}
+            onMoveToStage={handleMobileStageMove}
+            onResearchOrganizer={handleResearchOrganizer}
+          />
         ) : (
+          /* Desktop Kanban View */
           <div className="overflow-x-auto pb-4">
             <DragDropContext onDragEnd={handleDragEnd}>
               <div className="flex gap-4 min-w-max">
