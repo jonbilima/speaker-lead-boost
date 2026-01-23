@@ -82,7 +82,11 @@ export function RecentActivityFeed({ userId }: RecentActivityFeedProps) {
 
       // Process package views
       if (!packageViewsResult.error && packageViewsResult.data) {
-        packageViewsResult.data.forEach((view: any) => {
+        (packageViewsResult.data as Array<{
+          id: string;
+          timestamp: string;
+          application_packages: { package_title: string; tracking_code: string } | null;
+        }>).forEach((view) => {
           activityItems.push({
             id: `pv-${view.id}`,
             type: "package_view",
@@ -96,7 +100,12 @@ export function RecentActivityFeed({ userId }: RecentActivityFeedProps) {
 
       // Process leads
       if (!leadsResult.error && leadsResult.data) {
-        leadsResult.data.forEach((lead: any) => {
+        (leadsResult.data as Array<{
+          id: string;
+          name: string;
+          company: string | null;
+          created_at: string;
+        }>).forEach((lead) => {
           activityItems.push({
             id: `lead-${lead.id}`,
             type: "lead",
@@ -110,7 +119,13 @@ export function RecentActivityFeed({ userId }: RecentActivityFeedProps) {
 
       // Process outreach
       if (!outreachResult.error && outreachResult.data) {
-        outreachResult.data.forEach((activity: any) => {
+        (outreachResult.data as Array<{
+          id: string;
+          activity_type: string;
+          subject: string | null;
+          created_at: string;
+          email_opened_at: string | null;
+        }>).forEach((activity) => {
           if (activity.email_opened_at) {
             activityItems.push({
               id: `open-${activity.id}`,

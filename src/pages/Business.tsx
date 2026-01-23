@@ -8,10 +8,17 @@ import { BusinessOverview } from "@/components/business/BusinessOverview";
 import { InvoicesTab } from "@/components/business/InvoicesTab";
 import { ContactsTab } from "@/components/business/ContactsTab";
 import { ReportsTab } from "@/components/business/ReportsTab";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/ui/card";
+
+interface AuthUser {
+  id: string;
+  email?: string;
+}
 
 const Business = () => {
   const [activeTab, setActiveTab] = useState("overview");
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -22,13 +29,32 @@ const Business = () => {
         navigate("/auth");
         return;
       }
-      setUser(session.user);
+      setUser({ id: session.user.id, email: session.user.email });
       setLoading(false);
     };
     checkAuth();
   }, [navigate]);
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="space-y-6">
+          <div>
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-72 mt-2" />
+          </div>
+          <div className="grid gap-4 md:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="p-6">
+                <Skeleton className="h-8 w-20 mb-2" />
+                <Skeleton className="h-4 w-32" />
+              </Card>
+            ))}
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>

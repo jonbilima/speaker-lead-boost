@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Line, ComposedChart } from "recharts";
+import { Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Line, ComposedChart } from "recharts";
 import { BarChart3 } from "lucide-react";
 
 interface MonthlyData {
@@ -14,6 +14,18 @@ interface MonthlyRevenueChartProps {
   data: MonthlyData[];
 }
 
+interface TooltipPayloadEntry {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadEntry[];
+  label?: string;
+}
+
 export function MonthlyRevenueChart({ data }: MonthlyRevenueChartProps) {
   const formatCurrency = (value: number) => {
     if (value >= 1000) {
@@ -22,13 +34,13 @@ export function MonthlyRevenueChart({ data }: MonthlyRevenueChartProps) {
     return `$${value}`;
   };
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (!active || !payload) return null;
 
     return (
       <div className="bg-background border rounded-lg shadow-lg p-3">
         <p className="font-medium mb-1">{label}</p>
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry, index) => (
           <p key={index} className="text-sm" style={{ color: entry.color }}>
             {entry.name}: ${entry.value?.toLocaleString() || 0}
           </p>

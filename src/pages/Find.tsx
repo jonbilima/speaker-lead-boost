@@ -122,8 +122,12 @@ const Find = () => {
           topics (name)
         `);
 
+      interface OpportunityTopicRow {
+        opportunity_id: string;
+        topics: { name: string } | null;
+      }
       const topicsMap: Record<string, string[]> = {};
-      (oppTopics || []).forEach((ot: any) => {
+      ((oppTopics || []) as OpportunityTopicRow[]).forEach((ot) => {
         if (!topicsMap[ot.opportunity_id]) {
           topicsMap[ot.opportunity_id] = [];
         }
@@ -132,33 +136,54 @@ const Find = () => {
         }
       });
 
+      interface OpportunityScoreRow {
+        id: string;
+        ai_score: number | null;
+        ai_reason: string | null;
+        pipeline_stage: string | null;
+        opportunities: {
+          id: string;
+          event_name: string;
+          organizer_name: string | null;
+          organizer_email: string | null;
+          description: string | null;
+          deadline: string | null;
+          fee_estimate_min: number | null;
+          fee_estimate_max: number | null;
+          event_date: string | null;
+          location: string | null;
+          audience_size: number | null;
+          event_url: string | null;
+        } | null;
+      }
+
       // Combine scored and unscored opportunities
-      const scoredIds = new Set((scores || []).map((s: any) => s.opportunities?.id).filter(Boolean));
+      const scoredIds = new Set(((scores || []) as OpportunityScoreRow[]).map((s) => s.opportunities?.id).filter(Boolean));
       
-      const scoredOpps: Opportunity[] = (scores || [])
-        .filter((s: any) => s.opportunities)
-        .map((s: any) => ({
-          id: s.opportunities.id,
-          event_name: s.opportunities.event_name,
-          organizer_name: s.opportunities.organizer_name,
-          organizer_email: s.opportunities.organizer_email,
-          description: s.opportunities.description,
-          deadline: s.opportunities.deadline,
-          fee_estimate_min: s.opportunities.fee_estimate_min,
-          fee_estimate_max: s.opportunities.fee_estimate_max,
-          event_date: s.opportunities.event_date,
-          location: s.opportunities.location,
-          audience_size: s.opportunities.audience_size,
-          event_url: s.opportunities.event_url,
+      const scoredOpps: Opportunity[] = ((scores || []) as OpportunityScoreRow[])
+        .filter((s) => s.opportunities)
+        .map((s) => ({
+          id: s.opportunities!.id,
+          event_name: s.opportunities!.event_name,
+          organizer_name: s.opportunities!.organizer_name,
+          organizer_email: s.opportunities!.organizer_email,
+          description: s.opportunities!.description,
+          deadline: s.opportunities!.deadline,
+          fee_estimate_min: s.opportunities!.fee_estimate_min,
+          fee_estimate_max: s.opportunities!.fee_estimate_max,
+          event_date: s.opportunities!.event_date,
+          location: s.opportunities!.location,
+          audience_size: s.opportunities!.audience_size,
+          event_url: s.opportunities!.event_url,
           ai_score: s.ai_score || 0,
           ai_reason: s.ai_reason,
-          topics: topicsMap[s.opportunities.id] || [],
-          pipeline_stage: s.pipeline_stage,
+          topics: topicsMap[s.opportunities!.id] || [],
+          pipeline_stage: s.pipeline_stage || undefined,
         }));
 
       const unscoredOpps: Opportunity[] = (allOpps || [])
-        .filter((o: any) => !scoredIds.has(o.id))
-        .map((o: any) => ({
+        .filter((o) => !scoredIds.has(o.id))
+        .map((o) => ({
           id: o.id,
           event_name: o.event_name,
           organizer_name: o.organizer_name,

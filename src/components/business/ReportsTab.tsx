@@ -6,7 +6,7 @@ import { Download, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, 
-  CartesianGrid, Tooltip, ResponsiveContainer, Legend 
+  CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
 
 interface ReportsTabProps {
@@ -97,7 +97,7 @@ export function ReportsTab({ userId }: ReportsTabProps) {
         .eq("user_id", userId);
 
       const stageCounts: Record<string, number> = {};
-      (scores || []).forEach((s: any) => {
+      (scores || []).forEach((s) => {
         if (s.pipeline_stage) {
           stageCounts[s.pipeline_stage] = (stageCounts[s.pipeline_stage] || 0) + 1;
         }
