@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -21,40 +22,60 @@ import AdminScraping from "./pages/AdminScraping";
 import PackageView from "./pages/PackageView";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// Configure React Query with appropriate cache times
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Default stale time of 2 minutes for most data
+      staleTime: 2 * 60 * 1000,
+      // Cache for 10 minutes
+      gcTime: 10 * 60 * 1000,
+      // Retry failed requests once
+      retry: 1,
+      // Refetch on window focus for fresh data
+      refetchOnWindowFocus: true,
+    },
+    mutations: {
+      // Retry mutations once
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/pipeline" element={<Pipeline />} />
-          <Route path="/calendar" element={<CalendarPage />} />
-          <Route path="/assets" element={<Assets />} />
-          <Route path="/coach" element={<Coach />} />
-          <Route path="/templates" element={<Templates />} />
-          <Route path="/topics" element={<Topics />} />
-          <Route path="/find" element={<Find />} />
-          <Route path="/business" element={<Business />} />
-          <Route path="/embed/:slug" element={<EmbedWidget />} />
-          <Route path="/testimonial/:token" element={<TestimonialSubmit />} />
-          <Route path="/admin/scraping" element={<AdminScraping />} />
-          <Route path="/p/:trackingCode" element={<PackageView />} />
-          
-          {/* Redirects for legacy routes */}
-          <Route path="/intelligence" element={<Navigate to="/find" replace />} />
-          <Route path="/leads" element={<Navigate to="/business" replace />} />
-          <Route path="/revenue" element={<Navigate to="/business" replace />} />
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <ErrorBoundary>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/pipeline" element={<Pipeline />} />
+            <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/assets" element={<Assets />} />
+            <Route path="/coach" element={<Coach />} />
+            <Route path="/templates" element={<Templates />} />
+            <Route path="/topics" element={<Topics />} />
+            <Route path="/find" element={<Find />} />
+            <Route path="/business" element={<Business />} />
+            <Route path="/embed/:slug" element={<EmbedWidget />} />
+            <Route path="/testimonial/:token" element={<TestimonialSubmit />} />
+            <Route path="/admin/scraping" element={<AdminScraping />} />
+            <Route path="/p/:trackingCode" element={<PackageView />} />
+            
+            {/* Redirects for legacy routes */}
+            <Route path="/intelligence" element={<Navigate to="/find" replace />} />
+            <Route path="/leads" element={<Navigate to="/business" replace />} />
+            <Route path="/revenue" element={<Navigate to="/business" replace />} />
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </ErrorBoundary>
     </TooltipProvider>
   </QueryClientProvider>
 );

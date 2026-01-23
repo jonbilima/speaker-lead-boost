@@ -33,18 +33,13 @@ interface CoachUsage {
   limit: number;
 }
 
-interface CoachUsage {
-  used: number;
-  limit: number;
-}
-
 const Coach = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
   const [usage, setUsage] = useState<CoachUsage>({ used: 0, limit: 20 });
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectedMode, setSelectedMode] = useState<string | null>(null);
@@ -80,9 +75,9 @@ const Coach = () => {
 
     if (profileRes.data) setProfile(profileRes.data);
     if (conversationsRes.data) {
-      const convs = conversationsRes.data.map((c: any) => ({
+      const convs = conversationsRes.data.map((c) => ({
         ...c,
-        messages: Array.isArray(c.messages) ? c.messages : [],
+        messages: Array.isArray(c.messages) ? (c.messages as unknown as Message[]) : [],
       }));
       setConversations(convs);
     }

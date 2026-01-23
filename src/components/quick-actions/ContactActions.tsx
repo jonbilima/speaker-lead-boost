@@ -6,17 +6,19 @@ import {
 } from "@/components/ui/tooltip";
 import { Mail, Phone, Plus } from "lucide-react";
 
+interface Contact {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  company?: string | null;
+}
+
 interface ContactActionsProps {
-  contact: {
-    id: string;
-    name: string;
-    email?: string | null;
-    phone?: string | null;
-    company?: string | null;
-  };
-  onEmail?: (contact: any) => void;
-  onLogCall?: (contact: any) => void;
-  onCreateOpportunity?: (contact: any) => void;
+  contact: Contact;
+  onEmail?: (contact: Contact) => void;
+  onLogCall?: (contact: Contact) => void;
+  onCreateOpportunity?: (contact: Contact) => void;
 }
 
 export function ContactActions({

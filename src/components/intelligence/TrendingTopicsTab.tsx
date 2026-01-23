@@ -38,7 +38,10 @@ export function TrendingTopicsTab() {
       // Count occurrences of each topic
       const topicCounts: Record<string, { name: string; count: number }> = {};
       
-      (topicData || []).forEach((item: any) => {
+      interface TopicDataRow {
+        topics: { name: string } | null;
+      }
+      (topicData as TopicDataRow[] || []).forEach((item) => {
         const topicName = item.topics?.name;
         if (topicName) {
           if (!topicCounts[topicName]) {

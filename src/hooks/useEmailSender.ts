@@ -58,13 +58,14 @@ export function useEmailSender() {
       }
 
       return data;
-    } catch (err: any) {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
       toast({
         title: "Email Failed",
-        description: err.message || "An unexpected error occurred",
+        description: errorMessage,
         variant: "destructive",
       });
-      return { success: false, error: err.message };
+      return { success: false, error: errorMessage };
     } finally {
       setIsSending(false);
     }

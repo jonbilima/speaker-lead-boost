@@ -70,9 +70,12 @@ export const OpportunityModal = ({ opportunity, open, onOpenChange, onApplied }:
         .eq('user_id', session.user.id);
       
       if (profile) {
+        interface UserTopicRow {
+          topics: { name: string } | null;
+        }
         setSpeakerData({
           name: profile.name || undefined,
-          topics: userTopics?.map((ut: any) => ut.topics?.name).filter(Boolean) || [],
+          topics: (userTopics as UserTopicRow[] | null)?.map((ut) => ut.topics?.name).filter((n): n is string => Boolean(n)) || [],
           fee_min: profile.fee_range_min || undefined,
           fee_max: profile.fee_range_max || undefined,
         });
@@ -121,9 +124,10 @@ export const OpportunityModal = ({ opportunity, open, onOpenChange, onApplied }:
         setEditedPitches(initialEdited);
         toast.success("Generated 3 pitch variants for you!");
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Generate pitch error:', error);
-      toast.error(error.message || "Failed to generate pitch");
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate pitch";
+      toast.error(errorMessage);
     } finally {
       setGenerating(false);
     }

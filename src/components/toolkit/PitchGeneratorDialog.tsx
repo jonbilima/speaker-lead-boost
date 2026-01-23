@@ -33,7 +33,7 @@ export function PitchGeneratorDialog({
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [opportunities, setOpportunities] = useState<any[]>([]);
+  const [opportunities, setOpportunities] = useState<Array<{ id: string; event_name: string; organizer_name: string | null }>>([]);
   const [selectedOpportunity, setSelectedOpportunity] = useState(opportunityId || "");
   const [tone, setTone] = useState("professional");
   const [generatedPitch, setGeneratedPitch] = useState("");
@@ -72,12 +72,16 @@ export function PitchGeneratorDialog({
         .limit(50);
 
       if (data) {
-        const opps = data
-          .filter((d: any) => d.opportunities)
-          .map((d: any) => ({
-            id: d.opportunities.id,
-            event_name: d.opportunities.event_name,
-            organizer_name: d.opportunities.organizer_name,
+        interface OpportunityScoreRow {
+          opportunity_id: string;
+          opportunities: { id: string; event_name: string; organizer_name: string | null } | null;
+        }
+        const opps = (data as OpportunityScoreRow[])
+          .filter((d) => d.opportunities)
+          .map((d) => ({
+            id: d.opportunities!.id,
+            event_name: d.opportunities!.event_name,
+            organizer_name: d.opportunities!.organizer_name,
           }));
         setOpportunities(opps);
       }

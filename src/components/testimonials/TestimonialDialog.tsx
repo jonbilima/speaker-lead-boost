@@ -82,9 +82,10 @@ export function TestimonialDialog({ open, onOpenChange, testimonial, onSave, fea
 
       setAuthorPhotoUrl(publicUrl);
       toast.success("Photo uploaded!");
-    } catch (error: any) {
+    } catch (error) {
       console.error('Upload error:', error);
-      toast.error(error.message || "Failed to upload photo");
+      const errorMessage = error instanceof Error ? error.message : "Failed to upload photo";
+      toast.error(errorMessage);
     } finally {
       setUploading(false);
     }
@@ -147,9 +148,10 @@ export function TestimonialDialog({ open, onOpenChange, testimonial, onSave, fea
 
       onSave();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Save error:', error);
-      toast.error(error.message || "Failed to save testimonial");
+      const errorMessage = error instanceof Error ? error.message : "Failed to save testimonial";
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }

@@ -56,9 +56,10 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
         setEmailBody(firstPitch.email_body);
         setHasGenerated(true);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Generate pitch error:', error);
-      toast.error(error.message || "Failed to generate pitch");
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate pitch";
+      toast.error(errorMessage);
     } finally {
       setGenerating(false);
     }
@@ -160,9 +161,10 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
       );
       onSuccess();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Send application error:', error);
-      toast.error(error.message || "Failed to send application");
+      const errorMessage = error instanceof Error ? error.message : "Failed to send application";
+      toast.error(errorMessage);
     } finally {
       setSending(false);
     }

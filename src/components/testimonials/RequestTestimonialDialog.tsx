@@ -70,9 +70,10 @@ Best regards`
       const link = `${window.location.origin}/testimonial/${token}`;
       setGeneratedLink(link);
       toast.success("Request link generated!");
-    } catch (error: any) {
+    } catch (error) {
       console.error('Generate link error:', error);
-      toast.error(error.message || "Failed to generate link");
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate link";
+      toast.error(errorMessage);
     }
   };
 

@@ -15,6 +15,27 @@ import { OrganizerResearchSheet } from "@/components/organizer/OrganizerResearch
 import { MobilePipeline } from "@/components/pipeline/MobilePipeline";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+
+interface OpportunityScoreData {
+  id: string;
+  ai_score: number | null;
+  ai_reason: string | null;
+  pipeline_stage: string | null;
+  calculated_at: string;
+  opportunities: {
+    id: string;
+    event_name: string;
+    organizer_name: string | null;
+    description: string | null;
+    deadline: string | null;
+    event_date: string | null;
+    location: string | null;
+    fee_estimate_min: number | null;
+    fee_estimate_max: number | null;
+    event_url: string | null;
+  } | null;
+}
+
 const PIPELINE_STAGES = [
   { id: "new", label: "New", color: "border-gray-400", bgColor: "bg-gray-100" },
   { id: "interested", label: "Interested", color: "border-blue-400", bgColor: "bg-blue-100" },
@@ -75,23 +96,25 @@ const Pipeline = () => {
       console.error("Error loading pipeline:", error);
       toast.error("Failed to load pipeline");
     } else {
-      const formatted: PipelineOpportunity[] = (data || []).map((score: any) => ({
-        id: score.opportunities.id,
-        score_id: score.id,
-        event_name: score.opportunities.event_name,
-        organizer_name: score.opportunities.organizer_name,
-        description: score.opportunities.description,
-        deadline: score.opportunities.deadline,
-        event_date: score.opportunities.event_date,
-        location: score.opportunities.location,
-        fee_estimate_min: score.opportunities.fee_estimate_min,
-        fee_estimate_max: score.opportunities.fee_estimate_max,
-        event_url: score.opportunities.event_url,
-        ai_score: score.ai_score,
-        ai_reason: score.ai_reason,
-        pipeline_stage: score.pipeline_stage || "new",
-        calculated_at: score.calculated_at,
-      }));
+      const formatted: PipelineOpportunity[] = (data || [])
+        .filter((score) => score.opportunities !== null)
+        .map((score) => ({
+          id: score.opportunities!.id,
+          score_id: score.id,
+          event_name: score.opportunities!.event_name,
+          organizer_name: score.opportunities!.organizer_name,
+          description: score.opportunities!.description,
+          deadline: score.opportunities!.deadline,
+          event_date: score.opportunities!.event_date,
+          location: score.opportunities!.location,
+          fee_estimate_min: score.opportunities!.fee_estimate_min,
+          fee_estimate_max: score.opportunities!.fee_estimate_max,
+          event_url: score.opportunities!.event_url,
+          ai_score: score.ai_score || 0,
+          ai_reason: score.ai_reason,
+          pipeline_stage: (score.pipeline_stage as PipelineOpportunity['pipeline_stage']) || "new",
+          calculated_at: score.calculated_at,
+        }));
       setOpportunities(formatted);
     }
 
