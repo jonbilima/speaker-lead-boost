@@ -71,7 +71,7 @@ const toolkitItems = [
     description: "Photos, videos, one-sheets",
     icon: FolderOpen,
     action: "navigate",
-    url: "/assets",
+    url: "/business",
   },
   {
     id: "send-package",

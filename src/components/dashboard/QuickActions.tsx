@@ -43,7 +43,7 @@ export const QuickActions = ({ onRefreshOpportunities, isRefreshing }: QuickActi
           className="h-auto py-4 flex flex-col gap-2"
           asChild
         >
-          <Link to="/assets">
+          <Link to="/business">
             <Upload className="h-5 w-5" />
             <span>Upload Assets</span>
           </Link>
