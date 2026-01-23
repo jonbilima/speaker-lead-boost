@@ -6,11 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
-import { Plus, Trash2, FileText, Send, Save } from "lucide-react";
+import { Plus, Trash2, FileText, Send, Save, Eye, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 import { useEmailSender } from "@/hooks/useEmailSender";
+import { generateInvoicePDF, downloadPDF } from "@/lib/invoicePdfGenerator";
+import { InvoicePDFPreview } from "./InvoicePDFPreview";
 
 interface CreateInvoiceDialogProps {
   open: boolean;
@@ -25,6 +27,15 @@ interface LineItem {
   quantity: number;
   rate: number;
   amount: number;
+}
+
+interface ProfileSettings {
+  name: string;
+  email_reply_to?: string;
+  invoice_logo_url?: string;
+  default_payment_instructions?: string;
+  default_invoice_terms?: string;
+  default_tax_rate?: number;
 }
 
 const PRESET_ITEMS = [
@@ -44,14 +55,35 @@ export function CreateInvoiceDialog({ open, onOpenChange, userId, onSuccess }: C
   const [taxRate, setTaxRate] = useState(0);
   const [notes, setNotes] = useState("");
   const [paymentInstructions, setPaymentInstructions] = useState("");
+  const [terms, setTerms] = useState("");
   const [contacts, setContacts] = useState<any[]>([]);
   const [selectedContactId, setSelectedContactId] = useState<string>("");
+  const [profileSettings, setProfileSettings] = useState<ProfileSettings | null>(null);
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [previewPdfBlob, setPreviewPdfBlob] = useState<Blob | null>(null);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   useEffect(() => {
     if (open) {
       loadContacts();
+      loadProfileSettings();
     }
   }, [open]);
+
+  const loadProfileSettings = async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("name, email_reply_to, invoice_logo_url, default_payment_instructions, default_invoice_terms, default_tax_rate")
+      .eq("id", userId)
+      .single();
+
+    if (data) {
+      setProfileSettings(data as ProfileSettings);
+      if (data.default_payment_instructions) setPaymentInstructions(data.default_payment_instructions);
+      if (data.default_invoice_terms) setTerms(data.default_invoice_terms);
+      if (data.default_tax_rate) setTaxRate(data.default_tax_rate);
+    }
+  };
 
   const loadContacts = async () => {
     try {
@@ -113,6 +145,66 @@ export function CreateInvoiceDialog({ open, onOpenChange, userId, onSuccess }: C
     return `INV-${year}${month}-${random}`;
   };
 
+  const getSelectedContact = () => {
+    return contacts.find(c => c.id === selectedContactId);
+  };
+
+  const buildPdfData = (invoiceNumber: string) => {
+    const selectedContact = getSelectedContact();
+    return {
+      invoiceNumber,
+      issueDate: new Date().toISOString().split("T")[0],
+      dueDate,
+      speakerName: profileSettings?.name || "Speaker",
+      speakerEmail: profileSettings?.email_reply_to,
+      clientName: selectedContact?.name || "Client",
+      clientCompany: selectedContact?.company,
+      clientEmail: selectedContact?.email,
+      lineItems: lineItems.filter(item => item.description && item.amount > 0),
+      subtotal,
+      taxRate,
+      taxAmount,
+      total,
+      paymentInstructions,
+      terms,
+      notes,
+      logoUrl: profileSettings?.invoice_logo_url,
+    };
+  };
+
+  const handlePreviewPDF = async () => {
+    setGeneratingPdf(true);
+    try {
+      const invoiceNumber = generateInvoiceNumber();
+      const pdfData = buildPdfData(invoiceNumber);
+      const blob = await generateInvoicePDF(pdfData);
+      setPreviewPdfBlob(blob);
+      setPdfPreviewOpen(true);
+    } catch (error: any) {
+      toast.error("Failed to generate PDF preview");
+      console.error(error);
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    setGeneratingPdf(true);
+    try {
+      const invoiceNumber = generateInvoiceNumber();
+      const pdfData = buildPdfData(invoiceNumber);
+      const blob = await generateInvoicePDF(pdfData);
+      const selectedContact = getSelectedContact();
+      const clientName = (selectedContact?.name || "Client").replace(/[^a-zA-Z0-9]/g, "-");
+      downloadPDF(blob, `Invoice-${invoiceNumber}-${clientName}.pdf`);
+    } catch (error: any) {
+      toast.error("Failed to generate PDF");
+      console.error(error);
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
+
   const handleSave = async (send: boolean = false) => {
     if (lineItems.every(item => !item.description || item.amount === 0)) {
       toast.error("Please add at least one line item");
@@ -121,21 +213,44 @@ export function CreateInvoiceDialog({ open, onOpenChange, userId, onSuccess }: C
 
     setSaving(true);
     try {
-      // Get contact email if sending
+      // Get contact details if sending
       let contactEmail = null;
-      if (send && selectedContactId) {
-        const selectedContact = contacts.find(c => c.id === selectedContactId);
-        if (selectedContact) {
-          const { data: contactData } = await supabase
-            .from("contacts")
-            .select("email, name")
-            .eq("id", selectedContactId)
-            .single();
-          contactEmail = contactData?.email;
-        }
+      let contactName = "Client";
+      if (selectedContactId) {
+        const { data: contactData } = await supabase
+          .from("contacts")
+          .select("email, name")
+          .eq("id", selectedContactId)
+          .single();
+        contactEmail = contactData?.email;
+        contactName = contactData?.name || "Client";
       }
 
       const invoiceNumber = generateInvoiceNumber();
+      
+      // Generate PDF and upload to storage
+      const pdfData = buildPdfData(invoiceNumber);
+      const pdfBlob = await generateInvoicePDF(pdfData);
+      
+      // Upload PDF to storage
+      const clientSlug = contactName.replace(/[^a-zA-Z0-9]/g, "-");
+      const pdfFilename = `${userId}/${invoiceNumber}-${clientSlug}.pdf`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from("invoices")
+        .upload(pdfFilename, pdfBlob, { 
+          contentType: "application/pdf",
+          upsert: true 
+        });
+
+      let pdfUrl = null;
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage
+          .from("invoices")
+          .getPublicUrl(pdfFilename);
+        pdfUrl = urlData.publicUrl;
+      }
+
       const invoiceData: any = {
         speaker_id: userId,
         contact_id: selectedContactId || null,
@@ -151,6 +266,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, userId, onSuccess }: C
         notes,
         payment_instructions: paymentInstructions,
         sent_at: send ? new Date().toISOString() : null,
+        pdf_url: pdfUrl,
       };
 
       const { data: newInvoice, error } = await supabase
@@ -163,35 +279,50 @@ export function CreateInvoiceDialog({ open, onOpenChange, userId, onSuccess }: C
 
       // Send email if requested and contact has email
       if (send && contactEmail) {
-        const selectedContact = contacts.find(c => c.id === selectedContactId);
-        const invoiceHtml = generateInvoiceEmailBody(invoiceNumber, selectedContact?.name || "Client", total, dueDate);
+        const invoiceHtml = generateInvoiceEmailBody(invoiceNumber, contactName, total, dueDate);
+        
+        // Convert blob to base64 for email attachment
+        const arrayBuffer = await pdfBlob.arrayBuffer();
+        const base64 = btoa(
+          new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
+        );
         
         await sendEmail({
           to: contactEmail,
-          subject: `Invoice ${invoiceNumber} from NextMic`,
+          subject: `Invoice ${invoiceNumber} from ${profileSettings?.name || "Speaker"}`,
           body: invoiceHtml,
           relatedType: "invoice",
           relatedId: newInvoice?.id,
+          attachments: [{
+            filename: `Invoice-${invoiceNumber}.pdf`,
+            content: base64,
+            content_type: "application/pdf",
+          }],
         });
       }
 
-      toast.success(send ? "Invoice sent!" : "Invoice saved as draft");
+      toast.success(send ? "Invoice sent with PDF attached!" : "Invoice saved as draft");
       onSuccess();
       onOpenChange(false);
       
       // Reset form
-      setLineItems([{ id: crypto.randomUUID(), description: "Speaking Fee", quantity: 1, rate: 0, amount: 0 }]);
-      setDueDate(format(addDays(new Date(), 30), "yyyy-MM-dd"));
-      setTaxRate(0);
-      setNotes("");
-      setPaymentInstructions("");
-      setSelectedContactId("");
+      resetForm();
     } catch (error: any) {
       console.error("Error creating invoice:", error);
       toast.error(error.message || "Failed to create invoice");
     } finally {
       setSaving(false);
     }
+  };
+
+  const resetForm = () => {
+    setLineItems([{ id: crypto.randomUUID(), description: "Speaking Fee", quantity: 1, rate: 0, amount: 0 }]);
+    setDueDate(format(addDays(new Date(), 30), "yyyy-MM-dd"));
+    setTaxRate(profileSettings?.default_tax_rate || 0);
+    setNotes("");
+    setPaymentInstructions(profileSettings?.default_payment_instructions || "");
+    setTerms(profileSettings?.default_invoice_terms || "");
+    setSelectedContactId("");
   };
 
   const generateInvoiceEmailBody = (invoiceNum: string, clientName: string, amount: number, due: string) => {
@@ -375,19 +506,39 @@ ${paymentInstructions ? `Payment Instructions:\n${paymentInstructions}\n\n` : ""
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button variant="outline" onClick={() => handleSave(false)} disabled={saving || emailSending}>
-            <Save className="h-4 w-4 mr-2" />
-            Save Draft
-          </Button>
-          <Button onClick={() => handleSave(true)} disabled={saving || emailSending}>
-            <Send className="h-4 w-4 mr-2" />
-            {emailSending ? "Sending..." : "Send Invoice"}
-          </Button>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={handlePreviewPDF} disabled={generatingPdf}>
+              <Eye className="h-4 w-4 mr-2" />
+              Preview
+            </Button>
+            <Button variant="outline" onClick={handleDownloadPDF} disabled={generatingPdf}>
+              <Download className="h-4 w-4 mr-2" />
+              Download
+            </Button>
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button variant="outline" onClick={() => handleSave(false)} disabled={saving || emailSending}>
+              <Save className="h-4 w-4 mr-2" />
+              Save Draft
+            </Button>
+            <Button onClick={() => handleSave(true)} disabled={saving || emailSending}>
+              <Send className="h-4 w-4 mr-2" />
+              {emailSending ? "Sending..." : "Send Invoice"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
+
+      <InvoicePDFPreview
+        open={pdfPreviewOpen}
+        onOpenChange={setPdfPreviewOpen}
+        pdfBlob={previewPdfBlob}
+        filename={`Invoice-Preview.pdf`}
+        onDownload={handleDownloadPDF}
+      />
     </Dialog>
   );
 }

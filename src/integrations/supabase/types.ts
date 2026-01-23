@@ -674,6 +674,7 @@ export type Database = {
           notes: string | null
           paid_at: string | null
           payment_instructions: string | null
+          pdf_url: string | null
           sent_at: string | null
           speaker_id: string
           status: string
@@ -694,6 +695,7 @@ export type Database = {
           notes?: string | null
           paid_at?: string | null
           payment_instructions?: string | null
+          pdf_url?: string | null
           sent_at?: string | null
           speaker_id: string
           status?: string
@@ -714,6 +716,7 @@ export type Database = {
           notes?: string | null
           paid_at?: string | null
           payment_instructions?: string | null
+          pdf_url?: string | null
           sent_at?: string | null
           speaker_id?: string
           status?: string
@@ -1252,6 +1255,9 @@ export type Database = {
           audience_types: string[] | null
           bio: string | null
           created_at: string
+          default_invoice_terms: string | null
+          default_payment_instructions: string | null
+          default_tax_rate: number | null
           email_bcc_self: boolean | null
           email_reply_to: string | null
           email_signature: string | null
@@ -1263,6 +1269,7 @@ export type Database = {
           headline: string | null
           id: string
           industries: string[] | null
+          invoice_logo_url: string | null
           is_public: boolean | null
           linkedin_url: string | null
           location_city: string | null
@@ -1289,6 +1296,9 @@ export type Database = {
           audience_types?: string[] | null
           bio?: string | null
           created_at?: string
+          default_invoice_terms?: string | null
+          default_payment_instructions?: string | null
+          default_tax_rate?: number | null
           email_bcc_self?: boolean | null
           email_reply_to?: string | null
           email_signature?: string | null
@@ -1300,6 +1310,7 @@ export type Database = {
           headline?: string | null
           id: string
           industries?: string[] | null
+          invoice_logo_url?: string | null
           is_public?: boolean | null
           linkedin_url?: string | null
           location_city?: string | null
@@ -1326,6 +1337,9 @@ export type Database = {
           audience_types?: string[] | null
           bio?: string | null
           created_at?: string
+          default_invoice_terms?: string | null
+          default_payment_instructions?: string | null
+          default_tax_rate?: number | null
           email_bcc_self?: boolean | null
           email_reply_to?: string | null
           email_signature?: string | null
@@ -1337,6 +1351,7 @@ export type Database = {
           headline?: string | null
           id?: string
           industries?: string[] | null
+          invoice_logo_url?: string | null
           is_public?: boolean | null
           linkedin_url?: string | null
           location_city?: string | null
