@@ -19,6 +19,9 @@ export interface CalendarEntry {
   color: string | null;
   event_id: string | null;
   match_id: string | null;
+  google_calendar_id?: string | null;
+  sync_status?: string | null;
+  external_source?: string | null;
 }
 
 export interface UpcomingDeadline {
@@ -35,6 +38,7 @@ export const ENTRY_TYPES = [
   { id: "blocked", label: "Blocked/Unavailable", color: "bg-gray-500", textColor: "text-gray-700", bgLight: "bg-gray-100" },
   { id: "follow_up", label: "Follow-up Task", color: "bg-yellow-500", textColor: "text-yellow-700", bgLight: "bg-yellow-100" },
   { id: "confirmed", label: "Confirmed Booking", color: "bg-green-500", textColor: "text-green-700", bgLight: "bg-green-100" },
+  { id: "external", label: "Google Calendar", color: "bg-slate-400", textColor: "text-slate-600", bgLight: "bg-slate-100" },
 ] as const;
 
 export function getEntryTypeConfig(entryType: string) {

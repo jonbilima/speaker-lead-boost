@@ -11,17 +11,27 @@ import {
   Clock,
   ExternalLink,
   Trash2,
+  RefreshCw,
+  AlertCircle,
 } from "lucide-react";
 import {
   CalendarEntry,
   CalendarLegend,
   UpcomingDeadline,
   getEntryTypeConfig,
-  ENTRY_TYPES,
 } from "./CalendarTypes";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+// Google Calendar icon inline
+const GoogleIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <path d="M18 4H6C4.89543 4 4 4.89543 4 6V18C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18V6C20 4.89543 19.1046 4 18 4Z" stroke="currentColor" strokeWidth="1.5"/>
+    <circle cx="9" cy="14" r="1.5" fill="#4285F4"/>
+    <circle cx="15" cy="14" r="1.5" fill="#34A853"/>
+  </svg>
+);
 
 interface CalendarSidebarProps {
   selectedDate: Date;
@@ -127,8 +137,13 @@ export function CalendarSidebar({
               {/* Calendar entries */}
               {selectedDateEntries.map((entry) => {
                 const typeConfig = getEntryTypeConfig(entry.entry_type);
+                const isExternal = entry.entry_type === 'external' || entry.external_source === 'google';
+                const isSynced = entry.google_calendar_id && entry.sync_status === 'synced';
+                const hasSyncError = entry.sync_status === 'error';
+                const isPending = entry.sync_status === 'pending' || entry.sync_status === 'local';
+
                 return (
-                  <Card key={entry.id} className="p-3">
+                  <Card key={entry.id} className={cn("p-3", isExternal && "opacity-75 border-dashed")}>
                     <div className="flex items-start gap-2">
                       <div
                         className={cn(
@@ -138,17 +153,34 @@ export function CalendarSidebar({
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
-                          <p className="font-medium text-sm line-clamp-2">
-                            {entry.title}
-                          </p>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 shrink-0 text-muted-foreground hover:text-red-500"
-                            onClick={() => handleDeleteEntry(entry.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-medium text-sm line-clamp-2">
+                              {entry.title}
+                            </p>
+                            {/* Sync status icons */}
+                            {isExternal && (
+                              <GoogleIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            )}
+                            {isSynced && !isExternal && (
+                              <RefreshCw className="h-3 w-3 text-green-500 shrink-0" />
+                            )}
+                            {hasSyncError && (
+                              <AlertCircle className="h-3 w-3 text-red-500 shrink-0" />
+                            )}
+                            {isPending && !isExternal && (
+                              <RefreshCw className="h-3 w-3 text-muted-foreground animate-pulse shrink-0" />
+                            )}
+                          </div>
+                          {!isExternal && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 shrink-0 text-muted-foreground hover:text-red-500"
+                              onClick={() => handleDeleteEntry(entry.id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
                         </div>
 
                         <Badge

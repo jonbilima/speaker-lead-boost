@@ -3,10 +3,19 @@ import { AppLayout } from "@/components/AppLayout";
 import { CalendarGrid } from "@/components/calendar/CalendarGrid";
 import { CalendarSidebar } from "@/components/calendar/CalendarSidebar";
 import { AddCalendarEntryDialog } from "@/components/calendar/AddCalendarEntryDialog";
+import { GoogleCalendarConnect } from "@/components/calendar/GoogleCalendarConnect";
 import { CalendarEntry, UpcomingDeadline } from "@/components/calendar/CalendarTypes";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar as CalendarIcon, RefreshCw } from "lucide-react";
+import { Calendar as CalendarIcon, RefreshCw, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
 
 const CalendarPage = () => {
@@ -60,13 +69,18 @@ const CalendarPage = () => {
     if (scoresError) {
       console.error("Error loading deadlines:", scoresError);
     } else {
-      const formattedDeadlines: UpcomingDeadline[] = (scoresData || [])
-        .filter((s: any) => s.opportunities?.deadline)
-        .map((s: any) => ({
+      interface ScoreWithOpportunity {
+        id: string;
+        ai_score: number | null;
+        opportunities: { id: string; event_name: string; deadline: string } | null;
+      }
+      const formattedDeadlines: UpcomingDeadline[] = (scoresData as ScoreWithOpportunity[] || [])
+        .filter((s) => s.opportunities?.deadline)
+        .map((s) => ({
           id: s.id,
-          event_name: s.opportunities.event_name,
-          deadline: s.opportunities.deadline,
-          ai_score: s.ai_score,
+          event_name: s.opportunities!.event_name,
+          deadline: s.opportunities!.deadline,
+          ai_score: s.ai_score || 0,
         }));
       setDeadlines(formattedDeadlines);
     }
@@ -91,14 +105,34 @@ const CalendarPage = () => {
               Track your speaking engagements, deadlines, and availability
             </p>
           </div>
-          <Button
-            variant="outline"
-            onClick={loadData}
-            disabled={loading}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>Calendar Settings</SheetTitle>
+                  <SheetDescription>
+                    Connect external calendars and manage sync settings
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="mt-6">
+                  <GoogleCalendarConnect onSyncComplete={loadData} />
+                </div>
+              </SheetContent>
+            </Sheet>
+            <Button
+              variant="outline"
+              onClick={loadData}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         <div className="flex gap-6">
