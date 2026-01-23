@@ -142,6 +142,60 @@ export type Database = {
           },
         ]
       }
+      calendar_connections: {
+        Row: {
+          access_token: string
+          auto_sync_speaking: boolean
+          calendar_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean
+          last_sync_at: string | null
+          provider: string
+          refresh_token: string | null
+          show_external_events: boolean
+          speaker_id: string
+          sync_errors: Json | null
+          token_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          auto_sync_speaking?: boolean
+          calendar_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          provider?: string
+          refresh_token?: string | null
+          show_external_events?: boolean
+          speaker_id: string
+          sync_errors?: Json | null
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          auto_sync_speaking?: boolean
+          calendar_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          provider?: string
+          refresh_token?: string | null
+          show_external_events?: boolean
+          speaker_id?: string
+          sync_errors?: Json | null
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       coach_conversations: {
         Row: {
           created_at: string
@@ -1545,6 +1599,7 @@ export type Database = {
           end_time: string | null
           entry_type: Database["public"]["Enums"]["calendar_entry_type"]
           event_id: string | null
+          external_source: string | null
           google_calendar_id: string | null
           id: string
           is_virtual: boolean | null
@@ -1556,6 +1611,8 @@ export type Database = {
           speaker_id: string
           start_date: string
           start_time: string | null
+          sync_error: string | null
+          sync_status: string | null
           title: string
         }
         Insert: {
@@ -1566,6 +1623,7 @@ export type Database = {
           end_time?: string | null
           entry_type?: Database["public"]["Enums"]["calendar_entry_type"]
           event_id?: string | null
+          external_source?: string | null
           google_calendar_id?: string | null
           id?: string
           is_virtual?: boolean | null
@@ -1577,6 +1635,8 @@ export type Database = {
           speaker_id: string
           start_date: string
           start_time?: string | null
+          sync_error?: string | null
+          sync_status?: string | null
           title: string
         }
         Update: {
@@ -1587,6 +1647,7 @@ export type Database = {
           end_time?: string | null
           entry_type?: Database["public"]["Enums"]["calendar_entry_type"]
           event_id?: string | null
+          external_source?: string | null
           google_calendar_id?: string | null
           id?: string
           is_virtual?: boolean | null
@@ -1598,6 +1659,8 @@ export type Database = {
           speaker_id?: string
           start_date?: string
           start_time?: string | null
+          sync_error?: string | null
+          sync_status?: string | null
           title?: string
         }
         Relationships: [
