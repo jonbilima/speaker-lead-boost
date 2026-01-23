@@ -403,6 +403,71 @@ export type Database = {
         }
         Relationships: []
       }
+      inbound_leads: {
+        Row: {
+          budget_range: string | null
+          company: string | null
+          created_at: string
+          email: string
+          estimated_audience: string | null
+          event_date: string | null
+          event_name: string | null
+          event_type: string | null
+          id: string
+          message: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          source: string
+          speaker_id: string
+          status: string
+        }
+        Insert: {
+          budget_range?: string | null
+          company?: string | null
+          created_at?: string
+          email: string
+          estimated_audience?: string | null
+          event_date?: string | null
+          event_name?: string | null
+          event_type?: string | null
+          id?: string
+          message?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          source?: string
+          speaker_id: string
+          status?: string
+        }
+        Update: {
+          budget_range?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string
+          estimated_audience?: string | null
+          event_date?: string | null
+          event_name?: string | null
+          event_type?: string | null
+          id?: string
+          message?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          source?: string
+          speaker_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_leads_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       opportunities: {
         Row: {
           audience_size: number | null
@@ -914,6 +979,7 @@ export type Database = {
           twitter_url: string | null
           updated_at: string
           weekly_digest: boolean | null
+          widget_settings: Json | null
           willing_to_travel: boolean | null
           years_speaking: number | null
           youtube_url: string | null
@@ -947,6 +1013,7 @@ export type Database = {
           twitter_url?: string | null
           updated_at?: string
           weekly_digest?: boolean | null
+          widget_settings?: Json | null
           willing_to_travel?: boolean | null
           years_speaking?: number | null
           youtube_url?: string | null
@@ -980,6 +1047,7 @@ export type Database = {
           twitter_url?: string | null
           updated_at?: string
           weekly_digest?: boolean | null
+          widget_settings?: Json | null
           willing_to_travel?: boolean | null
           years_speaking?: number | null
           youtube_url?: string | null

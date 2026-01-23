@@ -12,6 +12,7 @@ import { QuickActions } from "@/components/dashboard/QuickActions";
 import { TopOpportunities } from "@/components/dashboard/TopOpportunities";
 import { FollowUpsDue } from "@/components/dashboard/FollowUpsDue";
 import { FollowUpEmailDialog } from "@/components/dashboard/FollowUpEmailDialog";
+import { InboundLeadsWidget } from "@/components/dashboard/InboundLeadsWidget";
 import { useFollowUpReminders } from "@/hooks/useFollowUpReminders";
 
 interface Opportunity {
@@ -348,6 +349,7 @@ const Dashboard = () => {
                 setFollowUpEmailOpen(true);
               }}
             />
+            <InboundLeadsWidget />
             <UpcomingDeadlines deadlines={deadlines} />
             <RecentActivity activities={activities} />
             <CalendarWidget entries={calendarEntries} />

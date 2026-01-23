@@ -11,6 +11,7 @@ import {
   DollarSign,
   Sparkles,
   FileText,
+  Users,
 } from "lucide-react";
 import {
   Sidebar,
@@ -34,6 +35,7 @@ const menuItems = [
   { title: "Pipeline", url: "/pipeline", icon: Kanban },
   { title: "AI Coach", url: "/coach", icon: Sparkles },
   { title: "Templates", url: "/templates", icon: FileText },
+  { title: "Leads", url: "/leads", icon: Users },
   { title: "Revenue", url: "/revenue", icon: DollarSign },
   { title: "Calendar", url: "/calendar", icon: Calendar },
   { title: "Assets", url: "/assets", icon: FolderOpen },
