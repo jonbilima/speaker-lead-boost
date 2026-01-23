@@ -272,6 +272,63 @@ export type Database = {
         }
         Relationships: []
       }
+      contacts: {
+        Row: {
+          company: string | null
+          contact_type: string
+          created_at: string
+          email: string | null
+          id: string
+          industry: string | null
+          last_contact_date: string | null
+          linkedin_url: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          speaker_id: string
+          title: string | null
+          total_revenue: number | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          company?: string | null
+          contact_type?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          industry?: string | null
+          last_contact_date?: string | null
+          linkedin_url?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          speaker_id: string
+          title?: string | null
+          total_revenue?: number | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          company?: string | null
+          contact_type?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          industry?: string | null
+          last_contact_date?: string | null
+          linkedin_url?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          speaker_id?: string
+          title?: string | null
+          total_revenue?: number | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       email_digest_logs: {
         Row: {
           clicked_at: string | null
@@ -558,6 +615,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      invoices: {
+        Row: {
+          booking_id: string | null
+          contact_id: string | null
+          created_at: string
+          due_date: string
+          id: string
+          invoice_number: string
+          issue_date: string
+          line_items: Json
+          notes: string | null
+          paid_at: string | null
+          payment_instructions: string | null
+          sent_at: string | null
+          speaker_id: string
+          status: string
+          subtotal: number
+          tax_amount: number | null
+          tax_rate: number | null
+          total: number
+        }
+        Insert: {
+          booking_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          due_date: string
+          id?: string
+          invoice_number: string
+          issue_date?: string
+          line_items?: Json
+          notes?: string | null
+          paid_at?: string | null
+          payment_instructions?: string | null
+          sent_at?: string | null
+          speaker_id: string
+          status?: string
+          subtotal?: number
+          tax_amount?: number | null
+          tax_rate?: number | null
+          total?: number
+        }
+        Update: {
+          booking_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          due_date?: string
+          id?: string
+          invoice_number?: string
+          issue_date?: string
+          line_items?: Json
+          notes?: string | null
+          paid_at?: string | null
+          payment_instructions?: string | null
+          sent_at?: string | null
+          speaker_id?: string
+          status?: string
+          subtotal?: number
+          tax_amount?: number | null
+          tax_rate?: number | null
+          total?: number
+        }
+        Relationships: []
       }
       opportunities: {
         Row: {
@@ -985,6 +1105,47 @@ export type Database = {
             columns: ["speaker_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          invoice_id: string
+          notes: string | null
+          payment_date: string
+          payment_method: string | null
+          reference_number: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          invoice_id: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          reference_number?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          reference_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
         ]

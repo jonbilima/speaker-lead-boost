@@ -1,53 +1,82 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Revenue from "./Revenue";
-import Leads from "./Leads";
+import { LayoutDashboard, FileText, Users, BarChart3 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { BusinessOverview } from "@/components/business/BusinessOverview";
+import { InvoicesTab } from "@/components/business/InvoicesTab";
+import { ContactsTab } from "@/components/business/ContactsTab";
+import { ReportsTab } from "@/components/business/ReportsTab";
 
-// Business page merges Revenue + Leads
 const Business = () => {
-  const [activeTab, setActiveTab] = useState("revenue");
+  const [activeTab, setActiveTab] = useState("overview");
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
+      setUser(session.user);
+      setLoading(false);
+    };
+    checkAuth();
+  }, [navigate]);
+
+  if (loading) return null;
 
   return (
     <AppLayout>
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Business</h1>
-          <p className="text-muted-foreground">Manage revenue, invoices, and leads</p>
+          <p className="text-muted-foreground">Manage revenue, invoices, and contacts</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="revenue">Revenue</TabsTrigger>
-            <TabsTrigger value="leads">Leads</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="invoices" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Invoices</span>
+            </TabsTrigger>
+            <TabsTrigger value="contacts" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Contacts</span>
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Reports</span>
+            </TabsTrigger>
           </TabsList>
-          <TabsContent value="revenue" className="mt-6">
-            <RevenueContent />
+
+          <TabsContent value="overview" className="mt-6">
+            <BusinessOverview userId={user?.id} />
           </TabsContent>
-          <TabsContent value="leads" className="mt-6">
-            <LeadsContent />
+
+          <TabsContent value="invoices" className="mt-6">
+            <InvoicesTab userId={user?.id} />
+          </TabsContent>
+
+          <TabsContent value="contacts" className="mt-6">
+            <ContactsTab userId={user?.id} />
+          </TabsContent>
+
+          <TabsContent value="reports" className="mt-6">
+            <ReportsTab userId={user?.id} />
           </TabsContent>
         </Tabs>
       </div>
     </AppLayout>
   );
 };
-
-// Inline revenue content without AppLayout wrapper
-function RevenueContent() {
-  return (
-    <div className="text-center py-12 text-muted-foreground">
-      Revenue tracking coming soon. Visit <a href="/revenue" className="text-primary underline">Revenue page</a> for now.
-    </div>
-  );
-}
-
-function LeadsContent() {
-  return (
-    <div className="text-center py-12 text-muted-foreground">
-      Leads management coming soon. Visit <a href="/leads" className="text-primary underline">Leads page</a> for now.
-    </div>
-  );
-}
 
 export default Business;
