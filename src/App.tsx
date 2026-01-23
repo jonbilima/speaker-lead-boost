@@ -16,6 +16,8 @@ import Coach from "./pages/Coach";
 import Templates from "./pages/Templates";
 import Leads from "./pages/Leads";
 import Topics from "./pages/Topics";
+import Find from "./pages/Find";
+import Business from "./pages/Business";
 import EmbedWidget from "./pages/EmbedWidget";
 import TestimonialSubmit from "./pages/TestimonialSubmit";
 import AdminScraping from "./pages/AdminScraping";
@@ -44,6 +46,8 @@ const App = () => (
           <Route path="/templates" element={<Templates />} />
           <Route path="/leads" element={<Leads />} />
           <Route path="/topics" element={<Topics />} />
+          <Route path="/find" element={<Find />} />
+          <Route path="/business" element={<Business />} />
           <Route path="/embed/:slug" element={<EmbedWidget />} />
           <Route path="/testimonial/:token" element={<TestimonialSubmit />} />
           <Route path="/admin/scraping" element={<AdminScraping />} />
