@@ -66,6 +66,60 @@ export type Database = {
           },
         ]
       }
+      confirmed_bookings: {
+        Row: {
+          amount_paid: number
+          confirmed_fee: number
+          created_at: string
+          event_date: string | null
+          event_id: string | null
+          event_name: string
+          expenses: number | null
+          fee_currency: string
+          id: string
+          match_id: string | null
+          net_revenue: number | null
+          notes: string | null
+          payment_date: string | null
+          payment_status: string
+          speaker_id: string
+        }
+        Insert: {
+          amount_paid?: number
+          confirmed_fee?: number
+          created_at?: string
+          event_date?: string | null
+          event_id?: string | null
+          event_name: string
+          expenses?: number | null
+          fee_currency?: string
+          id?: string
+          match_id?: string | null
+          net_revenue?: number | null
+          notes?: string | null
+          payment_date?: string | null
+          payment_status?: string
+          speaker_id: string
+        }
+        Update: {
+          amount_paid?: number
+          confirmed_fee?: number
+          created_at?: string
+          event_date?: string | null
+          event_id?: string | null
+          event_name?: string
+          expenses?: number | null
+          fee_currency?: string
+          id?: string
+          match_id?: string | null
+          net_revenue?: number | null
+          notes?: string | null
+          payment_date?: string | null
+          payment_status?: string
+          speaker_id?: string
+        }
+        Relationships: []
+      }
       fee_benchmarks: {
         Row: {
           audience_size_bucket: string | null
@@ -586,6 +640,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          annual_revenue_goal: number | null
           audience_types: string[] | null
           bio: string | null
           created_at: string
@@ -605,6 +660,7 @@ export type Database = {
           notable_clients: string[] | null
           one_sheet_url: string | null
           past_talks: string[] | null
+          revenue_goal_year: number | null
           slug: string | null
           speaker_reel_url: string | null
           total_talks_given: number | null
@@ -617,6 +673,7 @@ export type Database = {
           youtube_url: string | null
         }
         Insert: {
+          annual_revenue_goal?: number | null
           audience_types?: string[] | null
           bio?: string | null
           created_at?: string
@@ -636,6 +693,7 @@ export type Database = {
           notable_clients?: string[] | null
           one_sheet_url?: string | null
           past_talks?: string[] | null
+          revenue_goal_year?: number | null
           slug?: string | null
           speaker_reel_url?: string | null
           total_talks_given?: number | null
@@ -648,6 +706,7 @@ export type Database = {
           youtube_url?: string | null
         }
         Update: {
+          annual_revenue_goal?: number | null
           audience_types?: string[] | null
           bio?: string | null
           created_at?: string
@@ -667,6 +726,7 @@ export type Database = {
           notable_clients?: string[] | null
           one_sheet_url?: string | null
           past_talks?: string[] | null
+          revenue_goal_year?: number | null
           slug?: string | null
           speaker_reel_url?: string | null
           total_talks_given?: number | null
