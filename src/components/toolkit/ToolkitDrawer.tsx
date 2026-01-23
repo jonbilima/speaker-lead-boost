@@ -20,11 +20,18 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { PitchGeneratorDialog } from "./PitchGeneratorDialog";
-import { PhoneScriptsDialog } from "./PhoneScriptsDialog";
-
+import { CallPrepDialog } from "./CallPrepDialog";
 interface ToolkitDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  opportunityContext?: {
+    scoreId?: string;
+    eventName?: string;
+    organizerName?: string;
+    organizerEmail?: string;
+    organization?: string;
+    opportunityId?: string;
+  } | null;
 }
 
 const toolkitItems = [
@@ -36,19 +43,19 @@ const toolkitItems = [
     action: "modal",
   },
   {
+    id: "call-prep",
+    title: "Call Prep",
+    description: "Scripts, discovery questions & objection handlers",
+    icon: Phone,
+    action: "modal",
+  },
+  {
     id: "email-templates",
     title: "Email Templates",
     description: "Ready-to-use email templates",
     icon: FileText,
     action: "navigate",
     url: "/templates",
-  },
-  {
-    id: "phone-scripts",
-    title: "Phone Scripts",
-    description: "Discovery questions & call guides",
-    icon: Phone,
-    action: "modal",
   },
   {
     id: "speech-builder",
@@ -100,10 +107,10 @@ const toolkitItems = [
   },
 ];
 
-export function ToolkitDrawer({ open, onOpenChange }: ToolkitDrawerProps) {
+export function ToolkitDrawer({ open, onOpenChange, opportunityContext }: ToolkitDrawerProps) {
   const navigate = useNavigate();
   const [pitchDialogOpen, setPitchDialogOpen] = useState(false);
-  const [phoneScriptsOpen, setPhoneScriptsOpen] = useState(false);
+  const [callPrepOpen, setCallPrepOpen] = useState(false);
 
   const handleItemClick = (item: typeof toolkitItems[0]) => {
     if (item.action === "navigate" && item.url) {
@@ -112,8 +119,8 @@ export function ToolkitDrawer({ open, onOpenChange }: ToolkitDrawerProps) {
     } else if (item.action === "modal") {
       if (item.id === "generate-pitch") {
         setPitchDialogOpen(true);
-      } else if (item.id === "phone-scripts") {
-        setPhoneScriptsOpen(true);
+      } else if (item.id === "call-prep") {
+        setCallPrepOpen(true);
       }
     }
   };
@@ -126,6 +133,11 @@ export function ToolkitDrawer({ open, onOpenChange }: ToolkitDrawerProps) {
             <SheetTitle className="flex items-center gap-2 text-xl">
               <span className="text-2xl">⚡</span>
               Toolkit
+              {opportunityContext?.eventName && (
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  • {opportunityContext.eventName}
+                </span>
+              )}
             </SheetTitle>
           </SheetHeader>
 
@@ -158,11 +170,13 @@ export function ToolkitDrawer({ open, onOpenChange }: ToolkitDrawerProps) {
       <PitchGeneratorDialog
         open={pitchDialogOpen}
         onOpenChange={setPitchDialogOpen}
+        opportunityId={opportunityContext?.opportunityId}
       />
 
-      <PhoneScriptsDialog
-        open={phoneScriptsOpen}
-        onOpenChange={setPhoneScriptsOpen}
+      <CallPrepDialog
+        open={callPrepOpen}
+        onOpenChange={setCallPrepOpen}
+        opportunityContext={opportunityContext}
       />
     </>
   );
