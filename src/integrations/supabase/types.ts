@@ -66,96 +66,201 @@ export type Database = {
           },
         ]
       }
+      fee_benchmarks: {
+        Row: {
+          audience_size_bucket: string | null
+          data_points: number | null
+          event_type: Database["public"]["Enums"]["event_type"]
+          experience_level: Database["public"]["Enums"]["experience_level"]
+          fee_median: number | null
+          fee_p25: number | null
+          fee_p75: number | null
+          fee_p90: number | null
+          id: string
+          last_updated: string
+          region: string | null
+          topic_category: string | null
+        }
+        Insert: {
+          audience_size_bucket?: string | null
+          data_points?: number | null
+          event_type: Database["public"]["Enums"]["event_type"]
+          experience_level: Database["public"]["Enums"]["experience_level"]
+          fee_median?: number | null
+          fee_p25?: number | null
+          fee_p75?: number | null
+          fee_p90?: number | null
+          id?: string
+          last_updated?: string
+          region?: string | null
+          topic_category?: string | null
+        }
+        Update: {
+          audience_size_bucket?: string | null
+          data_points?: number | null
+          event_type?: Database["public"]["Enums"]["event_type"]
+          experience_level?: Database["public"]["Enums"]["experience_level"]
+          fee_median?: number | null
+          fee_p25?: number | null
+          fee_p75?: number | null
+          fee_p90?: number | null
+          id?: string
+          last_updated?: string
+          region?: string | null
+          topic_category?: string | null
+        }
+        Relationships: []
+      }
       opportunities: {
         Row: {
           audience_size: number | null
+          covers_accommodation: boolean | null
+          covers_travel: boolean | null
           created_at: string
           deadline: string | null
           description: string | null
           event_date: string | null
+          event_end_date: string | null
           event_name: string
           event_url: string | null
           fee_estimate_max: number | null
           fee_estimate_min: number | null
           id: string
           is_active: boolean | null
+          is_featured: boolean | null
+          is_verified: boolean | null
           location: string | null
+          location_venue: string | null
+          organization_website: string | null
           organizer_email: string | null
+          organizer_linkedin: string | null
           organizer_name: string | null
+          organizer_phone: string | null
+          raw_data: Json | null
           scraped_at: string
+          seniority_level: string | null
           source: string | null
+          timezone: string | null
         }
         Insert: {
           audience_size?: number | null
+          covers_accommodation?: boolean | null
+          covers_travel?: boolean | null
           created_at?: string
           deadline?: string | null
           description?: string | null
           event_date?: string | null
+          event_end_date?: string | null
           event_name: string
           event_url?: string | null
           fee_estimate_max?: number | null
           fee_estimate_min?: number | null
           id?: string
           is_active?: boolean | null
+          is_featured?: boolean | null
+          is_verified?: boolean | null
           location?: string | null
+          location_venue?: string | null
+          organization_website?: string | null
           organizer_email?: string | null
+          organizer_linkedin?: string | null
           organizer_name?: string | null
+          organizer_phone?: string | null
+          raw_data?: Json | null
           scraped_at?: string
+          seniority_level?: string | null
           source?: string | null
+          timezone?: string | null
         }
         Update: {
           audience_size?: number | null
+          covers_accommodation?: boolean | null
+          covers_travel?: boolean | null
           created_at?: string
           deadline?: string | null
           description?: string | null
           event_date?: string | null
+          event_end_date?: string | null
           event_name?: string
           event_url?: string | null
           fee_estimate_max?: number | null
           fee_estimate_min?: number | null
           id?: string
           is_active?: boolean | null
+          is_featured?: boolean | null
+          is_verified?: boolean | null
           location?: string | null
+          location_venue?: string | null
+          organization_website?: string | null
           organizer_email?: string | null
+          organizer_linkedin?: string | null
           organizer_name?: string | null
+          organizer_phone?: string | null
+          raw_data?: Json | null
           scraped_at?: string
+          seniority_level?: string | null
           source?: string | null
+          timezone?: string | null
         }
         Relationships: []
       }
       opportunity_scores: {
         Row: {
+          accepted_at: string | null
           ai_reason: string | null
           ai_score: number | null
           calculated_at: string
+          completed_at: string | null
           deadline_urgency_score: number | null
           fee_alignment_score: number | null
           id: string
+          interested_at: string | null
           opportunity_id: string
+          pipeline_stage: Database["public"]["Enums"]["pipeline_stage"] | null
+          rejected_at: string | null
+          rejection_reason: string | null
+          response_received_at: string | null
           topic_match_score: number | null
           user_id: string
+          viewed_at: string | null
         }
         Insert: {
+          accepted_at?: string | null
           ai_reason?: string | null
           ai_score?: number | null
           calculated_at?: string
+          completed_at?: string | null
           deadline_urgency_score?: number | null
           fee_alignment_score?: number | null
           id?: string
+          interested_at?: string | null
           opportunity_id: string
+          pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"] | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          response_received_at?: string | null
           topic_match_score?: number | null
           user_id: string
+          viewed_at?: string | null
         }
         Update: {
+          accepted_at?: string | null
           ai_reason?: string | null
           ai_score?: number | null
           calculated_at?: string
+          completed_at?: string | null
           deadline_urgency_score?: number | null
           fee_alignment_score?: number | null
           id?: string
+          interested_at?: string | null
           opportunity_id?: string
+          pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"] | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          response_received_at?: string | null
           topic_match_score?: number | null
           user_id?: string
+          viewed_at?: string | null
         }
         Relationships: [
           {
@@ -206,6 +311,191 @@ export type Database = {
             columns: ["topic_id"]
             isOneToOne: false
             referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizers: {
+        Row: {
+          created_at: string
+          email: string | null
+          events_organized: number | null
+          id: string
+          last_booking_date: string | null
+          linkedin_url: string | null
+          name: string
+          notes: string | null
+          organization_name: string | null
+          organization_type:
+            | Database["public"]["Enums"]["organization_type"]
+            | null
+          organization_website: string | null
+          phone: string | null
+          speakers_booked_last_year: number | null
+          topics: string[] | null
+          typical_fee_max: number | null
+          typical_fee_min: number | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          events_organized?: number | null
+          id?: string
+          last_booking_date?: string | null
+          linkedin_url?: string | null
+          name: string
+          notes?: string | null
+          organization_name?: string | null
+          organization_type?:
+            | Database["public"]["Enums"]["organization_type"]
+            | null
+          organization_website?: string | null
+          phone?: string | null
+          speakers_booked_last_year?: number | null
+          topics?: string[] | null
+          typical_fee_max?: number | null
+          typical_fee_min?: number | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          events_organized?: number | null
+          id?: string
+          last_booking_date?: string | null
+          linkedin_url?: string | null
+          name?: string
+          notes?: string | null
+          organization_name?: string | null
+          organization_type?:
+            | Database["public"]["Enums"]["organization_type"]
+            | null
+          organization_website?: string | null
+          phone?: string | null
+          speakers_booked_last_year?: number | null
+          topics?: string[] | null
+          typical_fee_max?: number | null
+          typical_fee_min?: number | null
+        }
+        Relationships: []
+      }
+      outreach_activities: {
+        Row: {
+          activity_type: Database["public"]["Enums"]["activity_type"]
+          body: string | null
+          created_at: string
+          email_clicked_at: string | null
+          email_message_id: string | null
+          email_opened_at: string | null
+          email_replied_at: string | null
+          email_sent_at: string | null
+          follow_up_completed: boolean | null
+          follow_up_date: string | null
+          id: string
+          match_id: string | null
+          notes: string | null
+          speaker_id: string
+          subject: string | null
+        }
+        Insert: {
+          activity_type: Database["public"]["Enums"]["activity_type"]
+          body?: string | null
+          created_at?: string
+          email_clicked_at?: string | null
+          email_message_id?: string | null
+          email_opened_at?: string | null
+          email_replied_at?: string | null
+          email_sent_at?: string | null
+          follow_up_completed?: boolean | null
+          follow_up_date?: string | null
+          id?: string
+          match_id?: string | null
+          notes?: string | null
+          speaker_id: string
+          subject?: string | null
+        }
+        Update: {
+          activity_type?: Database["public"]["Enums"]["activity_type"]
+          body?: string | null
+          created_at?: string
+          email_clicked_at?: string | null
+          email_message_id?: string | null
+          email_opened_at?: string | null
+          email_replied_at?: string | null
+          email_sent_at?: string | null
+          follow_up_completed?: boolean | null
+          follow_up_date?: string | null
+          id?: string
+          match_id?: string | null
+          notes?: string | null
+          speaker_id?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_activities_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_scores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_activities_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      past_talks: {
+        Row: {
+          audience_size: number | null
+          created_at: string
+          event_date: string | null
+          event_name: string | null
+          id: string
+          slides_url: string | null
+          speaker_id: string
+          testimonial: string | null
+          testimonial_author: string | null
+          testimonial_role: string | null
+          title: string
+          video_url: string | null
+        }
+        Insert: {
+          audience_size?: number | null
+          created_at?: string
+          event_date?: string | null
+          event_name?: string | null
+          id?: string
+          slides_url?: string | null
+          speaker_id: string
+          testimonial?: string | null
+          testimonial_author?: string | null
+          testimonial_role?: string | null
+          title: string
+          video_url?: string | null
+        }
+        Update: {
+          audience_size?: number | null
+          created_at?: string
+          event_date?: string | null
+          event_name?: string | null
+          id?: string
+          slides_url?: string | null
+          speaker_id?: string
+          testimonial?: string | null
+          testimonial_author?: string | null
+          testimonial_role?: string | null
+          title?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "past_talks_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -263,40 +553,88 @@ export type Database = {
       }
       profiles: {
         Row: {
+          audience_types: string[] | null
           bio: string | null
           created_at: string
           fee_range_max: number | null
           fee_range_min: number | null
+          headline: string | null
           id: string
+          industries: string[] | null
+          is_public: boolean | null
           linkedin_url: string | null
+          location_city: string | null
+          location_country: string | null
           name: string | null
+          notable_clients: string[] | null
+          one_sheet_url: string | null
           past_talks: string[] | null
+          slug: string | null
+          speaker_reel_url: string | null
+          total_talks_given: number | null
+          travel_regions: string[] | null
           twitter_url: string | null
           updated_at: string
+          weekly_digest: boolean | null
+          willing_to_travel: boolean | null
+          years_speaking: number | null
+          youtube_url: string | null
         }
         Insert: {
+          audience_types?: string[] | null
           bio?: string | null
           created_at?: string
           fee_range_max?: number | null
           fee_range_min?: number | null
+          headline?: string | null
           id: string
+          industries?: string[] | null
+          is_public?: boolean | null
           linkedin_url?: string | null
+          location_city?: string | null
+          location_country?: string | null
           name?: string | null
+          notable_clients?: string[] | null
+          one_sheet_url?: string | null
           past_talks?: string[] | null
+          slug?: string | null
+          speaker_reel_url?: string | null
+          total_talks_given?: number | null
+          travel_regions?: string[] | null
           twitter_url?: string | null
           updated_at?: string
+          weekly_digest?: boolean | null
+          willing_to_travel?: boolean | null
+          years_speaking?: number | null
+          youtube_url?: string | null
         }
         Update: {
+          audience_types?: string[] | null
           bio?: string | null
           created_at?: string
           fee_range_max?: number | null
           fee_range_min?: number | null
+          headline?: string | null
           id?: string
+          industries?: string[] | null
+          is_public?: boolean | null
           linkedin_url?: string | null
+          location_city?: string | null
+          location_country?: string | null
           name?: string | null
+          notable_clients?: string[] | null
+          one_sheet_url?: string | null
           past_talks?: string[] | null
+          slug?: string | null
+          speaker_reel_url?: string | null
+          total_talks_given?: number | null
+          travel_regions?: string[] | null
           twitter_url?: string | null
           updated_at?: string
+          weekly_digest?: boolean | null
+          willing_to_travel?: boolean | null
+          years_speaking?: number | null
+          youtube_url?: string | null
         }
         Relationships: []
       }
@@ -338,6 +676,216 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      speaker_assets: {
+        Row: {
+          asset_type: Database["public"]["Enums"]["asset_type"]
+          created_at: string
+          description: string | null
+          download_count: number | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          is_primary: boolean | null
+          mime_type: string | null
+          speaker_id: string
+          title: string | null
+          view_count: number | null
+        }
+        Insert: {
+          asset_type: Database["public"]["Enums"]["asset_type"]
+          created_at?: string
+          description?: string | null
+          download_count?: number | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          is_primary?: boolean | null
+          mime_type?: string | null
+          speaker_id: string
+          title?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          asset_type?: Database["public"]["Enums"]["asset_type"]
+          created_at?: string
+          description?: string | null
+          download_count?: number | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          is_primary?: boolean | null
+          mime_type?: string | null
+          speaker_id?: string
+          title?: string | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speaker_assets_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      speaker_bookings: {
+        Row: {
+          booking_announced_date: string | null
+          created_at: string
+          event_date: string | null
+          event_id: string | null
+          event_name: string
+          id: string
+          organization_name: string | null
+          organizer_name: string | null
+          source_type: string | null
+          source_url: string | null
+          speaker_linkedin: string | null
+          speaker_name: string
+          speaker_profile_id: string | null
+          speaker_website: string | null
+        }
+        Insert: {
+          booking_announced_date?: string | null
+          created_at?: string
+          event_date?: string | null
+          event_id?: string | null
+          event_name: string
+          id?: string
+          organization_name?: string | null
+          organizer_name?: string | null
+          source_type?: string | null
+          source_url?: string | null
+          speaker_linkedin?: string | null
+          speaker_name: string
+          speaker_profile_id?: string | null
+          speaker_website?: string | null
+        }
+        Update: {
+          booking_announced_date?: string | null
+          created_at?: string
+          event_date?: string | null
+          event_id?: string | null
+          event_name?: string
+          id?: string
+          organization_name?: string | null
+          organizer_name?: string | null
+          source_type?: string | null
+          source_url?: string | null
+          speaker_linkedin?: string | null
+          speaker_name?: string
+          speaker_profile_id?: string | null
+          speaker_website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speaker_bookings_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speaker_bookings_speaker_profile_id_fkey"
+            columns: ["speaker_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      speaker_calendar: {
+        Row: {
+          all_day: boolean | null
+          color: string | null
+          created_at: string
+          end_date: string | null
+          end_time: string | null
+          entry_type: Database["public"]["Enums"]["calendar_entry_type"]
+          event_id: string | null
+          google_calendar_id: string | null
+          id: string
+          is_virtual: boolean | null
+          location: string | null
+          match_id: string | null
+          meeting_url: string | null
+          notes: string | null
+          reminder_days_before: number | null
+          speaker_id: string
+          start_date: string
+          start_time: string | null
+          title: string
+        }
+        Insert: {
+          all_day?: boolean | null
+          color?: string | null
+          created_at?: string
+          end_date?: string | null
+          end_time?: string | null
+          entry_type?: Database["public"]["Enums"]["calendar_entry_type"]
+          event_id?: string | null
+          google_calendar_id?: string | null
+          id?: string
+          is_virtual?: boolean | null
+          location?: string | null
+          match_id?: string | null
+          meeting_url?: string | null
+          notes?: string | null
+          reminder_days_before?: number | null
+          speaker_id: string
+          start_date: string
+          start_time?: string | null
+          title: string
+        }
+        Update: {
+          all_day?: boolean | null
+          color?: string | null
+          created_at?: string
+          end_date?: string | null
+          end_time?: string | null
+          entry_type?: Database["public"]["Enums"]["calendar_entry_type"]
+          event_id?: string | null
+          google_calendar_id?: string | null
+          id?: string
+          is_virtual?: boolean | null
+          location?: string | null
+          match_id?: string | null
+          meeting_url?: string | null
+          notes?: string | null
+          reminder_days_before?: number | null
+          speaker_id?: string
+          start_date?: string
+          start_time?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speaker_calendar_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speaker_calendar_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_scores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speaker_calendar_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       topics: {
         Row: {
@@ -437,6 +985,14 @@ export type Database = {
       }
     }
     Enums: {
+      activity_type:
+        | "email_sent"
+        | "email_received"
+        | "call"
+        | "meeting"
+        | "note"
+        | "follow_up"
+        | "social_interaction"
       app_role: "admin" | "user"
       application_status:
         | "applied"
@@ -444,6 +1000,55 @@ export type Database = {
         | "booked"
         | "declined"
         | "pending"
+      asset_type:
+        | "headshot"
+        | "speaker_reel"
+        | "one_sheet"
+        | "slide_deck"
+        | "video"
+        | "audio"
+        | "document"
+        | "other"
+      calendar_entry_type:
+        | "speaking_engagement"
+        | "travel"
+        | "prep"
+        | "meeting"
+        | "follow_up"
+        | "blocked"
+        | "other"
+      event_type:
+        | "conference"
+        | "corporate_keynote"
+        | "workshop"
+        | "webinar"
+        | "panel"
+        | "podcast"
+        | "training"
+        | "other"
+      experience_level:
+        | "emerging"
+        | "established"
+        | "professional"
+        | "celebrity"
+      organization_type:
+        | "conference"
+        | "corporate"
+        | "association"
+        | "university"
+        | "nonprofit"
+        | "government"
+        | "media"
+        | "other"
+      pipeline_stage:
+        | "new"
+        | "researching"
+        | "interested"
+        | "pitched"
+        | "negotiating"
+        | "accepted"
+        | "rejected"
+        | "completed"
       proficiency_level: "beginner" | "intermediate" | "expert"
     }
     CompositeTypes: {
@@ -572,6 +1177,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      activity_type: [
+        "email_sent",
+        "email_received",
+        "call",
+        "meeting",
+        "note",
+        "follow_up",
+        "social_interaction",
+      ],
       app_role: ["admin", "user"],
       application_status: [
         "applied",
@@ -579,6 +1193,61 @@ export const Constants = {
         "booked",
         "declined",
         "pending",
+      ],
+      asset_type: [
+        "headshot",
+        "speaker_reel",
+        "one_sheet",
+        "slide_deck",
+        "video",
+        "audio",
+        "document",
+        "other",
+      ],
+      calendar_entry_type: [
+        "speaking_engagement",
+        "travel",
+        "prep",
+        "meeting",
+        "follow_up",
+        "blocked",
+        "other",
+      ],
+      event_type: [
+        "conference",
+        "corporate_keynote",
+        "workshop",
+        "webinar",
+        "panel",
+        "podcast",
+        "training",
+        "other",
+      ],
+      experience_level: [
+        "emerging",
+        "established",
+        "professional",
+        "celebrity",
+      ],
+      organization_type: [
+        "conference",
+        "corporate",
+        "association",
+        "university",
+        "nonprofit",
+        "government",
+        "media",
+        "other",
+      ],
+      pipeline_stage: [
+        "new",
+        "researching",
+        "interested",
+        "pitched",
+        "negotiating",
+        "accepted",
+        "rejected",
+        "completed",
       ],
       proficiency_level: ["beginner", "intermediate", "expert"],
     },
