@@ -1,11 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.80.0";
 import { DOMParser } from "jsr:@b-fuze/deno-dom/wasm";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { validateAuth, unauthorizedResponse, forbiddenResponse, corsHeaders } from "../_shared/auth.ts";
 
 // Helper to parse dates from various formats
 function parseDate(dateStr: string | null): string | null {
@@ -65,6 +61,15 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Validate authentication and require admin role
+  const auth = await validateAuth(req);
+  if (auth.error || !auth.user) {
+    return unauthorizedResponse(auth.error || 'Unauthorized');
+  }
+  if (!auth.isAdmin) {
+    return forbiddenResponse('Admin access required to run scraping functions');
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
