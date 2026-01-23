@@ -5,8 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Play, RefreshCw } from "lucide-react";
-import { format } from "date-fns";
+import { Loader2, Play, RefreshCw, Clock, CheckCircle2, Zap } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
+import { RefreshAllOpportunitiesButton } from "@/components/admin/RefreshAllOpportunitiesButton";
 
 interface ScrapingLog {
   id: string;
@@ -117,11 +118,16 @@ export default function AdminScraping() {
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        <div>
-          <h1 className="text-4xl font-bold mb-2">Scraping Management</h1>
-          <p className="text-muted-foreground">
-            Manually trigger scrapers and monitor scraping activity
-          </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">Scraping Management</h1>
+            <p className="text-muted-foreground">
+              Manually trigger scrapers and monitor scraping activity
+            </p>
+          </div>
+          <Card className="p-4 min-w-[280px]">
+            <RefreshAllOpportunitiesButton />
+          </Card>
         </div>
 
         {/* Original Scrapers */}

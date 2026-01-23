@@ -17,6 +17,8 @@ import { OpportunityCard } from "@/components/find/OpportunityCard";
 import { SmartListsSidebar } from "@/components/find/SmartListsSidebar";
 import { QuickApplyModal } from "@/components/find/QuickApplyModal";
 import { FilterPanel } from "@/components/find/FilterPanel";
+import { DataFreshnessIndicator } from "@/components/find/DataFreshnessIndicator";
+import { SubmitOpportunityDialog } from "@/components/find/SubmitOpportunityDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export interface Opportunity {
@@ -314,14 +316,20 @@ const Find = () => {
     <AppLayout>
       <div className="space-y-4">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Search className="h-6 w-6 text-primary" />
-            Find Opportunities
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Discover speaking opportunities matched to your expertise
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <Search className="h-6 w-6 text-primary" />
+              Find Opportunities
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Discover speaking opportunities matched to your expertise
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <DataFreshnessIndicator />
+            <SubmitOpportunityDialog onSuccess={loadOpportunities} />
+          </div>
         </div>
 
         {/* Search Bar */}
