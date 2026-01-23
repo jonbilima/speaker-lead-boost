@@ -420,6 +420,51 @@ export type Database = {
           },
         ]
       }
+      email_logs: {
+        Row: {
+          body_preview: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          recipient_email: string
+          related_id: string | null
+          related_type: string | null
+          resend_id: string | null
+          sent_at: string | null
+          speaker_id: string
+          status: string
+          subject: string
+        }
+        Insert: {
+          body_preview?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient_email: string
+          related_id?: string | null
+          related_type?: string | null
+          resend_id?: string | null
+          sent_at?: string | null
+          speaker_id: string
+          status?: string
+          subject: string
+        }
+        Update: {
+          body_preview?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient_email?: string
+          related_id?: string | null
+          related_type?: string | null
+          resend_id?: string | null
+          sent_at?: string | null
+          speaker_id?: string
+          status?: string
+          subject?: string
+        }
+        Relationships: []
+      }
       email_templates: {
         Row: {
           body_template: string
@@ -1207,6 +1252,9 @@ export type Database = {
           audience_types: string[] | null
           bio: string | null
           created_at: string
+          email_bcc_self: boolean | null
+          email_reply_to: string | null
+          email_signature: string | null
           fee_range_max: number | null
           fee_range_min: number | null
           follow_up_interval_1: number | null
@@ -1241,6 +1289,9 @@ export type Database = {
           audience_types?: string[] | null
           bio?: string | null
           created_at?: string
+          email_bcc_self?: boolean | null
+          email_reply_to?: string | null
+          email_signature?: string | null
           fee_range_max?: number | null
           fee_range_min?: number | null
           follow_up_interval_1?: number | null
@@ -1275,6 +1326,9 @@ export type Database = {
           audience_types?: string[] | null
           bio?: string | null
           created_at?: string
+          email_bcc_self?: boolean | null
+          email_reply_to?: string | null
+          email_signature?: string | null
           fee_range_max?: number | null
           fee_range_min?: number | null
           follow_up_interval_1?: number | null

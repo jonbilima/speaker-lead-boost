@@ -8,10 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
+import { EmailSettingsSection } from "@/components/settings/EmailSettingsSection";
 
 const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const [allTopics, setAllTopics] = useState<{ id: string; name: string }[]>([]);
   const navigate = useNavigate();
 
@@ -38,6 +40,8 @@ const Profile = () => {
         navigate("/auth");
         return;
       }
+
+      setUserId(session.user.id);
 
       // Load all available topics
       const { data: topicsData } = await supabase
@@ -350,6 +354,9 @@ const Profile = () => {
             </form>
           </CardContent>
         </Card>
+
+        {/* Email Settings */}
+        {userId && <EmailSettingsSection userId={userId} />}
       </div>
     </AppLayout>
   );
