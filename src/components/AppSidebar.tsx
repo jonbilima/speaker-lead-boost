@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Kanban,
@@ -7,7 +8,6 @@ import {
   Lightbulb,
   User,
   LogOut,
-  Settings,
 } from "lucide-react";
 import {
   Sidebar,
@@ -19,12 +19,12 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 const menuItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -40,8 +40,34 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const [overdueCount, setOverdueCount] = useState(0);
 
   const isActive = (path: string) => location.pathname === path;
+
+  // Fetch overdue follow-up count
+  useEffect(() => {
+    const fetchOverdueCount = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const today = new Date().toISOString().split("T")[0];
+      const { count, error } = await supabase
+        .from("follow_up_reminders")
+        .select("*", { count: "exact", head: true })
+        .eq("speaker_id", session.user.id)
+        .eq("is_completed", false)
+        .lt("due_date", today);
+
+      if (!error && count !== null) {
+        setOverdueCount(count);
+      }
+    };
+
+    fetchOverdueCount();
+    // Refresh every 60 seconds
+    const interval = setInterval(fetchOverdueCount, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -83,9 +109,17 @@ export function AppSidebar() {
                     <a href={item.url} onClick={(e) => {
                       e.preventDefault();
                       navigate(item.url);
-                    }}>
+                    }} className="relative">
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
+                      {item.url === "/pipeline" && overdueCount > 0 && (
+                        <Badge 
+                          variant="destructive" 
+                          className="absolute -top-1 -right-1 h-5 min-w-5 flex items-center justify-center p-0 text-xs"
+                        >
+                          {overdueCount}
+                        </Badge>
+                      )}
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

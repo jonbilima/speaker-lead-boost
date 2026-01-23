@@ -25,6 +25,9 @@ const Profile = () => {
     pastTalks: "",
     linkedinUrl: "",
     twitterUrl: "",
+    followUpInterval1: "7",
+    followUpInterval2: "14",
+    followUpInterval3: "21",
   });
 
   useEffect(() => {
@@ -64,6 +67,9 @@ const Profile = () => {
           pastTalks: profile.past_talks?.join('\n') || "",
           linkedinUrl: profile.linkedin_url || "",
           twitterUrl: profile.twitter_url || "",
+          followUpInterval1: profile.follow_up_interval_1?.toString() || "7",
+          followUpInterval2: profile.follow_up_interval_2?.toString() || "14",
+          followUpInterval3: profile.follow_up_interval_3?.toString() || "21",
         });
       } else {
         setFormData(prev => ({ ...prev, email: session.user.email || "" }));
@@ -107,6 +113,9 @@ const Profile = () => {
           past_talks: formData.pastTalks.split('\n').filter(t => t.trim()),
           linkedin_url: formData.linkedinUrl,
           twitter_url: formData.twitterUrl,
+          follow_up_interval_1: parseInt(formData.followUpInterval1),
+          follow_up_interval_2: parseInt(formData.followUpInterval2),
+          follow_up_interval_3: parseInt(formData.followUpInterval3),
         })
         .eq('id', session.user.id);
 
@@ -283,6 +292,51 @@ const Profile = () => {
                     value={formData.twitterUrl}
                     onChange={(e) => setFormData({ ...formData, twitterUrl: e.target.value })}
                   />
+                </div>
+              </div>
+
+              {/* Follow-up Reminder Settings */}
+              <div className="space-y-4 pt-4 border-t">
+                <div>
+                  <Label className="text-base font-medium">Follow-up Reminder Intervals</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Customize when you want to be reminded to follow up after applying
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="followUpInterval1">1st Follow-up (days)</Label>
+                    <Input
+                      id="followUpInterval1"
+                      type="number"
+                      value={formData.followUpInterval1}
+                      onChange={(e) => setFormData({ ...formData, followUpInterval1: e.target.value })}
+                      min="1"
+                      max="30"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="followUpInterval2">2nd Follow-up (days)</Label>
+                    <Input
+                      id="followUpInterval2"
+                      type="number"
+                      value={formData.followUpInterval2}
+                      onChange={(e) => setFormData({ ...formData, followUpInterval2: e.target.value })}
+                      min="1"
+                      max="60"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="followUpInterval3">Final Follow-up (days)</Label>
+                    <Input
+                      id="followUpInterval3"
+                      type="number"
+                      value={formData.followUpInterval3}
+                      onChange={(e) => setFormData({ ...formData, followUpInterval3: e.target.value })}
+                      min="1"
+                      max="90"
+                    />
+                  </div>
                 </div>
               </div>
 

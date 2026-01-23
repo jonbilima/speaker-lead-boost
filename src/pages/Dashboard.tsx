@@ -10,6 +10,9 @@ import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { CalendarWidget } from "@/components/dashboard/CalendarWidget";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { TopOpportunities } from "@/components/dashboard/TopOpportunities";
+import { FollowUpsDue } from "@/components/dashboard/FollowUpsDue";
+import { FollowUpEmailDialog } from "@/components/dashboard/FollowUpEmailDialog";
+import { useFollowUpReminders } from "@/hooks/useFollowUpReminders";
 
 interface Opportunity {
   id: string;
@@ -72,7 +75,11 @@ const Dashboard = () => {
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [stats, setStats] = useState<Stats>({ today: 0, week: 0, applied: 0, accepted: 0 });
+  const [followUpEmailOpen, setFollowUpEmailOpen] = useState(false);
+  const [selectedFollowUp, setSelectedFollowUp] = useState<{ opportunityId: string; reminderType: string } | null>(null);
   const navigate = useNavigate();
+  
+  const { reminders, refresh: refreshReminders } = useFollowUpReminders(user?.id || null);
 
   const loadDashboardData = useCallback(async (userId: string) => {
     try {
@@ -333,6 +340,14 @@ const Dashboard = () => {
 
           {/* Right Column - Widgets */}
           <div className="space-y-6">
+            <FollowUpsDue
+              reminders={reminders}
+              onUpdate={refreshReminders}
+              onGenerateFollowUp={(opportunityId, reminderType) => {
+                setSelectedFollowUp({ opportunityId, reminderType });
+                setFollowUpEmailOpen(true);
+              }}
+            />
             <UpcomingDeadlines deadlines={deadlines} />
             <RecentActivity activities={activities} />
             <CalendarWidget entries={calendarEntries} />
@@ -348,6 +363,15 @@ const Dashboard = () => {
           if (user) loadDashboardData(user.id);
         }}
       />
+
+      {selectedFollowUp && (
+        <FollowUpEmailDialog
+          open={followUpEmailOpen}
+          onOpenChange={setFollowUpEmailOpen}
+          opportunityId={selectedFollowUp.opportunityId}
+          reminderType={selectedFollowUp.reminderType}
+        />
+      )}
     </AppLayout>
   );
 };

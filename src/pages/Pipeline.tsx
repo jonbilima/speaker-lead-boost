@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { PipelineColumn } from "@/components/pipeline/PipelineColumn";
 import { PipelineDetailModal } from "@/components/pipeline/PipelineDetailModal";
 import { PipelineOpportunity } from "@/components/pipeline/PipelineCard";
+import { createFollowUpReminders, getUserFollowUpIntervals } from "@/hooks/useFollowUpReminders";
 
 const PIPELINE_STAGES = [
   { id: "new", label: "New", color: "border-gray-400", bgColor: "bg-gray-100" },
@@ -137,6 +138,22 @@ const Pipeline = () => {
           activity_type: "note",
           notes: `Moved to "${stageLabel}" stage`,
         });
+
+        // Create follow-up reminders when moved to "pitched" (Applied) stage
+        if (newStage === "pitched") {
+          try {
+            const intervals = await getUserFollowUpIntervals(session.user.id);
+            await createFollowUpReminders(
+              session.user.id,
+              draggableId,
+              new Date(),
+              intervals
+            );
+            toast.success("Follow-up reminders created for 7, 14, and 21 days");
+          } catch (reminderError) {
+            console.error("Error creating follow-up reminders:", reminderError);
+          }
+        }
       }
       toast.success(`Moved to ${PIPELINE_STAGES.find((s) => s.id === newStage)?.label}`);
     }

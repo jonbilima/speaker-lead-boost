@@ -111,6 +111,39 @@ export type Database = {
         }
         Relationships: []
       }
+      follow_up_reminders: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          due_date: string
+          id: string
+          is_completed: boolean
+          match_id: string
+          reminder_type: string
+          speaker_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          due_date: string
+          id?: string
+          is_completed?: boolean
+          match_id: string
+          reminder_type: string
+          speaker_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string
+          id?: string
+          is_completed?: boolean
+          match_id?: string
+          reminder_type?: string
+          speaker_id?: string
+        }
+        Relationships: []
+      }
       opportunities: {
         Row: {
           audience_size: number | null
@@ -558,6 +591,9 @@ export type Database = {
           created_at: string
           fee_range_max: number | null
           fee_range_min: number | null
+          follow_up_interval_1: number | null
+          follow_up_interval_2: number | null
+          follow_up_interval_3: number | null
           headline: string | null
           id: string
           industries: string[] | null
@@ -586,6 +622,9 @@ export type Database = {
           created_at?: string
           fee_range_max?: number | null
           fee_range_min?: number | null
+          follow_up_interval_1?: number | null
+          follow_up_interval_2?: number | null
+          follow_up_interval_3?: number | null
           headline?: string | null
           id: string
           industries?: string[] | null
@@ -614,6 +653,9 @@ export type Database = {
           created_at?: string
           fee_range_max?: number | null
           fee_range_min?: number | null
+          follow_up_interval_1?: number | null
+          follow_up_interval_2?: number | null
+          follow_up_interval_3?: number | null
           headline?: string | null
           id?: string
           industries?: string[] | null
