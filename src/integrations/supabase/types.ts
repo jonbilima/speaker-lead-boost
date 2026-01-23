@@ -14,6 +14,82 @@ export type Database = {
   }
   public: {
     Tables: {
+      application_packages: {
+        Row: {
+          cover_message: string | null
+          created_at: string
+          custom_note: string | null
+          event_id: string | null
+          expires_at: string | null
+          id: string
+          include_bio: boolean | null
+          include_headshot: boolean | null
+          include_one_sheet: boolean | null
+          include_video: boolean | null
+          included_assets: string[] | null
+          match_id: string | null
+          package_title: string
+          speaker_id: string
+          tracking_code: string
+        }
+        Insert: {
+          cover_message?: string | null
+          created_at?: string
+          custom_note?: string | null
+          event_id?: string | null
+          expires_at?: string | null
+          id?: string
+          include_bio?: boolean | null
+          include_headshot?: boolean | null
+          include_one_sheet?: boolean | null
+          include_video?: boolean | null
+          included_assets?: string[] | null
+          match_id?: string | null
+          package_title: string
+          speaker_id: string
+          tracking_code: string
+        }
+        Update: {
+          cover_message?: string | null
+          created_at?: string
+          custom_note?: string | null
+          event_id?: string | null
+          expires_at?: string | null
+          id?: string
+          include_bio?: boolean | null
+          include_headshot?: boolean | null
+          include_one_sheet?: boolean | null
+          include_video?: boolean | null
+          included_assets?: string[] | null
+          match_id?: string | null
+          package_title?: string
+          speaker_id?: string
+          tracking_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_packages_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_packages_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_scores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_packages_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       applied_logs: {
         Row: {
           applied_at: string
@@ -530,6 +606,47 @@ export type Database = {
             columns: ["speaker_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      package_views: {
+        Row: {
+          event_type: string
+          id: string
+          package_id: string
+          timestamp: string
+          user_agent: string | null
+          viewer_city: string | null
+          viewer_country: string | null
+          viewer_ip: string | null
+        }
+        Insert: {
+          event_type: string
+          id?: string
+          package_id: string
+          timestamp?: string
+          user_agent?: string | null
+          viewer_city?: string | null
+          viewer_country?: string | null
+          viewer_ip?: string | null
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          package_id?: string
+          timestamp?: string
+          user_agent?: string | null
+          viewer_city?: string | null
+          viewer_country?: string | null
+          viewer_ip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_views_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "application_packages"
             referencedColumns: ["id"]
           },
         ]

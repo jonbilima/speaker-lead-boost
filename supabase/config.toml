@@ -23,3 +23,12 @@ verify_jwt = false
 
 [functions.scrape-with-apify]
 verify_jwt = false
+
+[functions.generate-followup]
+verify_jwt = true
+
+[functions.generate-package-cover]
+verify_jwt = true
+
+[functions.track-package-view]
+verify_jwt = false

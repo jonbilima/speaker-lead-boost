@@ -13,6 +13,7 @@ import Assets from "./pages/Assets";
 import Intelligence from "./pages/Intelligence";
 import Revenue from "./pages/Revenue";
 import AdminScraping from "./pages/AdminScraping";
+import PackageView from "./pages/PackageView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/intelligence" element={<Intelligence />} />
           <Route path="/revenue" element={<Revenue />} />
           <Route path="/admin/scraping" element={<AdminScraping />} />
+          <Route path="/p/:trackingCode" element={<PackageView />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
