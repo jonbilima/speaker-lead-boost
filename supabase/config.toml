@@ -32,3 +32,6 @@ verify_jwt = true
 
 [functions.track-package-view]
 verify_jwt = false
+
+[functions.ai-coach]
+verify_jwt = true

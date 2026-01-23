@@ -9,6 +9,7 @@ import {
   User,
   LogOut,
   DollarSign,
+  Sparkles,
 } from "lucide-react";
 import {
   Sidebar,
@@ -30,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 const menuItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Pipeline", url: "/pipeline", icon: Kanban },
+  { title: "AI Coach", url: "/coach", icon: Sparkles },
   { title: "Revenue", url: "/revenue", icon: DollarSign },
   { title: "Calendar", url: "/calendar", icon: Calendar },
   { title: "Assets", url: "/assets", icon: FolderOpen },
