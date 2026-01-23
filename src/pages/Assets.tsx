@@ -3,7 +3,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FolderOpen, Upload, ExternalLink, RefreshCw, Quote } from "lucide-react";
+import { FolderOpen, Upload, ExternalLink, RefreshCw, Quote, Code } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AssetTypeSummary } from "@/components/assets/AssetTypeSummary";
@@ -11,14 +11,15 @@ import { AssetUploadDialog } from "@/components/assets/AssetUploadDialog";
 import { AssetCard } from "@/components/assets/AssetCard";
 import { ASSET_TYPES, SpeakerAsset } from "@/components/assets/AssetTypes";
 import { TestimonialsTab } from "@/components/testimonials/TestimonialsTab";
+import { EmbedWidgetSection } from "@/components/widget/EmbedWidgetSection";
 
 const Assets = () => {
   const [assets, setAssets] = useState<SpeakerAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState<"assets" | "testimonials">("assets");
-  const [profile, setProfile] = useState<{ slug: string | null; is_public: boolean } | null>(null);
+  const [activeTab, setActiveTab] = useState<"assets" | "testimonials" | "widget">("assets");
+  const [profile, setProfile] = useState<{ slug: string | null; is_public: boolean; id: string } | null>(null);
 
   const loadData = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -43,7 +44,7 @@ const Assets = () => {
     // Load profile for public page link
     const { data: profileData } = await supabase
       .from("profiles")
-      .select("slug, is_public")
+      .select("id, slug, is_public")
       .eq("id", session.user.id)
       .single();
 
@@ -114,7 +115,7 @@ const Assets = () => {
         </div>
 
         {/* Main Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "assets" | "testimonials")}>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "assets" | "testimonials" | "widget")}>
           <TabsList>
             <TabsTrigger value="assets">
               <FolderOpen className="h-4 w-4 mr-2" />
@@ -123,6 +124,10 @@ const Assets = () => {
             <TabsTrigger value="testimonials">
               <Quote className="h-4 w-4 mr-2" />
               Testimonials
+            </TabsTrigger>
+            <TabsTrigger value="widget">
+              <Code className="h-4 w-4 mr-2" />
+              Embed Widget
             </TabsTrigger>
           </TabsList>
 
@@ -196,6 +201,16 @@ const Assets = () => {
 
           <TabsContent value="testimonials" className="mt-6">
             <TestimonialsTab />
+          </TabsContent>
+
+          <TabsContent value="widget" className="mt-6">
+            {profile && (
+              <EmbedWidgetSection
+                speakerId={profile.id}
+                slug={profile.slug}
+                isPublic={profile.is_public}
+              />
+            )}
           </TabsContent>
         </Tabs>
       </div>
