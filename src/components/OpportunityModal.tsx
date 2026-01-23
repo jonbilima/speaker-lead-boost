@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Sparkles, CheckCircle2 } from "lucide-react";
-
+import { Copy, ExternalLink, Sparkles, CheckCircle2, FileText } from "lucide-react";
+import { TemplateSelector } from "@/components/templates/TemplateSelector";
 interface Opportunity {
   id: string;
   event_name: string;
@@ -47,6 +47,42 @@ export const OpportunityModal = ({ opportunity, open, onOpenChange, onApplied }:
   const [pitches, setPitches] = useState<Pitch[]>([]);
   const [editedPitches, setEditedPitches] = useState<Record<string, Pitch>>({});
   const [applying, setApplying] = useState(false);
+  const [templateSubject, setTemplateSubject] = useState("");
+  const [templateBody, setTemplateBody] = useState("");
+  const [showTemplatePreview, setShowTemplatePreview] = useState(false);
+  const [speakerData, setSpeakerData] = useState<{ name?: string; topics?: string[]; fee_min?: number; fee_max?: number }>({});
+
+  // Load speaker profile data for template filling
+  useEffect(() => {
+    const loadSpeakerData = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name, fee_range_min, fee_range_max')
+        .eq('id', session.user.id)
+        .single();
+      
+      const { data: userTopics } = await supabase
+        .from('user_topics')
+        .select('topics(name)')
+        .eq('user_id', session.user.id);
+      
+      if (profile) {
+        setSpeakerData({
+          name: profile.name || undefined,
+          topics: userTopics?.map((ut: any) => ut.topics?.name).filter(Boolean) || [],
+          fee_min: profile.fee_range_min || undefined,
+          fee_max: profile.fee_range_max || undefined,
+        });
+      }
+    };
+    
+    if (open) {
+      loadSpeakerData();
+    }
+  }, [open]);
 
   if (!opportunity) return null;
 
@@ -248,15 +284,96 @@ export const OpportunityModal = ({ opportunity, open, onOpenChange, onApplied }:
           {/* Pitch Generator Section */}
           <div className="border-t pt-6">
             {pitches.length === 0 ? (
-              <div className="text-center py-8">
-                <Sparkles className="h-12 w-12 mx-auto mb-4 text-primary" />
-                <h3 className="text-lg font-semibold mb-2">Generate AI Pitch</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Let AI create 3 personalized email pitches for this opportunity
-                </p>
-                <Button onClick={handleGeneratePitch} disabled={generating}>
-                  {generating ? "Generating..." : "Generate Pitches"}
-                </Button>
+              <div className="space-y-6">
+                <div className="text-center">
+                  <Sparkles className="h-12 w-12 mx-auto mb-4 text-primary" />
+                  <h3 className="text-lg font-semibold mb-2">Create Your Pitch</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Start from a template or let AI generate pitches for you
+                  </p>
+                </div>
+                
+                {/* Template Selector */}
+                <div className="max-w-md mx-auto space-y-4">
+                  <TemplateSelector
+                    onSelect={(template, subject, body) => {
+                      if (template) {
+                        setTemplateSubject(subject);
+                        setTemplateBody(body);
+                        setShowTemplatePreview(true);
+                      } else {
+                        setShowTemplatePreview(false);
+                        setTemplateSubject("");
+                        setTemplateBody("");
+                      }
+                    }}
+                    eventData={{
+                      event_name: opportunity.event_name,
+                      organizer_name: opportunity.organizer_name || undefined,
+                      event_date: opportunity.event_date || undefined,
+                    }}
+                    speakerData={speakerData}
+                  />
+                  
+                  {showTemplatePreview && (
+                    <div className="bg-muted/50 p-4 rounded-lg space-y-3 text-left">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Subject</Label>
+                        <Input
+                          value={templateSubject}
+                          onChange={(e) => setTemplateSubject(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Body</Label>
+                        <Textarea
+                          value={templateBody}
+                          onChange={(e) => setTemplateBody(e.target.value)}
+                          rows={8}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCopy(`Subject: ${templateSubject}\n\n${templateBody}`)}
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (opportunity.organizer_email) {
+                              window.location.href = `mailto:${opportunity.organizer_email}?subject=${encodeURIComponent(templateSubject)}&body=${encodeURIComponent(templateBody)}`;
+                            }
+                          }}
+                          disabled={!opportunity.organizer_email}
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Open in Email
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">Or</span>
+                    </div>
+                  </div>
+                  
+                  <Button onClick={handleGeneratePitch} disabled={generating} className="w-full">
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    {generating ? "Generating..." : "Generate AI Pitches"}
+                  </Button>
+                </div>
               </div>
             ) : (
               <div>
