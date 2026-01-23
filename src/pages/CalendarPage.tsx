@@ -1,12 +1,82 @@
+import { useEffect, useState, useCallback } from "react";
 import { AppLayout } from "@/components/AppLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar as CalendarIcon, Plus } from "lucide-react";
+import { CalendarGrid } from "@/components/calendar/CalendarGrid";
+import { CalendarSidebar } from "@/components/calendar/CalendarSidebar";
+import { AddCalendarEntryDialog } from "@/components/calendar/AddCalendarEntryDialog";
+import { CalendarEntry, UpcomingDeadline } from "@/components/calendar/CalendarTypes";
+import { supabase } from "@/integrations/supabase/client";
+import { Calendar as CalendarIcon, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { useState } from "react";
+import { startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
 
 const CalendarPage = () => {
-  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [entries, setEntries] = useState<CalendarEntry[]>([]);
+  const [deadlines, setDeadlines] = useState<UpcomingDeadline[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+
+  const loadData = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    setLoading(true);
+
+    // Get date range for current view (include prev/next month for calendar edges)
+    const rangeStart = subMonths(startOfMonth(currentMonth), 1);
+    const rangeEnd = addMonths(endOfMonth(currentMonth), 1);
+
+    // Load calendar entries
+    const { data: entriesData, error: entriesError } = await supabase
+      .from("speaker_calendar")
+      .select("*")
+      .eq("speaker_id", session.user.id)
+      .gte("start_date", rangeStart.toISOString().split("T")[0])
+      .lte("start_date", rangeEnd.toISOString().split("T")[0])
+      .order("start_date", { ascending: true });
+
+    if (entriesError) {
+      console.error("Error loading entries:", entriesError);
+    } else {
+      setEntries(entriesData || []);
+    }
+
+    // Load deadlines from opportunity_scores + opportunities
+    const { data: scoresData, error: scoresError } = await supabase
+      .from("opportunity_scores")
+      .select(`
+        id,
+        ai_score,
+        opportunities (
+          id,
+          event_name,
+          deadline
+        )
+      `)
+      .eq("user_id", session.user.id)
+      .not("opportunities.deadline", "is", null);
+
+    if (scoresError) {
+      console.error("Error loading deadlines:", scoresError);
+    } else {
+      const formattedDeadlines: UpcomingDeadline[] = (scoresData || [])
+        .filter((s: any) => s.opportunities?.deadline)
+        .map((s: any) => ({
+          id: s.id,
+          event_name: s.opportunities.event_name,
+          deadline: s.opportunities.deadline,
+          ai_score: s.ai_score,
+        }));
+      setDeadlines(formattedDeadlines);
+    }
+
+    setLoading(false);
+  }, [currentMonth]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   return (
     <AppLayout>
@@ -18,44 +88,49 @@ const CalendarPage = () => {
               Speaking Calendar
             </h1>
             <p className="text-muted-foreground mt-1">
-              Manage your speaking engagements and availability
+              Track your speaking engagements, deadlines, and availability
             </p>
           </div>
-          <Button className="bg-violet-600 hover:bg-violet-700">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Event
+          <Button
+            variant="outline"
+            onClick={loadData}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+            Refresh
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-lg">Monthly View</CardTitle>
-            </CardHeader>
-            <CardContent className="flex justify-center">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={setDate}
-                className="rounded-md border"
-              />
-            </CardContent>
-          </Card>
+        <div className="flex gap-6">
+          {/* Main Calendar Grid */}
+          <div className="flex-1">
+            <CalendarGrid
+              currentMonth={currentMonth}
+              onMonthChange={setCurrentMonth}
+              selectedDate={selectedDate}
+              onDateSelect={setSelectedDate}
+              entries={entries}
+              deadlines={deadlines}
+            />
+          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Upcoming Events</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                <CalendarIcon className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                <p className="text-sm">No upcoming events</p>
-                <p className="text-xs mt-1">Events you accept will appear here</p>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Sidebar */}
+          <CalendarSidebar
+            selectedDate={selectedDate}
+            entries={entries}
+            deadlines={deadlines}
+            onAddEntry={() => setAddDialogOpen(true)}
+            onEntryDeleted={loadData}
+          />
         </div>
       </div>
+
+      <AddCalendarEntryDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+        selectedDate={selectedDate}
+        onEntryAdded={loadData}
+      />
     </AppLayout>
   );
 };
