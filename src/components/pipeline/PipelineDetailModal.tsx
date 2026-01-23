@@ -22,11 +22,14 @@ import {
   Clock,
   Send,
   MessageSquare,
+  Package,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatDistanceToNow, format } from "date-fns";
 import { PipelineOpportunity } from "./PipelineCard";
+import { PackageBuilderDialog } from "./PackageBuilderDialog";
+import { PackageStats } from "./PackageStats";
 
 interface Activity {
   id: string;
@@ -64,6 +67,24 @@ export function PipelineDetailModal({
   const [loading, setLoading] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [savingActivity, setSavingActivity] = useState(false);
+  const [packageBuilderOpen, setPackageBuilderOpen] = useState(false);
+  const [hasPackage, setHasPackage] = useState(false);
+
+  useEffect(() => {
+    if (opportunity && open) {
+      checkForPackage();
+    }
+  }, [opportunity, open]);
+
+  const checkForPackage = async () => {
+    if (!opportunity) return;
+    const { data } = await supabase
+      .from("application_packages")
+      .select("id")
+      .eq("match_id", opportunity.score_id)
+      .maybeSingle();
+    setHasPackage(!!data);
+  };
 
   useEffect(() => {
     if (opportunity && open) {
@@ -233,16 +254,30 @@ export function PipelineDetailModal({
                 </div>
               )}
 
-              {opportunity.event_url && (
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => window.open(opportunity.event_url!, "_blank")}
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  View Event Page
-                </Button>
+              {/* Package Stats */}
+              {hasPackage && (
+                <PackageStats matchId={opportunity.score_id} eventName={opportunity.event_name} />
               )}
+
+              <div className="flex gap-2">
+                {opportunity.event_url && (
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => window.open(opportunity.event_url!, "_blank")}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    View Event
+                  </Button>
+                )}
+                <Button
+                  className="flex-1 bg-violet-600 hover:bg-violet-700"
+                  onClick={() => setPackageBuilderOpen(true)}
+                >
+                  <Package className="h-4 w-4 mr-2" />
+                  {hasPackage ? "Send New Package" : "Send Application Package"}
+                </Button>
+              </div>
             </TabsContent>
 
             <TabsContent value="activity" className="mt-0 space-y-4">
@@ -342,6 +377,16 @@ export function PipelineDetailModal({
           </ScrollArea>
         </Tabs>
       </DialogContent>
+
+      <PackageBuilderDialog
+        opportunity={opportunity}
+        open={packageBuilderOpen}
+        onOpenChange={setPackageBuilderOpen}
+        onPackageCreated={() => {
+          checkForPackage();
+          onActivityLogged();
+        }}
+      />
     </Dialog>
   );
 }
