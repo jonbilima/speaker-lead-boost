@@ -359,7 +359,7 @@ const Find = () => {
         </div>
 
         {/* Search Bar */}
-        <div className="flex gap-2">
+        <div className="flex gap-2" data-tour="search">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -382,7 +382,7 @@ const Find = () => {
           
           <Sheet open={showFilters} onOpenChange={setShowFilters}>
             <SheetTrigger asChild>
-              <Button variant="outline" size="lg" className="h-12 gap-2">
+              <Button variant="outline" size="lg" className="h-12 gap-2" data-tour="filters">
                 <Filter className="h-4 w-4" />
                 <span className="hidden sm:inline">Filters</span>
                 {activeFilterCount > 0 && (

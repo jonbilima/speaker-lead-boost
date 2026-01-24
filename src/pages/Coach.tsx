@@ -47,6 +47,8 @@ const Coach = () => {
 
   useEffect(() => {
     loadData();
+    // Mark coach as visited for onboarding
+    localStorage.setItem("onboarding_coach_visited", "true");
   }, []);
 
   useEffect(() => {
