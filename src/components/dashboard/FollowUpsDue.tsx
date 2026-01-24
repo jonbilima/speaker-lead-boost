@@ -15,13 +15,21 @@ interface FollowUpReminder {
   is_completed: boolean;
   event_name: string;
   organizer_name: string | null;
+  organizer_email?: string | null;
   opportunity_id: string;
 }
 
 interface FollowUpsDueProps {
   reminders: FollowUpReminder[];
   onUpdate: () => void;
-  onGenerateFollowUp: (opportunityId: string, reminderType: string) => void;
+  onGenerateFollowUp: (
+    opportunityId: string,
+    reminderType: string,
+    reminderId: string,
+    matchId: string,
+    organizerEmail?: string | null,
+    organizerName?: string | null
+  ) => void;
 }
 
 const reminderLabels: Record<string, { label: string; number: number }> = {
@@ -180,7 +188,16 @@ export function FollowUpsDue({ reminders, onUpdate, onGenerateFollowUp }: Follow
           <Button
             size="sm"
             variant="outline"
-            onClick={() => onGenerateFollowUp(reminder.opportunity_id, reminder.reminder_type)}
+            onClick={() =>
+              onGenerateFollowUp(
+                reminder.opportunity_id,
+                reminder.reminder_type,
+                reminder.id,
+                reminder.match_id,
+                reminder.organizer_email,
+                reminder.organizer_name
+              )
+            }
             disabled={isLoading}
             className="h-7 text-xs"
           >
