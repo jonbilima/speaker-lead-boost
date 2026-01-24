@@ -23,6 +23,8 @@ import {
 import { useState } from "react";
 import { PitchGeneratorDialog } from "./PitchGeneratorDialog";
 import { CallPrepDialog } from "./CallPrepDialog";
+import { SendPackageDialog } from "./SendPackageDialog";
+
 interface ToolkitDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -96,8 +98,7 @@ const toolkitItems = [
     title: "Send Package",
     description: "Create speaker package",
     icon: Send,
-    action: "navigate",
-    url: "/pipeline",
+    action: "modal",
   },
   {
     id: "request-feedback",
@@ -129,6 +130,7 @@ export function ToolkitDrawer({ open, onOpenChange, opportunityContext }: Toolki
   const navigate = useNavigate();
   const [pitchDialogOpen, setPitchDialogOpen] = useState(false);
   const [callPrepOpen, setCallPrepOpen] = useState(false);
+  const [sendPackageOpen, setSendPackageOpen] = useState(false);
 
   const handleItemClick = (item: typeof toolkitItems[0]) => {
     if (item.action === "navigate" && item.url) {
@@ -139,6 +141,8 @@ export function ToolkitDrawer({ open, onOpenChange, opportunityContext }: Toolki
         setPitchDialogOpen(true);
       } else if (item.id === "call-prep") {
         setCallPrepOpen(true);
+      } else if (item.id === "send-package") {
+        setSendPackageOpen(true);
       }
     }
   };
@@ -195,6 +199,11 @@ export function ToolkitDrawer({ open, onOpenChange, opportunityContext }: Toolki
         open={callPrepOpen}
         onOpenChange={setCallPrepOpen}
         opportunityContext={opportunityContext}
+      />
+
+      <SendPackageDialog
+        open={sendPackageOpen}
+        onOpenChange={setSendPackageOpen}
       />
     </>
   );

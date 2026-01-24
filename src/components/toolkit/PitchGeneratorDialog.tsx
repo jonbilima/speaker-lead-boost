@@ -51,6 +51,8 @@ export function PitchGeneratorDialog({
   const [tone, setTone] = useState("professional");
   const [generatedPitch, setGeneratedPitch] = useState("");
   const [subject, setSubject] = useState("");
+  const [pitchVariants, setPitchVariants] = useState<Array<{ variant: string; subject_line: string; email_body: string }>>([]);
+  const [selectedVariant, setSelectedVariant] = useState(0);
   const { sendEmail, isSending } = useEmailSender();
 
   const selectedOpp = opportunities.find((o) => o.id === selectedOpportunity);
@@ -127,8 +129,18 @@ export function PitchGeneratorDialog({
 
       if (error) throw error;
 
-      setSubject(data.subject_line || "");
-      setGeneratedPitch(data.email_body || "");
+      // Handle array of pitch variants from edge function
+      if (data.pitches && Array.isArray(data.pitches) && data.pitches.length > 0) {
+        setPitchVariants(data.pitches);
+        setSelectedVariant(0);
+        setSubject(data.pitches[0].subject_line || "");
+        setGeneratedPitch(data.pitches[0].email_body || "");
+      } else if (data.subject_line || data.email_body) {
+        // Fallback for single pitch response
+        setSubject(data.subject_line || "");
+        setGeneratedPitch(data.email_body || "");
+        setPitchVariants([]);
+      }
       toast.success("Pitch generated!");
     } catch (error) {
       console.error("Error generating pitch:", error);
@@ -333,6 +345,28 @@ export function PitchGeneratorDialog({
                   <p className="text-sm text-yellow-700 dark:text-yellow-300">
                     No organizer email available. Copy the pitch to send manually.
                   </p>
+                </div>
+              )}
+
+              {pitchVariants.length > 1 && (
+                <div className="space-y-2">
+                  <Label>Pitch Style</Label>
+                  <div className="flex gap-2">
+                    {pitchVariants.map((p, i) => (
+                      <Button
+                        key={i}
+                        variant={selectedVariant === i ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => {
+                          setSelectedVariant(i);
+                          setSubject(p.subject_line);
+                          setGeneratedPitch(p.email_body);
+                        }}
+                      >
+                        {p.variant}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               )}
 
