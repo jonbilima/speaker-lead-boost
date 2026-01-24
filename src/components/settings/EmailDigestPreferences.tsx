@@ -13,11 +13,13 @@ interface DigestPreferences {
   is_enabled: boolean;
   send_day: string;
   send_time: string;
+  timezone: string;
   include_new_matches: boolean;
   include_deadlines: boolean;
   include_follow_ups: boolean;
   include_pipeline_summary: boolean;
   include_market_insights: boolean;
+  include_revenue_update: boolean;
 }
 
 const DAYS = [
@@ -46,6 +48,23 @@ const TIMES = [
   { value: '18:00:00', label: '6:00 PM' },
 ];
 
+const TIMEZONES = [
+  { value: 'America/New_York', label: 'Eastern (New York)' },
+  { value: 'America/Chicago', label: 'Central (Chicago)' },
+  { value: 'America/Denver', label: 'Mountain (Denver)' },
+  { value: 'America/Los_Angeles', label: 'Pacific (Los Angeles)' },
+  { value: 'America/Phoenix', label: 'Arizona (Phoenix)' },
+  { value: 'America/Anchorage', label: 'Alaska' },
+  { value: 'Pacific/Honolulu', label: 'Hawaii' },
+  { value: 'Europe/London', label: 'London (GMT/BST)' },
+  { value: 'Europe/Paris', label: 'Paris (CET)' },
+  { value: 'Europe/Berlin', label: 'Berlin (CET)' },
+  { value: 'Asia/Dubai', label: 'Dubai (GST)' },
+  { value: 'Asia/Singapore', label: 'Singapore (SGT)' },
+  { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
+  { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
+];
+
 export function EmailDigestPreferences({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -54,11 +73,13 @@ export function EmailDigestPreferences({ userId }: { userId: string }) {
     is_enabled: true,
     send_day: 'monday',
     send_time: '09:00:00',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York',
     include_new_matches: true,
     include_deadlines: true,
     include_follow_ups: true,
     include_pipeline_summary: true,
     include_market_insights: true,
+    include_revenue_update: true,
   });
 
   useEffect(() => {
@@ -79,11 +100,13 @@ export function EmailDigestPreferences({ userId }: { userId: string }) {
         is_enabled: data.is_enabled,
         send_day: data.send_day,
         send_time: data.send_time,
+        timezone: data.timezone || 'America/New_York',
         include_new_matches: data.include_new_matches,
         include_deadlines: data.include_deadlines,
         include_follow_ups: data.include_follow_ups,
         include_pipeline_summary: data.include_pipeline_summary,
         include_market_insights: data.include_market_insights,
+        include_revenue_update: data.include_revenue_update ?? true,
       });
     }
     setLoading(false);
@@ -182,7 +205,7 @@ export function EmailDigestPreferences({ userId }: { userId: string }) {
         {preferences.is_enabled && (
           <>
             {/* Schedule */}
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
               <div className="space-y-2">
                 <Label>Day of Week</Label>
                 <Select
@@ -214,6 +237,24 @@ export function EmailDigestPreferences({ userId }: { userId: string }) {
                     {TIMES.map(time => (
                       <SelectItem key={time.value} value={time.value}>
                         {time.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Timezone</Label>
+                <Select
+                  value={preferences.timezone}
+                  onValueChange={(value) => updatePreference('timezone', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIMEZONES.map(tz => (
+                      <SelectItem key={tz.value} value={tz.value}>
+                        {tz.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -287,7 +328,20 @@ export function EmailDigestPreferences({ userId }: { userId: string }) {
                     }
                   />
                   <Label htmlFor="include-insights" className="font-normal cursor-pointer">
-                    Market insights (trending topics, recent bookings)
+                    Trending topics in your industries
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <Checkbox
+                    id="include-revenue"
+                    checked={preferences.include_revenue_update}
+                    onCheckedChange={(checked) => 
+                      updatePreference('include_revenue_update', checked as boolean)
+                    }
+                  />
+                  <Label htmlFor="include-revenue" className="font-normal cursor-pointer">
+                    Revenue update (if any bookings/payments)
                   </Label>
                 </div>
               </div>
