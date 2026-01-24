@@ -120,7 +120,7 @@ export function PitchGeneratorDialog({
     try {
       const { data, error } = await supabase.functions.invoke("generate-pitch", {
         body: {
-          opportunityId: selectedOpportunity,
+          opportunity_id: selectedOpportunity,
           tone,
         },
       });
