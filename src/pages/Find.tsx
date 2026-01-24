@@ -19,6 +19,7 @@ import { QuickApplyModal } from "@/components/find/QuickApplyModal";
 import { FilterPanel } from "@/components/find/FilterPanel";
 import { DataFreshnessIndicator } from "@/components/find/DataFreshnessIndicator";
 import { SubmitOpportunityDialog } from "@/components/find/SubmitOpportunityDialog";
+import { SmartSubmitDialog } from "@/components/find/SmartSubmitDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export interface Opportunity {
@@ -353,7 +354,7 @@ const Find = () => {
           </div>
           <div className="flex items-center gap-3">
             <DataFreshnessIndicator />
-            <SubmitOpportunityDialog onSuccess={loadOpportunities} />
+            <SmartSubmitDialog onSuccess={loadOpportunities} />
           </div>
         </div>
 
