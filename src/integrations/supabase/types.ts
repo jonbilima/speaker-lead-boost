@@ -1429,6 +1429,36 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_library: {
+        Row: {
+          attribution: string | null
+          created_at: string
+          id: string
+          quote_text: string
+          source: string | null
+          speaker_id: string
+          tags: string[] | null
+        }
+        Insert: {
+          attribution?: string | null
+          created_at?: string
+          id?: string
+          quote_text: string
+          source?: string | null
+          speaker_id: string
+          tags?: string[] | null
+        }
+        Update: {
+          attribution?: string | null
+          created_at?: string
+          id?: string
+          quote_text?: string
+          source?: string | null
+          speaker_id?: string
+          tags?: string[] | null
+        }
+        Relationships: []
+      }
       scraping_logs: {
         Row: {
           completed_at: string | null
@@ -1686,6 +1716,105 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      speeches: {
+        Row: {
+          created_at: string
+          desired_outcome: string | null
+          duration_minutes: number | null
+          estimated_duration: number | null
+          full_script: string | null
+          id: string
+          industry_context: string | null
+          key_message: string | null
+          outline: Json | null
+          selected_template: string | null
+          speaker_id: string
+          speech_type: string | null
+          status: string | null
+          talking_points: Json | null
+          target_audience: string | null
+          title: string | null
+          topic: string | null
+          updated_at: string
+          word_count: number | null
+        }
+        Insert: {
+          created_at?: string
+          desired_outcome?: string | null
+          duration_minutes?: number | null
+          estimated_duration?: number | null
+          full_script?: string | null
+          id?: string
+          industry_context?: string | null
+          key_message?: string | null
+          outline?: Json | null
+          selected_template?: string | null
+          speaker_id: string
+          speech_type?: string | null
+          status?: string | null
+          talking_points?: Json | null
+          target_audience?: string | null
+          title?: string | null
+          topic?: string | null
+          updated_at?: string
+          word_count?: number | null
+        }
+        Update: {
+          created_at?: string
+          desired_outcome?: string | null
+          duration_minutes?: number | null
+          estimated_duration?: number | null
+          full_script?: string | null
+          id?: string
+          industry_context?: string | null
+          key_message?: string | null
+          outline?: Json | null
+          selected_template?: string | null
+          speaker_id?: string
+          speech_type?: string | null
+          status?: string | null
+          talking_points?: Json | null
+          target_audience?: string | null
+          title?: string | null
+          topic?: string | null
+          updated_at?: string
+          word_count?: number | null
+        }
+        Relationships: []
+      }
+      story_bank: {
+        Row: {
+          created_at: string
+          id: string
+          speaker_id: string
+          story_text: string
+          tags: string[] | null
+          times_used: number | null
+          title: string
+          used_in_speeches: string[] | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          speaker_id: string
+          story_text: string
+          tags?: string[] | null
+          times_used?: number | null
+          title: string
+          used_in_speeches?: string[] | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          speaker_id?: string
+          story_text?: string
+          tags?: string[] | null
+          times_used?: number | null
+          title?: string
+          used_in_speeches?: string[] | null
+        }
+        Relationships: []
       }
       testimonials: {
         Row: {
