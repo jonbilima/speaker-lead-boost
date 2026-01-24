@@ -11,6 +11,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { EmailSettingsSection } from "@/components/settings/EmailSettingsSection";
 import { InvoiceSettingsSection } from "@/components/settings/InvoiceSettingsSection";
 import { ConnectedAccountsSection } from "@/components/settings/ConnectedAccountsSection";
+import { EmailDigestPreferences } from "@/components/settings/EmailDigestPreferences";
 
 const Profile = () => {
   const [loading, setLoading] = useState(true);
@@ -359,6 +360,9 @@ const Profile = () => {
 
         {/* Connected Accounts */}
         <ConnectedAccountsSection />
+
+        {/* Weekly Digest Preferences */}
+        {userId && <EmailDigestPreferences userId={userId} />}
 
         {/* Email Settings */}
         {userId && <EmailSettingsSection userId={userId} />}

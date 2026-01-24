@@ -387,27 +387,36 @@ export type Database = {
         Row: {
           clicked_at: string | null
           created_at: string
+          deadlines_count: number | null
           email_id: string | null
+          follow_ups_count: number | null
           id: string
           opened_at: string | null
+          opportunities_count: number | null
           sent_at: string
           speaker_id: string
         }
         Insert: {
           clicked_at?: string | null
           created_at?: string
+          deadlines_count?: number | null
           email_id?: string | null
+          follow_ups_count?: number | null
           id?: string
           opened_at?: string | null
+          opportunities_count?: number | null
           sent_at?: string
           speaker_id: string
         }
         Update: {
           clicked_at?: string | null
           created_at?: string
+          deadlines_count?: number | null
           email_id?: string | null
+          follow_ups_count?: number | null
           id?: string
           opened_at?: string | null
+          opportunities_count?: number | null
           sent_at?: string
           speaker_id?: string
         }
@@ -430,10 +439,12 @@ export type Database = {
           include_market_insights: boolean
           include_new_matches: boolean
           include_pipeline_summary: boolean
+          include_revenue_update: boolean
           is_enabled: boolean
           send_day: string
           send_time: string
           speaker_id: string
+          timezone: string
           updated_at: string
         }
         Insert: {
@@ -444,10 +455,12 @@ export type Database = {
           include_market_insights?: boolean
           include_new_matches?: boolean
           include_pipeline_summary?: boolean
+          include_revenue_update?: boolean
           is_enabled?: boolean
           send_day?: string
           send_time?: string
           speaker_id: string
+          timezone?: string
           updated_at?: string
         }
         Update: {
@@ -458,10 +471,12 @@ export type Database = {
           include_market_insights?: boolean
           include_new_matches?: boolean
           include_pipeline_summary?: boolean
+          include_revenue_update?: boolean
           is_enabled?: boolean
           send_day?: string
           send_time?: string
           speaker_id?: string
+          timezone?: string
           updated_at?: string
         }
         Relationships: [

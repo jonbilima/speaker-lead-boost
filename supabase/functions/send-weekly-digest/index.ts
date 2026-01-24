@@ -15,6 +15,12 @@ interface DigestData {
   overdueFollowUps: Array<{ name: string; dueDate: string }>;
   pipelineCounts: Record<string, number>;
   trendingTopics: Array<{ name: string; count: number; trend: string }>;
+  revenueData: {
+    monthlyRevenue: number;
+    annualGoal: number;
+    percentComplete: number;
+    bookingsThisMonth: number;
+  } | null;
 }
 
 function getDayOfWeek(): string {
@@ -119,6 +125,33 @@ async function gatherDigestData(supabase: any, userId: string): Promise<DigestDa
       trend: count > 5 ? '🔥' : '📈' 
     }));
 
+  // Get revenue data
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const { data: bookings } = await supabase
+    .from('confirmed_bookings')
+    .select('confirmed_fee')
+    .eq('speaker_id', userId)
+    .gte('created_at', startOfMonth.toISOString());
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('annual_revenue_goal')
+    .eq('id', userId)
+    .single();
+
+  const monthlyRevenue = bookings?.reduce((sum: number, b: { confirmed_fee: number | null }) => sum + (b.confirmed_fee || 0), 0) || 0;
+  const annualGoal = profile?.annual_revenue_goal || 100000;
+  
+  const revenueData = {
+    monthlyRevenue,
+    annualGoal,
+    percentComplete: Math.round((monthlyRevenue / annualGoal) * 100),
+    bookingsThisMonth: bookings?.length || 0,
+  };
+
   return {
     newMatches: (newMatches || []).map((m: any) => ({
       name: m.opportunities?.name || 'Unknown',
@@ -135,6 +168,7 @@ async function gatherDigestData(supabase: any, userId: string): Promise<DigestDa
     })),
     pipelineCounts,
     trendingTopics,
+    revenueData,
   };
 }
 
@@ -269,6 +303,33 @@ function generateEmailHtml(
               </span>
             `).join(' ')}
           </div>
+        </td>
+      </tr>
+    `;
+  }
+
+  // Revenue Section
+  if (preferences.include_revenue_update && data.revenueData && data.revenueData.monthlyRevenue > 0) {
+    const progressWidth = Math.min(data.revenueData.percentComplete, 100);
+    sections += `
+      <tr>
+        <td style="padding: 24px; background: #faf5ff;">
+          <h2 style="color: #7c3aed; margin: 0 0 16px 0; font-size: 18px;">
+            💰 Revenue Update
+          </h2>
+          <div style="margin-bottom: 12px;">
+            <span style="font-size: 28px; font-weight: bold; color: #7c3aed;">
+              $${data.revenueData.monthlyRevenue.toLocaleString()}
+            </span>
+            <span style="color: #64748b; font-size: 14px;"> this month</span>
+          </div>
+          <div style="background: #e2e8f0; border-radius: 8px; height: 8px; overflow: hidden;">
+            <div style="background: linear-gradient(90deg, #7c3aed, #a855f7); height: 100%; width: ${progressWidth}%;"></div>
+          </div>
+          <p style="color: #64748b; font-size: 14px; margin: 8px 0 0 0;">
+            ${data.revenueData.percentComplete}% of $${data.revenueData.annualGoal.toLocaleString()} annual goal
+            ${data.revenueData.bookingsThisMonth > 0 ? ` • ${data.revenueData.bookingsThisMonth} booking${data.revenueData.bookingsThisMonth > 1 ? 's' : ''} this month` : ''}
+          </p>
         </td>
       </tr>
     `;
