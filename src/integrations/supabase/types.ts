@@ -572,6 +572,83 @@ export type Database = {
           },
         ]
       }
+      event_feedback: {
+        Row: {
+          booking_id: string | null
+          can_use_as_testimonial: boolean | null
+          content_rating: number | null
+          created_at: string
+          delivery_rating: number | null
+          engagement_rating: number | null
+          event_date: string | null
+          event_name: string
+          feedback_token: string
+          id: string
+          overall_rating: number | null
+          respondent_email: string | null
+          respondent_name: string | null
+          respondent_role: string | null
+          speaker_id: string
+          submitted_at: string | null
+          testimonial_quote: string | null
+          what_to_improve: string | null
+          what_worked_well: string | null
+          would_recommend: boolean | null
+        }
+        Insert: {
+          booking_id?: string | null
+          can_use_as_testimonial?: boolean | null
+          content_rating?: number | null
+          created_at?: string
+          delivery_rating?: number | null
+          engagement_rating?: number | null
+          event_date?: string | null
+          event_name: string
+          feedback_token: string
+          id?: string
+          overall_rating?: number | null
+          respondent_email?: string | null
+          respondent_name?: string | null
+          respondent_role?: string | null
+          speaker_id: string
+          submitted_at?: string | null
+          testimonial_quote?: string | null
+          what_to_improve?: string | null
+          what_worked_well?: string | null
+          would_recommend?: boolean | null
+        }
+        Update: {
+          booking_id?: string | null
+          can_use_as_testimonial?: boolean | null
+          content_rating?: number | null
+          created_at?: string
+          delivery_rating?: number | null
+          engagement_rating?: number | null
+          event_date?: string | null
+          event_name?: string
+          feedback_token?: string
+          id?: string
+          overall_rating?: number | null
+          respondent_email?: string | null
+          respondent_name?: string | null
+          respondent_role?: string | null
+          speaker_id?: string
+          submitted_at?: string | null
+          testimonial_quote?: string | null
+          what_to_improve?: string | null
+          what_worked_well?: string | null
+          would_recommend?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_feedback_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "confirmed_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fee_benchmarks: {
         Row: {
           audience_size_bucket: string | null
@@ -616,6 +693,59 @@ export type Database = {
           topic_category?: string | null
         }
         Relationships: []
+      }
+      feedback_requests: {
+        Row: {
+          booking_id: string | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          opened_at: string | null
+          recipient_email: string
+          recipient_name: string | null
+          reminder_sent_at: string | null
+          sent_at: string | null
+          speaker_id: string
+          status: string | null
+          token: string
+        }
+        Insert: {
+          booking_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          opened_at?: string | null
+          recipient_email: string
+          recipient_name?: string | null
+          reminder_sent_at?: string | null
+          sent_at?: string | null
+          speaker_id: string
+          status?: string | null
+          token: string
+        }
+        Update: {
+          booking_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          opened_at?: string | null
+          recipient_email?: string
+          recipient_name?: string | null
+          reminder_sent_at?: string | null
+          sent_at?: string | null
+          speaker_id?: string
+          status?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_requests_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "confirmed_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       follow_up_reminders: {
         Row: {
@@ -1248,6 +1378,77 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_metrics: {
+        Row: {
+          audience_responsiveness: number | null
+          audience_size_actual: number | null
+          booking_id: string | null
+          created_at: string
+          energy_level: number | null
+          engagement_score: number | null
+          id: string
+          leads_generated: number | null
+          notes_for_next_time: string | null
+          personal_learnings: string | null
+          products_sold: number | null
+          qa_questions_count: number | null
+          social_mentions: number | null
+          speaker_id: string
+          speaker_notes: string | null
+          standing_ovation: boolean | null
+          what_to_improve: string | null
+          what_went_well: string | null
+        }
+        Insert: {
+          audience_responsiveness?: number | null
+          audience_size_actual?: number | null
+          booking_id?: string | null
+          created_at?: string
+          energy_level?: number | null
+          engagement_score?: number | null
+          id?: string
+          leads_generated?: number | null
+          notes_for_next_time?: string | null
+          personal_learnings?: string | null
+          products_sold?: number | null
+          qa_questions_count?: number | null
+          social_mentions?: number | null
+          speaker_id: string
+          speaker_notes?: string | null
+          standing_ovation?: boolean | null
+          what_to_improve?: string | null
+          what_went_well?: string | null
+        }
+        Update: {
+          audience_responsiveness?: number | null
+          audience_size_actual?: number | null
+          booking_id?: string | null
+          created_at?: string
+          energy_level?: number | null
+          engagement_score?: number | null
+          id?: string
+          leads_generated?: number | null
+          notes_for_next_time?: string | null
+          personal_learnings?: string | null
+          products_sold?: number | null
+          qa_questions_count?: number | null
+          social_mentions?: number | null
+          speaker_id?: string
+          speaker_notes?: string | null
+          standing_ovation?: boolean | null
+          what_to_improve?: string | null
+          what_went_well?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_metrics_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "confirmed_bookings"
             referencedColumns: ["id"]
           },
         ]
@@ -2058,6 +2259,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_feedback_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          event_date: string
+          event_name: string
+          feedback_token: string
+          id: string
+          speaker_id: string
+          speaker_name: string
+          submitted_at: string
+        }[]
+      }
       get_public_testimonial: {
         Args: { p_token: string }
         Returns: {

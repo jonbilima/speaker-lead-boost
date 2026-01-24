@@ -18,6 +18,7 @@ import {
   User,
   Target,
   PenTool,
+  BarChart3,
 } from "lucide-react";
 import { useState } from "react";
 import { PitchGeneratorDialog } from "./PitchGeneratorDialog";
@@ -65,6 +66,14 @@ const toolkitItems = [
     icon: PenTool,
     action: "navigate",
     url: "/speeches",
+  },
+  {
+    id: "performance",
+    title: "Performance",
+    description: "Feedback collection & analytics",
+    icon: BarChart3,
+    action: "navigate",
+    url: "/performance",
   },
   {
     id: "ai-coach",

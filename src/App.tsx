@@ -21,6 +21,8 @@ import TestimonialSubmit from "./pages/TestimonialSubmit";
 import AdminScraping from "./pages/AdminScraping";
 import PackageView from "./pages/PackageView";
 import Speeches from "./pages/Speeches";
+import Performance from "./pages/Performance";
+import FeedbackForm from "./pages/FeedbackForm";
 import NotFound from "./pages/NotFound";
 
 // Configure React Query with appropriate cache times
@@ -68,6 +70,8 @@ const App = () => (
             <Route path="/admin/scraping" element={<AdminScraping />} />
             <Route path="/p/:trackingCode" element={<PackageView />} />
             <Route path="/speeches" element={<Speeches />} />
+            <Route path="/performance" element={<Performance />} />
+            <Route path="/feedback/:token" element={<FeedbackForm />} />
             
             {/* Redirects for legacy routes */}
             <Route path="/intelligence" element={<Navigate to="/find" replace />} />
