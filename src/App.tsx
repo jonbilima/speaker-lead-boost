@@ -19,6 +19,7 @@ import Business from "./pages/Business";
 import EmbedWidget from "./pages/EmbedWidget";
 import TestimonialSubmit from "./pages/TestimonialSubmit";
 import AdminScraping from "./pages/AdminScraping";
+import AdminWaitlist from "./pages/AdminWaitlist";
 import PackageView from "./pages/PackageView";
 import Speeches from "./pages/Speeches";
 import Performance from "./pages/Performance";
@@ -68,6 +69,7 @@ const App = () => (
             <Route path="/embed/:slug" element={<EmbedWidget />} />
             <Route path="/testimonial/:token" element={<TestimonialSubmit />} />
             <Route path="/admin/scraping" element={<AdminScraping />} />
+            <Route path="/admin/waitlist" element={<AdminWaitlist />} />
             <Route path="/p/:trackingCode" element={<PackageView />} />
             <Route path="/speeches" element={<Speeches />} />
             <Route path="/performance" element={<Performance />} />
