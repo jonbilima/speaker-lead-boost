@@ -12,6 +12,7 @@ import { EmailSettingsSection } from "@/components/settings/EmailSettingsSection
 import { InvoiceSettingsSection } from "@/components/settings/InvoiceSettingsSection";
 import { ConnectedAccountsSection } from "@/components/settings/ConnectedAccountsSection";
 import { EmailDigestPreferences } from "@/components/settings/EmailDigestPreferences";
+import { TrackingKeywordsSection } from "@/components/settings/TrackingKeywordsSection";
 
 const Profile = () => {
   const [loading, setLoading] = useState(true);
@@ -363,6 +364,14 @@ const Profile = () => {
 
         {/* Weekly Digest Preferences */}
         {userId && <EmailDigestPreferences userId={userId} />}
+
+        {/* Tracking Keywords for Opportunity Alerts */}
+        {userId && (
+          <TrackingKeywordsSection 
+            speakerId={userId} 
+            userTopics={allTopics.filter(t => formData.selectedTopics.includes(t.id)).map(t => t.name)} 
+          />
+        )}
 
         {/* Email Settings */}
         {userId && <EmailSettingsSection userId={userId} />}

@@ -84,6 +84,8 @@ serve(async (req) => {
       { name: 'papercall', function: 'scrape-papercall' },
       { name: 'sessionize', function: 'scrape-sessionize' },
       { name: 'eventbrite', function: 'scrape-eventbrite' },
+      { name: 'meetup', function: 'scrape-meetup' },
+      { name: 'conferencelist', function: 'scrape-conferencelist' },
     ];
 
     // Run each scraper

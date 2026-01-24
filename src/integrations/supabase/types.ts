@@ -944,6 +944,7 @@ export type Database = {
           is_active: boolean | null
           is_featured: boolean | null
           is_verified: boolean | null
+          karma_awarded: boolean | null
           location: string | null
           location_venue: string | null
           organization_website: string | null
@@ -955,6 +956,7 @@ export type Database = {
           scraped_at: string
           seniority_level: string | null
           source: string | null
+          submitted_by: string | null
           timezone: string | null
         }
         Insert: {
@@ -974,6 +976,7 @@ export type Database = {
           is_active?: boolean | null
           is_featured?: boolean | null
           is_verified?: boolean | null
+          karma_awarded?: boolean | null
           location?: string | null
           location_venue?: string | null
           organization_website?: string | null
@@ -985,6 +988,7 @@ export type Database = {
           scraped_at?: string
           seniority_level?: string | null
           source?: string | null
+          submitted_by?: string | null
           timezone?: string | null
         }
         Update: {
@@ -1004,6 +1008,7 @@ export type Database = {
           is_active?: boolean | null
           is_featured?: boolean | null
           is_verified?: boolean | null
+          karma_awarded?: boolean | null
           location?: string | null
           location_venue?: string | null
           organization_website?: string | null
@@ -1015,9 +1020,45 @@ export type Database = {
           scraped_at?: string
           seniority_level?: string | null
           source?: string | null
+          submitted_by?: string | null
           timezone?: string | null
         }
         Relationships: []
+      }
+      opportunity_karma: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          opportunity_id: string | null
+          points: number
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          opportunity_id?: string | null
+          points?: number
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          opportunity_id?: string | null
+          points?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_karma_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       opportunity_scores: {
         Row: {
@@ -1035,6 +1076,8 @@ export type Database = {
           rejected_at: string | null
           rejection_reason: string | null
           response_received_at: string | null
+          shared_at: string | null
+          shared_by: string | null
           topic_match_score: number | null
           user_id: string
           viewed_at: string | null
@@ -1054,6 +1097,8 @@ export type Database = {
           rejected_at?: string | null
           rejection_reason?: string | null
           response_received_at?: string | null
+          shared_at?: string | null
+          shared_by?: string | null
           topic_match_score?: number | null
           user_id: string
           viewed_at?: string | null
@@ -1073,6 +1118,8 @@ export type Database = {
           rejected_at?: string | null
           rejection_reason?: string | null
           response_received_at?: string | null
+          shared_at?: string | null
+          shared_by?: string | null
           topic_match_score?: number | null
           user_id?: string
           viewed_at?: string | null
@@ -1552,6 +1599,7 @@ export type Database = {
           slug: string | null
           speaker_reel_url: string | null
           total_talks_given: number | null
+          tracking_keywords: string[] | null
           travel_regions: string[] | null
           twitter_url: string | null
           updated_at: string
@@ -1593,6 +1641,7 @@ export type Database = {
           slug?: string | null
           speaker_reel_url?: string | null
           total_talks_given?: number | null
+          tracking_keywords?: string[] | null
           travel_regions?: string[] | null
           twitter_url?: string | null
           updated_at?: string
@@ -1634,6 +1683,7 @@ export type Database = {
           slug?: string | null
           speaker_reel_url?: string | null
           total_talks_given?: number | null
+          tracking_keywords?: string[] | null
           travel_regions?: string[] | null
           twitter_url?: string | null
           updated_at?: string
