@@ -2187,6 +2187,33 @@ export type Database = {
           },
         ]
       }
+      waitlist: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          referral_code: string | null
+          referred_by: string | null
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          referral_code?: string | null
+          referred_by?: string | null
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          referral_code?: string | null
+          referred_by?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
       watched_speaker_bookings: {
         Row: {
           discovered_at: string
