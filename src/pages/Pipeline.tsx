@@ -314,17 +314,21 @@ const Pipeline = () => {
           />
         ) : (
           /* Desktop Kanban View */
-          <div className="overflow-x-auto pb-4">
+          <div className="overflow-x-auto pb-4" data-tour="pipeline-columns">
             <DragDropContext onDragEnd={handleDragEnd}>
               <div className="flex gap-4 min-w-max">
-                {PIPELINE_STAGES.map((stage) => (
-                  <PipelineColumn
+                {PIPELINE_STAGES.map((stage, stageIndex) => (
+                  <div 
                     key={stage.id}
-                    stage={stage}
-                    opportunities={getOpportunitiesByStage(stage.id)}
-                    onCardClick={handleCardClick}
-                    onResearchOrganizer={handleResearchOrganizer}
-                  />
+                    data-tour={stageIndex === 0 ? "pipeline-new" : stageIndex === 2 ? "pipeline-pitched" : undefined}
+                  >
+                    <PipelineColumn
+                      stage={stage}
+                      opportunities={getOpportunitiesByStage(stage.id)}
+                      onCardClick={handleCardClick}
+                      onResearchOrganizer={handleResearchOrganizer}
+                    />
+                  </div>
                 ))}
               </div>
             </DragDropContext>

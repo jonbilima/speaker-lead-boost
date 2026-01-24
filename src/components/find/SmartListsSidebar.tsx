@@ -54,7 +54,7 @@ export function SmartListsSidebar({ activeList, onSelectList, opportunities }: S
   ];
 
   return (
-    <Card className="sticky top-4">
+    <Card className="sticky top-4" data-tour="smart-lists">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium">My Smart Lists</CardTitle>
       </CardHeader>

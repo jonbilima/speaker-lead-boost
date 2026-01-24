@@ -7,6 +7,7 @@ import { ActionRequired } from "@/components/command/ActionRequired";
 import { CommandTopOpportunities } from "@/components/command/CommandTopOpportunities";
 import { WeekCalendar } from "@/components/command/WeekCalendar";
 import { RecentActivityFeed } from "@/components/command/RecentActivityFeed";
+import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist";
 
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
@@ -82,12 +83,19 @@ const Dashboard = () => {
           <p className="text-muted-foreground">Your speaking business at a glance</p>
         </div>
 
-        <CommandStats {...stats} />
+        {/* Onboarding Checklist for new users */}
+        <OnboardingChecklist />
+
+        <div data-tour="stats">
+          <CommandStats {...stats} />
+        </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-6" data-tour="quick-actions">
             <ActionRequired userId={user.id} onRefresh={() => loadStats(user.id)} />
-            <CommandTopOpportunities userId={user.id} onRefresh={() => loadStats(user.id)} />
+            <div data-tour="opportunities">
+              <CommandTopOpportunities userId={user.id} onRefresh={() => loadStats(user.id)} />
+            </div>
           </div>
           <div className="space-y-6">
             <WeekCalendar userId={user.id} />

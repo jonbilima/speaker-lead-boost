@@ -926,6 +926,42 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          current_step: number
+          dismissed_at: string | null
+          id: string
+          steps_completed: Json
+          tour_completed: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          current_step?: number
+          dismissed_at?: string | null
+          id?: string
+          steps_completed?: Json
+          tour_completed?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          current_step?: number
+          dismissed_at?: string | null
+          id?: string
+          steps_completed?: Json
+          tour_completed?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       opportunities: {
         Row: {
           audience_size: number | null
