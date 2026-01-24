@@ -20,7 +20,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { addDays, format } from "date-fns";
+import { addDays } from "date-fns";
+import { FollowUpEmailDialog } from "@/components/dashboard/FollowUpEmailDialog";
 
 interface ActionItem {
   id: string;
@@ -44,6 +45,15 @@ export function ActionRequired({ userId, onRefresh }: ActionRequiredProps) {
   });
   const [actions, setActions] = useState<ActionItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [selectedFollowUp, setSelectedFollowUp] = useState<{
+    opportunityId: string;
+    reminderId: string;
+    reminderType: string;
+    matchId: string;
+    organizerEmail?: string | null;
+    organizerName?: string | null;
+  } | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -72,8 +82,10 @@ export function ActionRequired({ userId, onRefresh }: ActionRequiredProps) {
             opportunity_scores!inner (
               opportunity_id,
               opportunities (
+                id,
                 event_name,
-                organizer_name
+                organizer_name,
+                organizer_email
               )
             )
           `)
@@ -118,7 +130,8 @@ export function ActionRequired({ userId, onRefresh }: ActionRequiredProps) {
       // Process follow-ups
       if (!followUpsResult.error && followUpsResult.data) {
         followUpsResult.data.forEach((fu: any) => {
-          const eventName = fu.opportunity_scores?.opportunities?.event_name || "Unknown Event";
+          const opportunity = fu.opportunity_scores?.opportunities;
+          const eventName = opportunity?.event_name || "Unknown Event";
           items.push({
             id: fu.id,
             type: "follow_up",
@@ -126,7 +139,13 @@ export function ActionRequired({ userId, onRefresh }: ActionRequiredProps) {
             subtitle: `${fu.reminder_type} follow-up overdue`,
             urgency: "high",
             dueDate: fu.due_date,
-            metadata: { matchId: fu.match_id, opportunityId: fu.opportunity_scores?.opportunity_id },
+            metadata: {
+              matchId: fu.match_id,
+              opportunityId: fu.opportunity_scores?.opportunity_id,
+              reminderType: fu.reminder_type,
+              organizerName: opportunity?.organizer_name,
+              organizerEmail: opportunity?.organizer_email,
+            },
           });
         });
       }
@@ -207,6 +226,18 @@ export function ActionRequired({ userId, onRefresh }: ActionRequiredProps) {
     }
   };
 
+  const handleOpenEmailDialog = (action: ActionItem) => {
+    setSelectedFollowUp({
+      opportunityId: action.metadata.opportunityId,
+      reminderId: action.id,
+      reminderType: action.metadata.reminderType,
+      matchId: action.metadata.matchId,
+      organizerEmail: action.metadata.organizerEmail,
+      organizerName: action.metadata.organizerName,
+    });
+    setEmailDialogOpen(true);
+  };
+
   const getIcon = (type: ActionItem["type"]) => {
     switch (type) {
       case "follow_up":
@@ -234,116 +265,143 @@ export function ActionRequired({ userId, onRefresh }: ActionRequiredProps) {
   const totalActions = actions.length;
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <Card className="border-destructive/20 bg-gradient-to-r from-destructive/5 to-transparent">
-        <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Flame className="h-5 w-5 text-orange-500" />
-                Action Required
-                {totalActions > 0 && (
-                  <Badge variant="destructive" className="ml-2">
-                    {totalActions}
-                  </Badge>
+    <>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <Card className="border-destructive/20 bg-gradient-to-r from-destructive/5 to-transparent">
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Flame className="h-5 w-5 text-orange-500" />
+                  Action Required
+                  {totalActions > 0 && (
+                    <Badge variant="destructive" className="ml-2">
+                      {totalActions}
+                    </Badge>
+                  )}
+                </CardTitle>
+                {isOpen ? (
+                  <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
                 )}
-              </CardTitle>
-              {isOpen ? (
-                <ChevronUp className="h-5 w-5 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="h-5 w-5 text-muted-foreground" />
-              )}
-            </div>
-          </CardHeader>
-        </CollapsibleTrigger>
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
 
-        <CollapsibleContent>
-          <CardContent className="pt-0">
-            {loading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />
-                ))}
-              </div>
-            ) : actions.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground">
-                <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>All caught up! No urgent actions needed.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {actions.map((action) => (
-                  <div
-                    key={action.id}
-                    className={`flex items-center justify-between p-3 rounded-lg border ${getUrgencyColor(action.urgency)}`}
-                  >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="flex-shrink-0">{getIcon(action.type)}</div>
-                      <div className="min-w-0 flex-1">
-                        <div className="font-medium truncate">{action.title}</div>
-                        <div className="text-sm opacity-80 truncate">{action.subtitle}</div>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
+              {loading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />
+                  ))}
+                </div>
+              ) : actions.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>All caught up! No urgent actions needed.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {actions.map((action) => (
+                    <div
+                      key={action.id}
+                      className={`flex items-center justify-between p-3 rounded-lg border ${getUrgencyColor(action.urgency)}`}
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="flex-shrink-0">{getIcon(action.type)}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium truncate">{action.title}</div>
+                          <div className="text-sm opacity-80 truncate">{action.subtitle}</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                        {action.type === "follow_up" && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => handleOpenEmailDialog(action)}
+                            >
+                              <Mail className="h-3 w-3 mr-1" />
+                              Email
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => handleFollowUpComplete(action.id)}
+                            >
+                              Done
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleFollowUpSnooze(action.id, action.dueDate!)}
+                            >
+                              +3 Days
+                            </Button>
+                          </>
+                        )}
+                        {action.type === "deadline" && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => navigate("/pipeline")}
+                            >
+                              View
+                            </Button>
+                          </>
+                        )}
+                        {action.type === "lead" && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => navigate("/business")}
+                            >
+                              View
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
+                  ))}
 
-                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                      {action.type === "follow_up" && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => handleFollowUpComplete(action.id)}
-                          >
-                            Done
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleFollowUpSnooze(action.id, action.dueDate!)}
-                          >
-                            +3 Days
-                          </Button>
-                        </>
-                      )}
-                      {action.type === "deadline" && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => navigate("/pipeline")}
-                          >
-                            View
-                          </Button>
-                        </>
-                      )}
-                      {action.type === "lead" && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => navigate("/business")}
-                          >
-                            View
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  {totalActions >= 5 && (
+                    <Button
+                      variant="ghost"
+                      className="w-full text-muted-foreground"
+                      onClick={() => navigate("/pipeline")}
+                    >
+                      View all items
+                    </Button>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
-                {totalActions >= 5 && (
-                  <Button
-                    variant="ghost"
-                    className="w-full text-muted-foreground"
-                    onClick={() => navigate("/pipeline")}
-                  >
-                    View all items
-                  </Button>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </CollapsibleContent>
-      </Card>
-    </Collapsible>
+      {selectedFollowUp && (
+        <FollowUpEmailDialog
+          open={emailDialogOpen}
+          onOpenChange={setEmailDialogOpen}
+          opportunityId={selectedFollowUp.opportunityId}
+          reminderId={selectedFollowUp.reminderId}
+          reminderType={selectedFollowUp.reminderType}
+          matchId={selectedFollowUp.matchId}
+          organizerEmail={selectedFollowUp.organizerEmail}
+          organizerName={selectedFollowUp.organizerName}
+          onFollowUpSent={() => {
+            loadActions();
+            onRefresh?.();
+          }}
+        />
+      )}
+    </>
   );
 }

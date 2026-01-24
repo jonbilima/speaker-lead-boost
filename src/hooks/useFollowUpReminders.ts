@@ -9,6 +9,7 @@ interface FollowUpReminder {
   is_completed: boolean;
   event_name: string;
   organizer_name: string | null;
+  organizer_email: string | null;
   opportunity_id: string;
 }
 
@@ -34,7 +35,8 @@ export function useFollowUpReminders(userId: string | null) {
             opportunities (
               id,
               event_name,
-              organizer_name
+              organizer_name,
+              organizer_email
             )
           )
         `)
@@ -52,6 +54,7 @@ export function useFollowUpReminders(userId: string | null) {
         is_completed: r.is_completed,
         event_name: r.opportunity_scores?.opportunities?.event_name || "Unknown Event",
         organizer_name: r.opportunity_scores?.opportunities?.organizer_name || null,
+        organizer_email: r.opportunity_scores?.opportunities?.organizer_email || null,
         opportunity_id: r.opportunity_scores?.opportunities?.id || "",
       }));
 
