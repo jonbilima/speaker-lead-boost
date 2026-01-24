@@ -9,7 +9,7 @@ const corsHeaders = {
 // Rate limiting map (in-memory, resets on function restart)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT = 5; // requests per window
-const RATE_WINDOW = 60 * 60 * 1000; // 1 hour in ms
+const RATE_WINDOW = 24 * 60 * 60 * 1000; // 24 hours in ms (stricter than hourly)
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
