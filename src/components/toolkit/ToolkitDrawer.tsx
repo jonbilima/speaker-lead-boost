@@ -17,6 +17,7 @@ import {
   ChevronRight,
   User,
   Target,
+  PenTool,
 } from "lucide-react";
 import { useState } from "react";
 import { PitchGeneratorDialog } from "./PitchGeneratorDialog";
@@ -58,9 +59,17 @@ const toolkitItems = [
     url: "/templates",
   },
   {
-    id: "speech-builder",
-    title: "Speech Builder",
-    description: "AI coach for speech development",
+    id: "speeches",
+    title: "Speech Studio",
+    description: "AI-powered speech writing & practice",
+    icon: PenTool,
+    action: "navigate",
+    url: "/speeches",
+  },
+  {
+    id: "ai-coach",
+    title: "AI Coach",
+    description: "Get coaching on your speaking",
     icon: Mic,
     action: "navigate",
     url: "/coach",

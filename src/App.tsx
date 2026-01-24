@@ -20,6 +20,7 @@ import EmbedWidget from "./pages/EmbedWidget";
 import TestimonialSubmit from "./pages/TestimonialSubmit";
 import AdminScraping from "./pages/AdminScraping";
 import PackageView from "./pages/PackageView";
+import Speeches from "./pages/Speeches";
 import NotFound from "./pages/NotFound";
 
 // Configure React Query with appropriate cache times
@@ -66,6 +67,7 @@ const App = () => (
             <Route path="/testimonial/:token" element={<TestimonialSubmit />} />
             <Route path="/admin/scraping" element={<AdminScraping />} />
             <Route path="/p/:trackingCode" element={<PackageView />} />
+            <Route path="/speeches" element={<Speeches />} />
             
             {/* Redirects for legacy routes */}
             <Route path="/intelligence" element={<Navigate to="/find" replace />} />
