@@ -1,7 +1,21 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Joyride, { Step, CallBackProps, STATUS, EVENTS } from "react-joyride";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useLocation } from "react-router-dom";
+
+// Helper to safely check if a DOM element exists for a tour step target
+const isTargetAvailable = (target: string | HTMLElement): boolean => {
+  if (typeof target !== "string") return true;
+  if (target === "body") return true;
+  
+  try {
+    const element = document.querySelector(target);
+    return element !== null;
+  } catch (e) {
+    console.warn("Invalid selector for tour target:", target);
+    return false;
+  }
+};
 
 const DASHBOARD_STEPS: Step[] = [
   {
@@ -77,31 +91,43 @@ export function GuidedTour() {
   const [steps, setSteps] = useState<Step[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
 
+  // Filter steps to only include those with existing target elements
+  const filterAvailableSteps = useCallback((stepsToFilter: Step[]): Step[] => {
+    return stepsToFilter.filter((step) => isTargetAvailable(step.target as string));
+  }, []);
+
   useEffect(() => {
     // Check if we should show tour
     const hasSeenTour = localStorage.getItem("tour_completed");
     
     if (progress && !progress.tour_completed && !hasSeenTour) {
-      // Set steps based on current route
+      // Set steps based on current route with a delay to ensure DOM is ready
+      const initTour = (stepsToUse: Step[], localStorageKey?: string) => {
+        setTimeout(() => {
+          const availableSteps = filterAvailableSteps(stepsToUse);
+          if (availableSteps.length > 0) {
+            setSteps(availableSteps);
+            setStepIndex(0);
+            setRun(true);
+          }
+        }, 1000);
+      };
+
       if (location.pathname === "/dashboard") {
-        setSteps(DASHBOARD_STEPS);
-        // Small delay to ensure DOM is ready
-        setTimeout(() => setRun(true), 1000);
+        initTour(DASHBOARD_STEPS);
       } else if (location.pathname === "/find") {
         const hasSeenFindTour = localStorage.getItem("tour_find_completed");
         if (!hasSeenFindTour) {
-          setSteps(FIND_PAGE_STEPS);
-          setTimeout(() => setRun(true), 500);
+          initTour(FIND_PAGE_STEPS);
         }
       } else if (location.pathname === "/pipeline") {
         const hasSeenPipelineTour = localStorage.getItem("tour_pipeline_completed");
         if (!hasSeenPipelineTour) {
-          setSteps(PIPELINE_PAGE_STEPS);
-          setTimeout(() => setRun(true), 500);
+          initTour(PIPELINE_PAGE_STEPS);
         }
       }
     }
-  }, [location.pathname, progress]);
+  }, [location.pathname, progress, filterAvailableSteps]);
 
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status, type, index } = data;
