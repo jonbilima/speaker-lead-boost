@@ -18,9 +18,9 @@ import { SmartListsSidebar } from "@/components/find/SmartListsSidebar";
 import { QuickApplyModal } from "@/components/find/QuickApplyModal";
 import { FilterPanel } from "@/components/find/FilterPanel";
 import { DataFreshnessIndicator } from "@/components/find/DataFreshnessIndicator";
-import { SubmitOpportunityDialog } from "@/components/find/SubmitOpportunityDialog";
 import { SmartSubmitDialog } from "@/components/find/SmartSubmitDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { SavedSearch } from "@/hooks/useSavedSearches";
 
 export interface Opportunity {
   id: string;
@@ -71,6 +71,7 @@ const Find = () => {
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [quickApplyOpen, setQuickApplyOpen] = useState(false);
   const [activeSmartList, setActiveSmartList] = useState<string | null>(null);
+  const [activeSavedSearchId, setActiveSavedSearchId] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   const loadOpportunities = useCallback(async () => {
@@ -237,11 +238,13 @@ const Find = () => {
     });
     setSearchTerm("");
     setActiveSmartList(null);
+    setActiveSavedSearchId(null);
   };
 
   const applySmartList = (listId: string) => {
     clearFilters();
     setActiveSmartList(listId);
+    setActiveSavedSearchId(null);
     
     // Smart list presets
     if (listId === "closing-soon") {
@@ -252,6 +255,20 @@ const Find = () => {
       // This is filtered in the results
     }
   };
+
+  const applySavedSearch = (search: SavedSearch) => {
+    setActiveSmartList(null);
+    setActiveSavedSearchId(search.id);
+    setFilters(search.filters);
+    setSearchTerm(search.filters.search || "");
+  };
+
+  const hasActiveFilters = 
+    filters.industries.length > 0 ||
+    filters.types.length > 0 ||
+    filters.feeRanges.length > 0 ||
+    filters.deadlines.length > 0 ||
+    searchTerm.length > 0;
 
   // Filter and sort opportunities
   const filteredOpportunities = opportunities.filter(opp => {
@@ -485,6 +502,10 @@ const Find = () => {
                 activeList={activeSmartList}
                 onSelectList={applySmartList}
                 opportunities={opportunities}
+                activeSavedSearchId={activeSavedSearchId}
+                onSelectSavedSearch={applySavedSearch}
+                currentFilters={{ ...filters, search: searchTerm }}
+                hasActiveFilters={hasActiveFilters}
               />
             </div>
           )}
@@ -547,6 +568,10 @@ const Find = () => {
                   applySmartList(id);
                 }}
                 opportunities={opportunities}
+                activeSavedSearchId={activeSavedSearchId}
+                onSelectSavedSearch={applySavedSearch}
+                currentFilters={{ ...filters, search: searchTerm }}
+                hasActiveFilters={hasActiveFilters}
               />
             </SheetContent>
           </Sheet>
