@@ -27,6 +27,7 @@ import Speeches from "./pages/Speeches";
 import Performance from "./pages/Performance";
 import FeedbackForm from "./pages/FeedbackForm";
 import NotFound from "./pages/NotFound";
+import Admin from "./pages/Admin";
 
 // Configure React Query with appropriate cache times
 const queryClient = new QueryClient({
@@ -78,6 +79,7 @@ const App = () => (
               <Route path="/speeches" element={<Speeches />} />
               <Route path="/performance" element={<Performance />} />
               <Route path="/feedback/:token" element={<FeedbackForm />} />
+              <Route path="/admin" element={<Admin />} />
               
               {/* Redirects for legacy routes */}
               <Route path="/intelligence" element={<Navigate to="/find" replace />} />
