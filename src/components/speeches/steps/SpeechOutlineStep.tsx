@@ -90,13 +90,20 @@ export function SpeechOutlineStep({
   const [generating, setGenerating] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [errorType, setErrorType] = useState<string | null>(null);
   const [showFallback, setShowFallback] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const { toast } = useToast();
 
-  const generateOutline = async () => {
+  const generateOutline = async (isRetry = false) => {
     setGenerating(true);
     setError(null);
-    setShowFallback(false);
+    setErrorType(null);
+    
+    if (!isRetry) {
+      setShowFallback(false);
+      setRetryCount(0);
+    }
     
     try {
       const { data, error: invokeError } = await supabase.functions.invoke("generate-speech-content", {
@@ -122,18 +129,27 @@ export function SpeechOutlineStep({
 
       // Check for error in response
       if (data?.error) {
-        const errorType = data.errorType || "UNKNOWN";
+        const type = data.errorType || "UNKNOWN";
+        setErrorType(type);
         
-        if (errorType === "CONFIG_ERROR") {
-          setError("Speech generation is not configured. Please contact support.");
+        const newRetryCount = retryCount + 1;
+        setRetryCount(newRetryCount);
+        
+        if (type === "CONFIG_ERROR") {
+          setError("AI service not configured. Please contact support.");
           setShowFallback(true);
-        } else if (errorType === "RATE_LIMIT") {
+        } else if (type === "RATE_LIMIT") {
           setError("Too many requests. Please wait a moment and try again.");
-        } else if (errorType === "PAYMENT_REQUIRED") {
+          // Don't show fallback for rate limit - just retry later
+        } else if (type === "PAYMENT_REQUIRED") {
           setError("AI credits exhausted. Please add credits to your account.");
+          setShowFallback(true);
+        } else if (type === "TIMEOUT") {
+          setError("Request timed out. Please try again.");
+          if (newRetryCount >= 2) setShowFallback(true);
         } else {
           setError(data.error);
-          setShowFallback(true);
+          if (newRetryCount >= 2) setShowFallback(true);
         }
         return;
       }
@@ -141,6 +157,7 @@ export function SpeechOutlineStep({
       if (data?.sections && Array.isArray(data.sections) && data.sections.length > 0) {
         onOutlineChange(data.sections);
         setExpandedSections(new Set(data.sections.map((s: OutlineSection) => s.id)));
+        setRetryCount(0);
         
         if (data.suggestedTitle && formData.autoGenerateTitle) {
           onTitleGenerated(data.suggestedTitle);
@@ -154,15 +171,29 @@ export function SpeechOutlineStep({
       console.error("Error generating outline:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to generate outline";
       setError(errorMessage);
-      setShowFallback(true);
+      
+      const newRetryCount = retryCount + 1;
+      setRetryCount(newRetryCount);
+      
+      // Show fallback after 2 failed attempts
+      if (newRetryCount >= 2) {
+        setShowFallback(true);
+      }
+      
       toast({
         title: "Generation failed",
-        description: "You can try again or use a template instead.",
+        description: newRetryCount >= 2 
+          ? "AI unavailable. Try a template instead." 
+          : "Please try again.",
         variant: "destructive",
       });
     } finally {
       setGenerating(false);
     }
+  };
+
+  const handleRetry = () => {
+    generateOutline(true);
   };
 
   const useFallbackTemplate = (templateKey: string) => {
@@ -242,12 +273,21 @@ export function SpeechOutlineStep({
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="flex items-center justify-between">
-            <span>{error}</span>
-            <Button variant="outline" size="sm" onClick={generateOutline} disabled={generating}>
-              <RefreshCw className={`h-4 w-4 mr-1 ${generating ? "animate-spin" : ""}`} />
-              Try Again
-            </Button>
+          <AlertDescription className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span>{error}</span>
+              {errorType !== "CONFIG_ERROR" && errorType !== "PAYMENT_REQUIRED" && (
+                <Button variant="outline" size="sm" onClick={handleRetry} disabled={generating}>
+                  <RefreshCw className={`h-4 w-4 mr-1 ${generating ? "animate-spin" : ""}`} />
+                  Try Again {retryCount > 0 && `(${retryCount})`}
+                </Button>
+              )}
+            </div>
+            {retryCount >= 2 && !showFallback && (
+              <p className="text-sm opacity-80">
+                AI generation is having issues. Consider using a template below.
+              </p>
+            )}
           </AlertDescription>
         </Alert>
       )}
@@ -258,22 +298,25 @@ export function SpeechOutlineStep({
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <FileText className="h-4 w-4" />
-              Start with a Template Instead?
+              {retryCount >= 2 ? "AI unavailable. Would you like to use a template instead?" : "Start with a Template Instead?"}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <p className="text-sm text-muted-foreground mb-4">
-              AI generation is temporarily unavailable. Choose a template to get started:
+              Choose a pre-built template to get started. You can customize it afterwards:
             </p>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={() => useFallbackTemplate("standard")}>
-                Standard Speech
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Button variant="outline" className="flex-col h-auto py-3" onClick={() => useFallbackTemplate("standard")}>
+                <span className="font-medium">3-Point Structure</span>
+                <span className="text-xs text-muted-foreground">Intro, 3 points, Conclusion</span>
               </Button>
-              <Button variant="outline" size="sm" onClick={() => useFallbackTemplate("ted")}>
-                TED-Style Talk
+              <Button variant="outline" className="flex-col h-auto py-3" onClick={() => useFallbackTemplate("ted")}>
+                <span className="font-medium">TED-Style Talk</span>
+                <span className="text-xs text-muted-foreground">Problem, Journey, Insight</span>
               </Button>
-              <Button variant="outline" size="sm" onClick={() => useFallbackTemplate("keynote")}>
-                Keynote Address
+              <Button variant="outline" className="flex-col h-auto py-3" onClick={() => useFallbackTemplate("keynote")}>
+                <span className="font-medium">Keynote Address</span>
+                <span className="text-xs text-muted-foreground">State, Vision, Action</span>
               </Button>
             </div>
           </CardContent>
@@ -300,7 +343,7 @@ export function SpeechOutlineStep({
                   Based on your parameters, we'll generate a complete speech structure with
                   multiple options for each section.
                 </p>
-                <Button onClick={generateOutline} size="lg" className="gap-2">
+                <Button onClick={() => generateOutline()} size="lg" className="gap-2">
                   <Sparkles className="h-4 w-4" />
                   Generate Outline
                 </Button>
@@ -321,7 +364,7 @@ export function SpeechOutlineStep({
               </span>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={generateOutline} disabled={generating}>
+              <Button variant="outline" onClick={() => generateOutline()} disabled={generating}>
                 <RefreshCw className={`h-4 w-4 mr-2 ${generating ? "animate-spin" : ""}`} />
                 Regenerate All
               </Button>

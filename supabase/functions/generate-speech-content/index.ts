@@ -150,20 +150,29 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+  
   try {
-    const { action, params, section, context } = await req.json();
+    const body = await req.json();
+    const { action, params, section, context } = body;
+
+    // Log incoming request for debugging
+    console.log(`[generate-speech-content] Action: ${action}`);
+    console.log(`[generate-speech-content] Params:`, JSON.stringify(params || {}).substring(0, 500));
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY not configured in secrets");
+      console.error("[generate-speech-content] LOVABLE_API_KEY not configured in secrets");
       return new Response(
         JSON.stringify({ 
-          error: "Speech generation is not configured. Please contact support.",
+          error: "AI service not configured. Please contact support.",
           errorType: "CONFIG_ERROR"
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    console.log(`[generate-speech-content] API key available: true`);
 
     let systemPrompt = "";
     let userPrompt = "";
@@ -284,7 +293,9 @@ Return ONLY the speech content.`;
     }
 
     // Call AI API with retry logic
+    console.log(`[generate-speech-content] Calling AI API...`);
     const content = await callAiApi(LOVABLE_API_KEY, systemPrompt, userPrompt);
+    console.log(`[generate-speech-content] AI response received, length: ${content.length}`);
 
     // Process response based on action type
     let result;
@@ -292,7 +303,7 @@ Return ONLY the speech content.`;
       try {
         // Check for truncation
         if (detectTruncation(content)) {
-          console.warn("AI response appears truncated, attempting to parse anyway");
+          console.warn("[generate-speech-content] AI response appears truncated, attempting to parse anyway");
         }
         
         result = extractJsonFromResponse(content);
@@ -301,15 +312,17 @@ Return ONLY the speech content.`;
         if (action === "generate_outline") {
           const outline = result as { sections?: unknown[]; suggestedTitle?: string };
           if (!outline.sections || !Array.isArray(outline.sections) || outline.sections.length === 0) {
+            console.error("[generate-speech-content] Invalid outline structure - missing sections");
             throw new Error("Invalid outline structure: missing sections array");
           }
+          console.log(`[generate-speech-content] Outline generated with ${outline.sections.length} sections`);
         }
       } catch (e) {
-        console.error("Failed to parse JSON response:", content);
-        console.error("Parse error:", e);
+        console.error("[generate-speech-content] Failed to parse JSON response:", content.substring(0, 1000));
+        console.error("[generate-speech-content] Parse error:", e);
         return new Response(
           JSON.stringify({ 
-            error: "AI generated an invalid response. Please try again.",
+            error: "Invalid response from AI. Please try again.",
             errorType: "PARSE_ERROR",
             raw: content.substring(0, 500) // First 500 chars for debugging
           }),
@@ -320,31 +333,47 @@ Return ONLY the speech content.`;
       result = { content };
     }
 
+    const elapsed = Date.now() - startTime;
+    console.log(`[generate-speech-content] Success in ${elapsed}ms`);
+
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
-    console.error("Error in generate-speech-content:", error);
+    const elapsed = Date.now() - startTime;
+    console.error(`[generate-speech-content] Error after ${elapsed}ms:`, error);
     
     const message = error instanceof Error ? error.message : "Unknown error";
     let errorType = "UNKNOWN_ERROR";
     let statusCode = 500;
+    let userMessage = message;
     
     if (message.startsWith("RATE_LIMIT:")) {
       errorType = "RATE_LIMIT";
       statusCode = 429;
+      userMessage = "Too many requests. Please wait a moment and try again.";
     } else if (message.startsWith("PAYMENT_REQUIRED:")) {
       errorType = "PAYMENT_REQUIRED";
       statusCode = 402;
+      userMessage = "AI credits exhausted. Please add credits to continue.";
     } else if (message.startsWith("AUTH_ERROR:") || message.startsWith("CONFIG_ERROR:")) {
       errorType = "CONFIG_ERROR";
+      userMessage = "AI service configuration error. Please contact support.";
     } else if (message.startsWith("API_ERROR:")) {
       errorType = "API_ERROR";
+      userMessage = "AI service temporarily unavailable. Please try again.";
+    } else if (message.startsWith("EMPTY_RESPONSE:")) {
+      errorType = "EMPTY_RESPONSE";
+      userMessage = "AI returned an empty response. Please try again.";
+    } else if (message.includes("timeout") || message.includes("Timeout")) {
+      errorType = "TIMEOUT";
+      statusCode = 504;
+      userMessage = "Request timed out. Please try again.";
     }
     
     return new Response(
       JSON.stringify({ 
-        error: message.replace(/^[A-Z_]+:\s*/, ""), // Remove error type prefix for display
+        error: userMessage,
         errorType 
       }),
       { status: statusCode, headers: { ...corsHeaders, "Content-Type": "application/json" } }
