@@ -70,30 +70,42 @@ export function ActionRequired({ userId, onRefresh }: ActionRequiredProps) {
       const todayStr = today.toISOString().split("T")[0];
       const weekLater = addDays(today, 7).toISOString();
 
-      const [followUpsResult, deadlinesResult, leadsResult] = await Promise.all([
-        // Overdue follow-ups
-        supabase
-          .from("follow_up_reminders")
+      // Load follow-ups without the problematic join
+      const { data: followUpsRaw, error: followUpsError } = await supabase
+        .from("follow_up_reminders")
+        .select("id, reminder_type, due_date, match_id")
+        .eq("speaker_id", userId)
+        .eq("is_completed", false)
+        .lte("due_date", todayStr)
+        .order("due_date", { ascending: true })
+        .limit(5);
+
+      // Get opportunity details separately if we have follow-ups
+      let followUpsWithDetails: any[] = [];
+      if (!followUpsError && followUpsRaw && followUpsRaw.length > 0) {
+        const matchIds = [...new Set(followUpsRaw.map(f => f.match_id))];
+        const { data: scoresData } = await supabase
+          .from("opportunity_scores")
           .select(`
             id,
-            reminder_type,
-            due_date,
-            match_id,
-            opportunity_scores!inner (
-              opportunity_id,
-              opportunities (
-                id,
-                event_name,
-                organizer_name,
-                organizer_email
-              )
+            opportunity_id,
+            opportunities (
+              id,
+              event_name,
+              organizer_name,
+              organizer_email
             )
           `)
-          .eq("speaker_id", userId)
-          .eq("is_completed", false)
-          .lte("due_date", todayStr)
-          .order("due_date", { ascending: true })
-          .limit(5),
+          .in("id", matchIds);
+        
+        const scoreMap = new Map((scoresData || []).map((s: any) => [s.id, s]));
+        followUpsWithDetails = followUpsRaw.map(f => ({
+          ...f,
+          opportunity_scores: scoreMap.get(f.match_id)
+        }));
+      }
+
+      const [deadlinesResult, leadsResult] = await Promise.all([
 
         // Upcoming deadlines (within 7 days)
         supabase
@@ -128,8 +140,8 @@ export function ActionRequired({ userId, onRefresh }: ActionRequiredProps) {
       const items: ActionItem[] = [];
 
       // Process follow-ups
-      if (!followUpsResult.error && followUpsResult.data) {
-        followUpsResult.data.forEach((fu: any) => {
+      if (followUpsWithDetails.length > 0) {
+        followUpsWithDetails.forEach((fu: any) => {
           const opportunity = fu.opportunity_scores?.opportunities;
           const eventName = opportunity?.event_name || "Unknown Event";
           items.push({

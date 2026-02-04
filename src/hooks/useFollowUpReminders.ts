@@ -22,41 +22,61 @@ export function useFollowUpReminders(userId: string | null) {
     if (!userId) return;
 
     try {
-      const { data, error } = await supabase
+      // First get the follow-up reminders
+      const { data: remindersData, error: remindersError } = await supabase
         .from("follow_up_reminders")
-        .select(`
-          id,
-          match_id,
-          reminder_type,
-          due_date,
-          is_completed,
-          opportunity_scores!inner (
-            id,
-            opportunities (
-              id,
-              event_name,
-              organizer_name,
-              organizer_email
-            )
-          )
-        `)
+        .select("id, match_id, reminder_type, due_date, is_completed")
         .eq("speaker_id", userId)
         .eq("is_completed", false)
         .order("due_date", { ascending: true });
 
-      if (error) throw error;
+      if (remindersError) throw remindersError;
+      
+      if (!remindersData || remindersData.length === 0) {
+        setReminders([]);
+        setOverdueCount(0);
+        setLoading(false);
+        return;
+      }
 
-      const formattedReminders: FollowUpReminder[] = (data || []).map((r: any) => ({
-        id: r.id,
-        match_id: r.match_id,
-        reminder_type: r.reminder_type,
-        due_date: r.due_date,
-        is_completed: r.is_completed,
-        event_name: r.opportunity_scores?.opportunities?.event_name || "Unknown Event",
-        organizer_name: r.opportunity_scores?.opportunities?.organizer_name || null,
-        organizer_email: r.opportunity_scores?.opportunities?.organizer_email || null,
-        opportunity_id: r.opportunity_scores?.opportunities?.id || "",
-      }));
+      // Get unique match_ids and fetch opportunity data separately
+      const matchIds = [...new Set(remindersData.map(r => r.match_id))];
+      
+      const { data: scoresData, error: scoresError } = await supabase
+        .from("opportunity_scores")
+        .select(`
+          id,
+          opportunity_id,
+          opportunities (
+            id,
+            event_name,
+            organizer_name,
+            organizer_email
+          )
+        `)
+        .in("id", matchIds);
+
+      if (scoresError) throw scoresError;
+
+      // Create a lookup map
+      const scoreMap = new Map(
+        (scoresData || []).map((s: any) => [s.id, s])
+      );
+
+      const formattedReminders: FollowUpReminder[] = (remindersData || []).map((r: any) => {
+        const score = scoreMap.get(r.match_id);
+        return {
+          id: r.id,
+          match_id: r.match_id,
+          reminder_type: r.reminder_type,
+          due_date: r.due_date,
+          is_completed: r.is_completed,
+          event_name: score?.opportunities?.event_name || "Unknown Event",
+          organizer_name: score?.opportunities?.organizer_name || null,
+          organizer_email: score?.opportunities?.organizer_email || null,
+          opportunity_id: score?.opportunities?.id || "",
+        };
+      });
 
       setReminders(formattedReminders);
 
