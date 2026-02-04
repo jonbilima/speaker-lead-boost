@@ -1107,6 +1107,7 @@ export type Database = {
           fee_alignment_score: number | null
           id: string
           interested_at: string | null
+          is_archived: boolean | null
           opportunity_id: string
           pipeline_stage: Database["public"]["Enums"]["pipeline_stage"] | null
           rejected_at: string | null
@@ -1114,6 +1115,7 @@ export type Database = {
           response_received_at: string | null
           shared_at: string | null
           shared_by: string | null
+          tags: string[] | null
           topic_match_score: number | null
           user_id: string
           viewed_at: string | null
@@ -1128,6 +1130,7 @@ export type Database = {
           fee_alignment_score?: number | null
           id?: string
           interested_at?: string | null
+          is_archived?: boolean | null
           opportunity_id: string
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"] | null
           rejected_at?: string | null
@@ -1135,6 +1138,7 @@ export type Database = {
           response_received_at?: string | null
           shared_at?: string | null
           shared_by?: string | null
+          tags?: string[] | null
           topic_match_score?: number | null
           user_id: string
           viewed_at?: string | null
@@ -1149,6 +1153,7 @@ export type Database = {
           fee_alignment_score?: number | null
           id?: string
           interested_at?: string | null
+          is_archived?: boolean | null
           opportunity_id?: string
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"] | null
           rejected_at?: string | null
@@ -1156,6 +1161,7 @@ export type Database = {
           response_received_at?: string | null
           shared_at?: string | null
           shared_by?: string | null
+          tags?: string[] | null
           topic_match_score?: number | null
           user_id?: string
           viewed_at?: string | null
@@ -1547,6 +1553,38 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "confirmed_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_tags: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_tags_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

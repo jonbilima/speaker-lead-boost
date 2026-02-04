@@ -2,7 +2,8 @@ import { Draggable } from "@hello-pangea/dnd";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, DollarSign, Clock, Building2, Zap } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar, MapPin, DollarSign, Clock, Building2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { FollowUpIndicator } from "./FollowUpIndicator";
 
@@ -23,6 +24,7 @@ export interface PipelineOpportunity {
   ai_reason: string | null;
   pipeline_stage: string;
   calculated_at: string;
+  tags?: string[];
 }
 
 interface PipelineCardProps {
@@ -31,9 +33,22 @@ interface PipelineCardProps {
   onClick: () => void;
   onResearchOrganizer?: (organizerName: string, organizerEmail?: string | null) => void;
   onOpenToolkit?: (context: any) => void;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: (scoreId: string) => void;
+  tags?: { id: string; name: string; color: string }[];
 }
 
-export function PipelineCard({ opportunity, index, onClick, onResearchOrganizer, onOpenToolkit }: PipelineCardProps) {
+export function PipelineCard({ 
+  opportunity, 
+  index, 
+  onClick, 
+  onResearchOrganizer,
+  selectionMode,
+  isSelected,
+  onToggleSelection,
+  tags,
+}: PipelineCardProps) {
   const getScoreColor = (score: number) => {
     if (score >= 80) return "bg-green-500 text-white";
     if (score >= 60) return "bg-yellow-500 text-white";
@@ -63,19 +78,44 @@ export function PipelineCard({ opportunity, index, onClick, onResearchOrganizer,
     }
   };
 
+  const handleClick = () => {
+    if (selectionMode && onToggleSelection) {
+      onToggleSelection(opportunity.score_id);
+    } else {
+      onClick();
+    }
+  };
+
+  const handleCheckboxChange = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onToggleSelection) {
+      onToggleSelection(opportunity.score_id);
+    }
+  };
+
+  // Find tag objects for this opportunity
+  const opportunityTags = (opportunity.tags || [])
+    .map((tagId) => tags?.find((t) => t.id === tagId))
+    .filter(Boolean);
+
   return (
-    <Draggable draggableId={opportunity.score_id} index={index}>
+    <Draggable draggableId={opportunity.score_id} index={index} isDragDisabled={selectionMode}>
       {(provided, snapshot) => (
         <Card
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          onClick={onClick}
+          onClick={handleClick}
           className={`p-3 mb-2 cursor-pointer transition-all hover:shadow-md ${
             snapshot.isDragging ? "shadow-lg ring-2 ring-violet-400" : ""
-          }`}
+          } ${isSelected ? "ring-2 ring-primary bg-primary/5" : ""}`}
         >
           <div className="flex items-start justify-between gap-2 mb-2">
+            {selectionMode && (
+              <div onClick={handleCheckboxChange} className="shrink-0 mt-0.5">
+                <Checkbox checked={isSelected} />
+              </div>
+            )}
             <h4 className="font-medium text-sm line-clamp-2 flex-1">
               {opportunity.event_name}
             </h4>
@@ -142,6 +182,21 @@ export function PipelineCard({ opportunity, index, onClick, onResearchOrganizer,
                 {formatDistanceToNow(new Date(opportunity.calculated_at), { addSuffix: true })}
               </span>
             </div>
+
+            {/* Tags */}
+            {opportunityTags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {opportunityTags.map((tag) => (
+                  <span
+                    key={tag!.id}
+                    className="text-[10px] px-1.5 py-0.5 rounded-full text-white"
+                    style={{ backgroundColor: tag!.color }}
+                  >
+                    {tag!.name}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </Card>
       )}

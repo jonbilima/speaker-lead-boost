@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
-import { Kanban, RefreshCw } from "lucide-react";
+import { Kanban, RefreshCw, CheckSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -13,28 +13,10 @@ import { createFollowUpReminders, getUserFollowUpIntervals } from "@/hooks/useFo
 import { AcceptedBookingPrompt } from "@/components/pipeline/AcceptedBookingPrompt";
 import { OrganizerResearchSheet } from "@/components/organizer/OrganizerResearchSheet";
 import { MobilePipeline } from "@/components/pipeline/MobilePipeline";
+import { BulkActionToolbar } from "@/components/pipeline/BulkActionToolbar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { usePipelineBulkActions } from "@/hooks/usePipelineBulkActions";
 
-
-interface OpportunityScoreData {
-  id: string;
-  ai_score: number | null;
-  ai_reason: string | null;
-  pipeline_stage: string | null;
-  calculated_at: string;
-  opportunities: {
-    id: string;
-    event_name: string;
-    organizer_name: string | null;
-    description: string | null;
-    deadline: string | null;
-    event_date: string | null;
-    location: string | null;
-    fee_estimate_min: number | null;
-    fee_estimate_max: number | null;
-    event_url: string | null;
-  } | null;
-}
 
 const PIPELINE_STAGES = [
   { id: "new", label: "New", color: "border-gray-400", bgColor: "bg-gray-100" },
@@ -76,6 +58,8 @@ const Pipeline = () => {
         ai_reason,
         pipeline_stage,
         calculated_at,
+        tags,
+        is_archived,
         opportunities (
           id,
           event_name,
@@ -90,6 +74,7 @@ const Pipeline = () => {
         )
       `)
       .eq("user_id", session.user.id)
+      .neq("is_archived", true)
       .order("ai_score", { ascending: false });
 
     if (error) {
@@ -114,12 +99,16 @@ const Pipeline = () => {
           ai_reason: score.ai_reason,
           pipeline_stage: (score.pipeline_stage as PipelineOpportunity['pipeline_stage']) || "new",
           calculated_at: score.calculated_at,
+          tags: (score.tags as string[]) || [],
         }));
       setOpportunities(formatted);
     }
 
     setLoading(false);
   }, []);
+
+  // Bulk actions hook
+  const bulkActions = usePipelineBulkActions(opportunities, loadOpportunities);
 
   useEffect(() => {
     loadOpportunities();
@@ -268,14 +257,32 @@ const Pipeline = () => {
               Track your speaking opportunities through each stage
             </p>
           </div>
-          <Button
-            variant="outline"
-            onClick={loadOpportunities}
-            disabled={loading}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            {bulkActions.selectionMode ? (
+              <Button
+                variant="outline"
+                onClick={bulkActions.exitSelectionMode}
+              >
+                Cancel Selection
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={bulkActions.enterSelectionMode}
+              >
+                <CheckSquare className="h-4 w-4 mr-2" />
+                Select
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={loadOpportunities}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         {/* Stats Overview */}
@@ -327,6 +334,18 @@ const Pipeline = () => {
                       opportunities={getOpportunitiesByStage(stage.id)}
                       onCardClick={handleCardClick}
                       onResearchOrganizer={handleResearchOrganizer}
+                      selectionMode={bulkActions.selectionMode}
+                      selectedIds={bulkActions.selectedIds}
+                      onToggleSelection={bulkActions.toggleSelection}
+                      isAllSelected={bulkActions.isAllInStageSelected(stage.id)}
+                      onToggleSelectAll={() => {
+                        if (bulkActions.isAllInStageSelected(stage.id)) {
+                          bulkActions.deselectAllInStage(stage.id);
+                        } else {
+                          bulkActions.selectAllInStage(stage.id);
+                        }
+                      }}
+                      tags={bulkActions.tags}
                     />
                   </div>
                 ))}
@@ -359,6 +378,24 @@ const Pipeline = () => {
           eventDate={acceptedOpp.eventDate}
           userId={acceptedOpp.userId}
           onSuccess={loadOpportunities}
+        />
+      )}
+
+      {/* Bulk Action Toolbar */}
+      {bulkActions.selectionMode && (
+        <BulkActionToolbar
+          selectedCount={bulkActions.selectedCount}
+          isProcessing={bulkActions.isProcessing}
+          processingProgress={bulkActions.processingProgress}
+          tags={bulkActions.tags}
+          onCancel={bulkActions.exitSelectionMode}
+          onMoveToStage={bulkActions.bulkMoveToStage}
+          onAddTag={bulkActions.bulkAddTag}
+          onRemoveTag={bulkActions.bulkRemoveTag}
+          onCreateTag={bulkActions.createTag}
+          onExport={bulkActions.bulkExport}
+          onDelete={bulkActions.bulkArchive}
+          onGeneratePitches={bulkActions.bulkGeneratePitches}
         />
       )}
     </AppLayout>
