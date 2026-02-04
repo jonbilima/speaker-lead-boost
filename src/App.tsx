@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GuidedTour } from "@/components/onboarding/GuidedTour";
 import Landing from "./pages/Landing";
@@ -49,44 +50,46 @@ const queryClient = new QueryClient({
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <ErrorBoundary>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <GuidedTour />
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/pipeline" element={<Pipeline />} />
-            <Route path="/calendar" element={<CalendarPage />} />
-            <Route path="/assets" element={<Assets />} />
-            <Route path="/coach" element={<Coach />} />
-            <Route path="/templates" element={<Templates />} />
-            <Route path="/topics" element={<Topics />} />
-            <Route path="/find" element={<Find />} />
-            <Route path="/business" element={<Business />} />
-            <Route path="/embed/:slug" element={<EmbedWidget />} />
-            <Route path="/testimonial/:token" element={<TestimonialSubmit />} />
-            <Route path="/admin/scraping" element={<AdminScraping />} />
-            <Route path="/admin/waitlist" element={<AdminWaitlist />} />
-            <Route path="/p/:trackingCode" element={<PackageView />} />
-            <Route path="/speeches" element={<Speeches />} />
-            <Route path="/performance" element={<Performance />} />
-            <Route path="/feedback/:token" element={<FeedbackForm />} />
-            
-            {/* Redirects for legacy routes */}
-            <Route path="/intelligence" element={<Navigate to="/find" replace />} />
-            <Route path="/leads" element={<Navigate to="/business" replace />} />
-            <Route path="/revenue" element={<Navigate to="/business" replace />} />
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </ErrorBoundary>
-    </TooltipProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <TooltipProvider>
+        <ErrorBoundary>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <GuidedTour />
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/pipeline" element={<Pipeline />} />
+              <Route path="/calendar" element={<CalendarPage />} />
+              <Route path="/assets" element={<Assets />} />
+              <Route path="/coach" element={<Coach />} />
+              <Route path="/templates" element={<Templates />} />
+              <Route path="/topics" element={<Topics />} />
+              <Route path="/find" element={<Find />} />
+              <Route path="/business" element={<Business />} />
+              <Route path="/embed/:slug" element={<EmbedWidget />} />
+              <Route path="/testimonial/:token" element={<TestimonialSubmit />} />
+              <Route path="/admin/scraping" element={<AdminScraping />} />
+              <Route path="/admin/waitlist" element={<AdminWaitlist />} />
+              <Route path="/p/:trackingCode" element={<PackageView />} />
+              <Route path="/speeches" element={<Speeches />} />
+              <Route path="/performance" element={<Performance />} />
+              <Route path="/feedback/:token" element={<FeedbackForm />} />
+              
+              {/* Redirects for legacy routes */}
+              <Route path="/intelligence" element={<Navigate to="/find" replace />} />
+              <Route path="/leads" element={<Navigate to="/business" replace />} />
+              <Route path="/revenue" element={<Navigate to="/business" replace />} />
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </ErrorBoundary>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
