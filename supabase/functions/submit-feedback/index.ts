@@ -6,6 +6,28 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Rate limiting map (in-memory, resets on function restart)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT = 5; // 5 submissions per IP per hour
+const RATE_WINDOW = 60 * 60 * 1000; // 1 hour in ms
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(ip);
+  
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_WINDOW });
+    return false;
+  }
+  
+  if (record.count >= RATE_LIMIT) {
+    return true;
+  }
+  
+  record.count++;
+  return false;
+}
+
 interface FeedbackSubmission {
   token: string;
   respondentName: string;
@@ -27,6 +49,18 @@ serve(async (req) => {
   }
 
   try {
+    // Get client IP for rate limiting
+    const forwardedFor = req.headers.get("x-forwarded-for");
+    const clientIp = forwardedFor ? forwardedFor.split(",")[0].trim() : "unknown";
+    
+    // Check rate limit (5 per IP per hour)
+    if (isRateLimited(clientIp)) {
+      return new Response(
+        JSON.stringify({ error: "Too many requests. Please try again later." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);

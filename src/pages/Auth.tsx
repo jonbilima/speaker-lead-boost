@@ -260,9 +260,12 @@ const Auth = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      minLength={6}
+                      minLength={8}
                       disabled={loading || oauthLoading}
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Minimum 8 characters. Passwords are checked against known data breaches.
+                    </p>
                   </div>
                   <Button 
                     type="submit" 
