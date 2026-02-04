@@ -7,6 +7,7 @@ import {
   Briefcase,
   Calendar,
   LogOut,
+  Shield,
 } from "lucide-react";
 import {
   Sidebar,
@@ -39,12 +40,13 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const [actionCount, setActionCount] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
 
-  // Fetch action items count (overdue follow-ups, deadlines, etc.)
+  // Fetch action items count and check admin status
   useEffect(() => {
-    const fetchActionCount = async () => {
+    const fetchData = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
@@ -67,10 +69,17 @@ export function AppSidebar() {
 
       const total = (overdueCount || 0) + (newLeadsCount || 0);
       setActionCount(total);
+
+      // Check admin role
+      const { data: hasRole } = await supabase.rpc('has_role', {
+        _role: 'admin',
+        _user_id: session.user.id
+      });
+      setIsAdmin(!!hasRole);
     };
 
-    fetchActionCount();
-    const interval = setInterval(fetchActionCount, 60000);
+    fetchData();
+    const interval = setInterval(fetchData, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -132,6 +141,32 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Admin Section - Only visible to admins */}
+        {isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive("/admin")}
+                    tooltip="Admin"
+                    className="transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-primary data-[active=true]:font-medium"
+                  >
+                    <a href="/admin" onClick={(e) => {
+                      e.preventDefault();
+                      navigate("/admin");
+                    }}>
+                      <Shield className="h-4 w-4" />
+                      <span>Admin</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="p-2">
