@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Sparkles,
   RefreshCw,
@@ -19,6 +20,8 @@ import {
   Lightbulb,
   MessageSquare,
   BookOpen,
+  AlertCircle,
+  FileText,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -48,6 +51,36 @@ const TYPE_COLORS: Record<string, string> = {
   closing: "bg-rose-500/10 text-rose-600 border-rose-500/20",
 };
 
+// Fallback templates when AI generation fails
+const FALLBACK_TEMPLATES: Record<string, OutlineSection[]> = {
+  standard: [
+    { id: "open_1", type: "opening", title: "Hook / Attention Grabber", content: "Start with a compelling story, surprising statistic, or thought-provoking question", estimatedMinutes: 2 },
+    { id: "main_1", type: "main_point", title: "Main Point 1", content: "Your first key idea with supporting evidence", estimatedMinutes: 5 },
+    { id: "story_1", type: "story", title: "Supporting Story", content: "A personal or illustrative story that reinforces your first point", estimatedMinutes: 3 },
+    { id: "main_2", type: "main_point", title: "Main Point 2", content: "Your second key idea with supporting evidence", estimatedMinutes: 5 },
+    { id: "interact_1", type: "interaction", title: "Audience Engagement", content: "Question, poll, or brief exercise to engage the audience", estimatedMinutes: 2 },
+    { id: "main_3", type: "main_point", title: "Main Point 3", content: "Your third key idea with supporting evidence", estimatedMinutes: 5 },
+    { id: "close_1", type: "closing", title: "Call to Action", content: "Summarize key points and give a clear call to action", estimatedMinutes: 3 },
+  ],
+  ted: [
+    { id: "ted_open", type: "opening", title: "The Unexpected Opening", content: "Start with something surprising that challenges assumptions", estimatedMinutes: 2 },
+    { id: "ted_prob", type: "main_point", title: "The Problem", content: "Define the problem or challenge you're addressing", estimatedMinutes: 4 },
+    { id: "ted_journey", type: "story", title: "The Journey", content: "Share your personal journey discovering the solution", estimatedMinutes: 5 },
+    { id: "ted_insight", type: "main_point", title: "The Key Insight", content: "Reveal the breakthrough idea or principle", estimatedMinutes: 4 },
+    { id: "ted_evidence", type: "main_point", title: "The Evidence", content: "Support your insight with data, research, or examples", estimatedMinutes: 4 },
+    { id: "ted_vision", type: "closing", title: "The Vision", content: "Paint a picture of the future if we embrace this idea", estimatedMinutes: 3 },
+  ],
+  keynote: [
+    { id: "key_welcome", type: "opening", title: "Welcome & Context Setting", content: "Set the stage and establish your credibility", estimatedMinutes: 3 },
+    { id: "key_state", type: "main_point", title: "State of the Industry", content: "Current landscape and challenges we face", estimatedMinutes: 8 },
+    { id: "key_case1", type: "story", title: "Case Study 1", content: "Real-world example demonstrating key principles", estimatedMinutes: 5 },
+    { id: "key_vision", type: "main_point", title: "The Path Forward", content: "Your vision and recommended approach", estimatedMinutes: 8 },
+    { id: "key_qa", type: "interaction", title: "Interactive Discussion", content: "Engage with audience questions and insights", estimatedMinutes: 5 },
+    { id: "key_action", type: "main_point", title: "Actionable Takeaways", content: "Specific steps attendees can implement", estimatedMinutes: 5 },
+    { id: "key_close", type: "closing", title: "Inspiring Close", content: "End with a memorable, motivating message", estimatedMinutes: 3 },
+  ],
+};
+
 export function SpeechOutlineStep({
   formData,
   outline,
@@ -56,13 +89,17 @@ export function SpeechOutlineStep({
 }: SpeechOutlineStepProps) {
   const [generating, setGenerating] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
-  const [regeneratingSection, setRegeneratingSection] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [showFallback, setShowFallback] = useState(false);
   const { toast } = useToast();
 
   const generateOutline = async () => {
     setGenerating(true);
+    setError(null);
+    setShowFallback(false);
+    
     try {
-      const { data, error } = await supabase.functions.invoke("generate-speech-content", {
+      const { data, error: invokeError } = await supabase.functions.invoke("generate-speech-content", {
         body: {
           action: "generate_outline",
           params: {
@@ -79,29 +116,71 @@ export function SpeechOutlineStep({
         },
       });
 
-      if (error) throw error;
+      if (invokeError) {
+        throw invokeError;
+      }
 
-      if (data.sections) {
+      // Check for error in response
+      if (data?.error) {
+        const errorType = data.errorType || "UNKNOWN";
+        
+        if (errorType === "CONFIG_ERROR") {
+          setError("Speech generation is not configured. Please contact support.");
+          setShowFallback(true);
+        } else if (errorType === "RATE_LIMIT") {
+          setError("Too many requests. Please wait a moment and try again.");
+        } else if (errorType === "PAYMENT_REQUIRED") {
+          setError("AI credits exhausted. Please add credits to your account.");
+        } else {
+          setError(data.error);
+          setShowFallback(true);
+        }
+        return;
+      }
+
+      if (data?.sections && Array.isArray(data.sections) && data.sections.length > 0) {
         onOutlineChange(data.sections);
-        // Expand all sections by default
         setExpandedSections(new Set(data.sections.map((s: OutlineSection) => s.id)));
+        
+        if (data.suggestedTitle && formData.autoGenerateTitle) {
+          onTitleGenerated(data.suggestedTitle);
+        }
+        
+        toast({ title: "Outline generated!" });
+      } else {
+        throw new Error("Invalid response from AI");
       }
-
-      if (data.suggestedTitle && formData.autoGenerateTitle) {
-        onTitleGenerated(data.suggestedTitle);
-      }
-
-      toast({ title: "Outline generated!" });
-    } catch (error) {
-      console.error("Error generating outline:", error);
+    } catch (err) {
+      console.error("Error generating outline:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to generate outline";
+      setError(errorMessage);
+      setShowFallback(true);
       toast({
-        title: "Failed to generate outline",
-        description: "Please try again",
+        title: "Generation failed",
+        description: "You can try again or use a template instead.",
         variant: "destructive",
       });
     } finally {
       setGenerating(false);
     }
+  };
+
+  const useFallbackTemplate = (templateKey: string) => {
+    const template = FALLBACK_TEMPLATES[templateKey] || FALLBACK_TEMPLATES.standard;
+    
+    // Adjust template based on duration
+    const scaleFactor = formData.durationMinutes / template.reduce((sum, s) => sum + s.estimatedMinutes, 0);
+    const scaledTemplate = template.map(section => ({
+      ...section,
+      id: `${section.id}_${Date.now()}`,
+      estimatedMinutes: Math.max(1, Math.round(section.estimatedMinutes * scaleFactor)),
+    }));
+    
+    onOutlineChange(scaledTemplate);
+    setExpandedSections(new Set(scaledTemplate.map(s => s.id)));
+    setError(null);
+    setShowFallback(false);
+    toast({ title: "Template applied! Customize it to fit your speech." });
   };
 
   const toggleSection = (id: string) => {
@@ -146,24 +225,6 @@ export function SpeechOutlineStep({
     setExpandedSections(new Set([...expandedSections, newSection.id]));
   };
 
-  const moveSection = (id: string, direction: "up" | "down") => {
-    const index = outline.findIndex((s) => s.id === id);
-    if (
-      (direction === "up" && index === 0) ||
-      (direction === "down" && index === outline.length - 1)
-    ) {
-      return;
-    }
-
-    const newOutline = [...outline];
-    const targetIndex = direction === "up" ? index - 1 : index + 1;
-    [newOutline[index], newOutline[targetIndex]] = [
-      newOutline[targetIndex],
-      newOutline[index],
-    ];
-    onOutlineChange(newOutline);
-  };
-
   const totalMinutes = outline.reduce((sum, s) => sum + s.estimatedMinutes, 0);
 
   return (
@@ -177,7 +238,49 @@ export function SpeechOutlineStep({
         </p>
       </div>
 
-      {outline.length === 0 ? (
+      {/* Error Display */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>{error}</span>
+            <Button variant="outline" size="sm" onClick={generateOutline} disabled={generating}>
+              <RefreshCw className={`h-4 w-4 mr-1 ${generating ? "animate-spin" : ""}`} />
+              Try Again
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Fallback Templates */}
+      {showFallback && (
+        <Card className="border-amber-500/50 bg-amber-500/5">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Start with a Template Instead?
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <p className="text-sm text-muted-foreground mb-4">
+              AI generation is temporarily unavailable. Choose a template to get started:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={() => useFallbackTemplate("standard")}>
+                Standard Speech
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => useFallbackTemplate("ted")}>
+                TED-Style Talk
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => useFallbackTemplate("keynote")}>
+                Keynote Address
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {outline.length === 0 && !showFallback ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12">
             {generating ? (
@@ -205,7 +308,7 @@ export function SpeechOutlineStep({
             )}
           </CardContent>
         </Card>
-      ) : (
+      ) : outline.length > 0 && (
         <>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -230,7 +333,7 @@ export function SpeechOutlineStep({
           </div>
 
           <div className="space-y-3">
-            {outline.map((section, index) => (
+            {outline.map((section) => (
               <Card
                 key={section.id}
                 className={`transition-all ${

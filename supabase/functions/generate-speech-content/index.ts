@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 interface SpeechParams {
@@ -28,6 +28,123 @@ interface OutlineSection {
   estimatedMinutes: number;
 }
 
+// Extract JSON from potentially markdown-wrapped response
+function extractJsonFromResponse(response: string): unknown {
+  // Remove markdown code blocks
+  let cleaned = response.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+
+  // Find JSON boundaries
+  const jsonStart = cleaned.indexOf("{");
+  const jsonEnd = cleaned.lastIndexOf("}");
+
+  if (jsonStart === -1 || jsonEnd === -1) {
+    throw new Error("No JSON object found in response");
+  }
+  cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
+
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    // Attempt to fix common issues like trailing commas
+    cleaned = cleaned.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]");
+    return JSON.parse(cleaned);
+  }
+}
+
+// Detect if response appears truncated
+function detectTruncation(response: string): boolean {
+  const text = response.trim();
+  const openBraces = (text.match(/{/g) || []).length;
+  const closeBraces = (text.match(/}/g) || []).length;
+
+  if (openBraces !== closeBraces) {
+    return true;
+  }
+  
+  const openBrackets = (text.match(/\[/g) || []).length;
+  const closeBrackets = (text.match(/]/g) || []).length;
+  
+  if (openBrackets !== closeBrackets) {
+    return true;
+  }
+
+  const truncationPatterns = [/\.\.\.$/, /\u2026$/, /\[truncated\]/i, /\[continued\]/i];
+  return truncationPatterns.some((p) => p.test(text));
+}
+
+// Call AI API with retry logic
+async function callAiApi(
+  apiKey: string,
+  systemPrompt: string,
+  userPrompt: string,
+  retryCount = 0
+): Promise<string> {
+  const maxRetries = 1;
+  const retryDelayMs = 2000;
+
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.7,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      
+      // Handle specific error types
+      if (response.status === 429) {
+        throw new Error("RATE_LIMIT: Too many requests. Please wait a moment and try again.");
+      }
+      if (response.status === 402) {
+        throw new Error("PAYMENT_REQUIRED: AI credits exhausted. Please add credits to continue.");
+      }
+      if (response.status === 401 || response.status === 403) {
+        throw new Error("AUTH_ERROR: AI service authentication failed. Please contact support.");
+      }
+      
+      throw new Error(`API_ERROR: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    
+    if (!content) {
+      throw new Error("EMPTY_RESPONSE: AI returned an empty response.");
+    }
+
+    return content;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    // Don't retry for auth, rate limit, or payment errors
+    if (errorMessage.startsWith("RATE_LIMIT:") || 
+        errorMessage.startsWith("PAYMENT_REQUIRED:") || 
+        errorMessage.startsWith("AUTH_ERROR:")) {
+      throw error;
+    }
+    
+    // Retry for transient errors
+    if (retryCount < maxRetries) {
+      console.log(`Retrying AI call after ${retryDelayMs}ms (attempt ${retryCount + 1})...`);
+      await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+      return callAiApi(apiKey, systemPrompt, userPrompt, retryCount + 1);
+    }
+    
+    throw error;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -38,7 +155,14 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
+      console.error("LOVABLE_API_KEY not configured in secrets");
+      return new Response(
+        JSON.stringify({ 
+          error: "Speech generation is not configured. Please contact support.",
+          errorType: "CONFIG_ERROR"
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     let systemPrompt = "";
@@ -48,7 +172,7 @@ serve(async (req) => {
       const p = params as SpeechParams;
       const mainPointCount = p.durationMinutes <= 15 ? 2 : p.durationMinutes <= 30 ? 3 : p.durationMinutes <= 60 ? 4 : 5;
       
-      systemPrompt = `You are an expert speechwriter who has written for TED speakers, corporate executives, and thought leaders. You create compelling, structured speech outlines.`;
+      systemPrompt = `You are an expert speechwriter who has written for TED speakers, corporate executives, and thought leaders. You create compelling, structured speech outlines. Always respond with valid JSON only.`;
       
       userPrompt = `Create a detailed speech outline for:
 - Topic: ${p.topic}
@@ -110,7 +234,7 @@ Write engaging, speakable content. Use:
 
 Return ONLY the speech content, no JSON or formatting instructions.`;
     } else if (action === "suggest_story") {
-      systemPrompt = `You are helping a speaker find the perfect story from their story bank for a specific moment in their speech.`;
+      systemPrompt = `You are helping a speaker find the perfect story from their story bank for a specific moment in their speech. Always respond with valid JSON.`;
       
       userPrompt = `Given these stories from the speaker's bank:
 ${JSON.stringify(context.stories, null, 2)}
@@ -126,7 +250,7 @@ Recommend which story would work best and explain why in 2-3 sentences. Return J
   "reason": "Brief explanation"
 }`;
     } else if (action === "suggest_tags") {
-      systemPrompt = `You categorize stories for speakers based on their content and emotional impact.`;
+      systemPrompt = `You categorize stories for speakers based on their content and emotional impact. Always respond with valid JSON.`;
       
       userPrompt = `Analyze this story and suggest appropriate tags:
 
@@ -153,43 +277,44 @@ Context:
 Write a completely fresh take on this section. Same approximate length (${section.estimatedMinutes * 150} words).
 Return ONLY the speech content.`;
     } else {
-      throw new Error(`Unknown action: ${action}`);
+      return new Response(
+        JSON.stringify({ error: `Unknown action: ${action}` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.7,
-      }),
-    });
+    // Call AI API with retry logic
+    const content = await callAiApi(LOVABLE_API_KEY, systemPrompt, userPrompt);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API error: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    const content = data.choices[0].message.content;
-
-    // Try to parse as JSON if applicable
+    // Process response based on action type
     let result;
     if (action === "generate_outline" || action === "suggest_story" || action === "suggest_tags") {
       try {
-        // Clean markdown code blocks if present
-        const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        result = JSON.parse(cleanedContent);
+        // Check for truncation
+        if (detectTruncation(content)) {
+          console.warn("AI response appears truncated, attempting to parse anyway");
+        }
+        
+        result = extractJsonFromResponse(content);
+        
+        // Validate outline structure
+        if (action === "generate_outline") {
+          const outline = result as { sections?: unknown[]; suggestedTitle?: string };
+          if (!outline.sections || !Array.isArray(outline.sections) || outline.sections.length === 0) {
+            throw new Error("Invalid outline structure: missing sections array");
+          }
+        }
       } catch (e) {
         console.error("Failed to parse JSON response:", content);
-        result = { raw: content, parseError: true };
+        console.error("Parse error:", e);
+        return new Response(
+          JSON.stringify({ 
+            error: "AI generated an invalid response. Please try again.",
+            errorType: "PARSE_ERROR",
+            raw: content.substring(0, 500) // First 500 chars for debugging
+          }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
     } else {
       result = { content };
@@ -199,11 +324,30 @@ Return ONLY the speech content.`;
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
-    console.error("Error:", error);
+    console.error("Error in generate-speech-content:", error);
+    
     const message = error instanceof Error ? error.message : "Unknown error";
+    let errorType = "UNKNOWN_ERROR";
+    let statusCode = 500;
+    
+    if (message.startsWith("RATE_LIMIT:")) {
+      errorType = "RATE_LIMIT";
+      statusCode = 429;
+    } else if (message.startsWith("PAYMENT_REQUIRED:")) {
+      errorType = "PAYMENT_REQUIRED";
+      statusCode = 402;
+    } else if (message.startsWith("AUTH_ERROR:") || message.startsWith("CONFIG_ERROR:")) {
+      errorType = "CONFIG_ERROR";
+    } else if (message.startsWith("API_ERROR:")) {
+      errorType = "API_ERROR";
+    }
+    
     return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ 
+        error: message.replace(/^[A-Z_]+:\s*/, ""), // Remove error type prefix for display
+        errorType 
+      }),
+      { status: statusCode, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
