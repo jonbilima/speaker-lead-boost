@@ -1764,6 +1764,62 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_searches: {
+        Row: {
+          color: string | null
+          created_at: string
+          filters: Json
+          icon: string | null
+          id: string
+          last_notified_at: string | null
+          last_viewed_at: string | null
+          name: string
+          notify_new_matches: boolean
+          results_count: number | null
+          sort_order: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          filters?: Json
+          icon?: string | null
+          id?: string
+          last_notified_at?: string | null
+          last_viewed_at?: string | null
+          name: string
+          notify_new_matches?: boolean
+          results_count?: number | null
+          sort_order?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          filters?: Json
+          icon?: string | null
+          id?: string
+          last_notified_at?: string | null
+          last_viewed_at?: string | null
+          name?: string
+          notify_new_matches?: boolean
+          results_count?: number | null
+          sort_order?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_searches_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scraping_logs: {
         Row: {
           completed_at: string | null
