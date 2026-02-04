@@ -13,6 +13,7 @@ import { InvoiceSettingsSection } from "@/components/settings/InvoiceSettingsSec
 import { ConnectedAccountsSection } from "@/components/settings/ConnectedAccountsSection";
 import { EmailDigestPreferences } from "@/components/settings/EmailDigestPreferences";
 import { TrackingKeywordsSection } from "@/components/settings/TrackingKeywordsSection";
+import { AppearanceSection } from "@/components/settings/AppearanceSection";
 import { TopicSelector } from "@/components/profile/TopicSelector";
 
 const Profile = () => {
@@ -368,6 +369,9 @@ const Profile = () => {
             </form>
           </CardContent>
         </Card>
+
+        {/* Appearance Settings */}
+        <AppearanceSection />
 
         {/* Connected Accounts */}
         <ConnectedAccountsSection />

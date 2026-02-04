@@ -7,6 +7,7 @@ import { FloatingActionButton } from "@/components/mobile/FloatingActionButton";
 import { PWAInstallPrompt } from "@/components/mobile/PWAInstallPrompt";
 import { ToolkitDrawer } from "@/components/toolkit/ToolkitDrawer";
 import { KeyboardShortcutsDialog } from "@/components/KeyboardShortcutsDialog";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,15 +70,18 @@ export function AppLayout({ children }: AppLayoutProps) {
           <header className="hidden md:flex h-14 items-center justify-between gap-4 border-b border-border px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
             
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setToolkitOpen(true)}
-              className="gap-2 border-primary/20 hover:bg-primary/5 hover:border-primary/40"
-            >
-              <Zap className="h-4 w-4 text-primary" />
-              <span className="font-medium">Toolkit</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setToolkitOpen(true)}
+                className="gap-2 border-primary/20 hover:bg-primary/5 hover:border-primary/40"
+              >
+                <Zap className="h-4 w-4 text-primary" />
+                <span className="font-medium">Toolkit</span>
+              </Button>
+            </div>
           </header>
 
           {/* Mobile Header */}
@@ -86,15 +90,18 @@ export function AppLayout({ children }: AppLayoutProps) {
               <span className="text-primary-foreground font-bold text-sm">N</span>
             </div>
             
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setToolkitOpen(true)}
-              className="gap-2"
-            >
-              <Zap className="h-4 w-4 text-primary" />
-              Toolkit
-            </Button>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setToolkitOpen(true)}
+                className="gap-2"
+              >
+                <Zap className="h-4 w-4 text-primary" />
+                Toolkit
+              </Button>
+            </div>
           </header>
           
           <main className="flex-1 p-4 md:p-6 pb-24 md:pb-6">
