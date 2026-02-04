@@ -13,12 +13,13 @@ import { InvoiceSettingsSection } from "@/components/settings/InvoiceSettingsSec
 import { ConnectedAccountsSection } from "@/components/settings/ConnectedAccountsSection";
 import { EmailDigestPreferences } from "@/components/settings/EmailDigestPreferences";
 import { TrackingKeywordsSection } from "@/components/settings/TrackingKeywordsSection";
+import { TopicSelector } from "@/components/profile/TopicSelector";
 
 const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const [allTopics, setAllTopics] = useState<{ id: string; name: string }[]>([]);
+  const [allTopics, setAllTopics] = useState<{ id: string; name: string; category?: string }[]>([]);
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -26,6 +27,7 @@ const Profile = () => {
     email: "",
     bio: "",
     selectedTopics: [] as string[],
+    customTopics: [] as string[],
     feeRangeMin: "1000",
     feeRangeMax: "50000",
     pastTalks: "",
@@ -47,10 +49,10 @@ const Profile = () => {
 
       setUserId(session.user.id);
 
-      // Load all available topics
+      // Load all available topics with categories
       const { data: topicsData } = await supabase
         .from('topics')
-        .select('id, name')
+        .select('id, name, category')
         .order('name');
       
       if (topicsData) {
@@ -70,6 +72,7 @@ const Profile = () => {
           email: session.user.email || "",
           bio: profile.bio || "",
           selectedTopics: profile.user_topics?.map((ut: any) => ut.topic_id) || [],
+          customTopics: (profile as any).custom_topics || [],
           feeRangeMin: profile.fee_range_min?.toString() || "1000",
           feeRangeMax: profile.fee_range_max?.toString() || "50000",
           pastTalks: profile.past_talks?.join('\n') || "",
@@ -95,6 +98,20 @@ const Profile = () => {
       selectedTopics: prev.selectedTopics.includes(topicId)
         ? prev.selectedTopics.filter(id => id !== topicId)
         : [...prev.selectedTopics, topicId]
+    }));
+  };
+
+  const handleAddCustomTopic = (topic: string) => {
+    setFormData(prev => ({
+      ...prev,
+      customTopics: [...prev.customTopics, topic]
+    }));
+  };
+
+  const handleRemoveCustomTopic = (topic: string) => {
+    setFormData(prev => ({
+      ...prev,
+      customTopics: prev.customTopics.filter(t => t !== topic)
     }));
   };
 
@@ -124,7 +141,8 @@ const Profile = () => {
           follow_up_interval_1: parseInt(formData.followUpInterval1),
           follow_up_interval_2: parseInt(formData.followUpInterval2),
           follow_up_interval_3: parseInt(formData.followUpInterval3),
-        })
+          custom_topics: formData.customTopics,
+        } as any)
         .eq('id', session.user.id);
 
       if (profileError) throw profileError;
@@ -228,22 +246,14 @@ const Profile = () => {
 
               <div className="space-y-2">
                 <Label>Speaking Topics * (select at least one)</Label>
-                <div className="flex flex-wrap gap-2 p-4 border rounded-md bg-muted/20">
-                  {allTopics.map(topic => (
-                    <button
-                      key={topic.id}
-                      type="button"
-                      onClick={() => handleTopicToggle(topic.id)}
-                      className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-                        formData.selectedTopics.includes(topic.id)
-                          ? 'bg-violet-600 text-white'
-                          : 'bg-background border border-border hover:bg-violet-50'
-                      }`}
-                    >
-                      {topic.name}
-                    </button>
-                  ))}
-                </div>
+                <TopicSelector
+                  allTopics={allTopics.map(t => ({ ...t, category: (t as any).category }))}
+                  selectedTopicIds={formData.selectedTopics}
+                  customTopics={formData.customTopics}
+                  onToggleTopic={handleTopicToggle}
+                  onAddCustomTopic={handleAddCustomTopic}
+                  onRemoveCustomTopic={handleRemoveCustomTopic}
+                />
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
@@ -350,8 +360,8 @@ const Profile = () => {
 
               <Button 
                 type="submit" 
-                className="w-full bg-violet-600 hover:bg-violet-700"
-                disabled={saving || formData.selectedTopics.length === 0}
+                className="w-full"
+                disabled={saving || (formData.selectedTopics.length === 0 && formData.customTopics.length === 0)}
               >
                 {saving ? "Saving..." : "Save Profile & Find Opportunities"}
               </Button>

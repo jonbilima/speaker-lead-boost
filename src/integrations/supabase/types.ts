@@ -1608,6 +1608,7 @@ export type Database = {
           audience_types: string[] | null
           bio: string | null
           created_at: string
+          custom_topics: string[] | null
           default_invoice_terms: string | null
           default_payment_instructions: string | null
           default_tax_rate: number | null
@@ -1650,6 +1651,7 @@ export type Database = {
           audience_types?: string[] | null
           bio?: string | null
           created_at?: string
+          custom_topics?: string[] | null
           default_invoice_terms?: string | null
           default_payment_instructions?: string | null
           default_tax_rate?: number | null
@@ -1692,6 +1694,7 @@ export type Database = {
           audience_types?: string[] | null
           bio?: string | null
           created_at?: string
+          custom_topics?: string[] | null
           default_invoice_terms?: string | null
           default_payment_instructions?: string | null
           default_tax_rate?: number | null
