@@ -37,7 +37,7 @@ export function PracticeModeDialog({
   const [isRecording, setIsRecording] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(1);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
