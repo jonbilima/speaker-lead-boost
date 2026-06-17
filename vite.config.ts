@@ -15,29 +15,46 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "images/nextmic-logo.svg", "images/nextmic-logo.jpeg"],
+      injectRegister: null,
+      includeAssets: [
+        "favicon.ico",
+        "images/nextmic-logo.svg",
+        "images/apple-touch-icon.png",
+      ],
       manifest: {
         name: "NextMic - Speaker Business Platform",
         short_name: "NextMic",
         description: "Find speaking opportunities, manage your pipeline, and grow your speaking business",
         theme_color: "#7c3aed",
-        background_color: "#ffffff",
+        background_color: "#0b1437",
         display: "standalone",
         orientation: "portrait",
         scope: "/",
         start_url: "/",
         icons: [
           {
-            src: "/images/nextmic-logo.jpeg",
+            src: "/images/pwa-192x192.png",
             sizes: "192x192",
-            type: "image/jpeg",
-            purpose: "any maskable"
+            type: "image/png",
+            purpose: "any"
           },
           {
-            src: "/images/nextmic-logo.jpeg",
+            src: "/images/pwa-512x512.png",
             sizes: "512x512",
-            type: "image/jpeg",
-            purpose: "any maskable"
+            type: "image/png",
+            purpose: "any"
+          },
+          {
+            src: "/images/pwa-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "maskable"
+          },
+          {
+            src: "/images/pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable"
           }
         ],
         categories: ["business", "productivity"],
@@ -47,20 +64,22 @@ export default defineConfig(({ mode }) => ({
             short_name: "Dashboard",
             description: "View your opportunities dashboard",
             url: "/dashboard",
-            icons: [{ src: "/images/nextmic-logo.jpeg", sizes: "96x96" }]
+            icons: [{ src: "/images/pwa-192x192.png", sizes: "192x192" }]
           },
           {
             name: "Pipeline",
             short_name: "Pipeline",
             description: "Manage your outreach pipeline",
             url: "/pipeline",
-            icons: [{ src: "/images/nextmic-logo.jpeg", sizes: "96x96" }]
+            icons: [{ src: "/images/pwa-192x192.png", sizes: "192x192" }]
           }
         ]
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,jpeg,jpg,woff,woff2}"],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB limit
+        // Never serve a cached app shell for OAuth round-trips — these must hit the network.
+        navigateFallbackDenylist: [/^\/~oauth/, /^\/auth\/callback/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
