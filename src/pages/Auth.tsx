@@ -121,6 +121,23 @@ const Auth = () => {
     setLoading(false);
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast.error("Enter your email above first, then click 'Forgot password?'");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + "/reset-password",
+    });
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Password reset link sent. Check your email.");
+    }
+    setLoading(false);
+  };
+
   const handleGoogleSignIn = async () => {
     setOauthLoading(true);
     try {
@@ -213,7 +230,17 @@ const Auth = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="signin-password">Password</Label>
+                      <button
+                        type="button"
+                        onClick={handleForgotPassword}
+                        disabled={loading || oauthLoading}
+                        className="text-xs text-primary hover:underline disabled:opacity-50"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
                     <Input
                       id="signin-password"
                       type="password"
