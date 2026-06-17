@@ -58,7 +58,7 @@ export function GoogleCalendarConnect({ onSyncComplete }: GoogleCalendarConnectP
 
       const { data, error } = await supabase
         .from('calendar_connections')
-        .select('*')
+        .select('id, speaker_id, provider, email, calendar_id, is_active, auto_sync_speaking, show_external_events, last_sync_at, sync_errors, created_at, updated_at')
         .eq('speaker_id', session.user.id)
         .eq('provider', 'google')
         .single();
