@@ -4,8 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Code, Copy, Check, ExternalLink, Palette } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -81,9 +79,6 @@ export function EmbedWidgetSection({ speakerId, slug, isPublic }: EmbedWidgetSec
   frameborder="0" 
   style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
 </iframe>`;
-
-  const scriptCode = `<div id="nextmic-widget" data-speaker="${slug}"></div>
-<script src="${baseUrl}/widget.js" async></script>`;
 
   const copyToClipboard = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
