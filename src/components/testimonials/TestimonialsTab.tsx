@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Star, Quote, Mail, MoreHorizontal, Trash2, Edit, Image, Linkedin } from "lucide-react";
+import { Plus, Star, Quote, Mail, MoreHorizontal, Trash2, Edit, Image } from "lucide-react";
 import { Testimonial } from "./TestimonialTypes";
 import { TestimonialDialog } from "./TestimonialDialog";
 import { RequestTestimonialDialog } from "./RequestTestimonialDialog";
