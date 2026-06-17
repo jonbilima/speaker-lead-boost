@@ -341,22 +341,8 @@ export function ContactsTab({ userId }: ContactsTabProps) {
                     </>
                   )}
 
-                  {/* Placeholder sections */}
-                  <Separator />
-                  <div>
-                    <h4 className="font-medium mb-2">Interaction Timeline</h4>
-                    <p className="text-sm text-muted-foreground italic">Coming soon...</p>
-                  </div>
-
-                  <div>
-                    <h4 className="font-medium mb-2">Related Bookings</h4>
-                    <p className="text-sm text-muted-foreground italic">Coming soon...</p>
-                  </div>
-
-                  <div>
-                    <h4 className="font-medium mb-2">Related Invoices</h4>
-                    <p className="text-sm text-muted-foreground italic">Coming soon...</p>
-                  </div>
+                  {/* Interaction Timeline / Related Bookings / Related Invoices —
+                      hidden until shipped (features not yet available). */}
                 </div>
               </ScrollArea>
             </>
