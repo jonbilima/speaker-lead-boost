@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Star, Quote, Mail, MoreHorizontal, Trash2, Edit, Image, Linkedin } from "lucide-react";
+import { Plus, Star, Quote, Mail, MoreHorizontal, Trash2, Edit, Image } from "lucide-react";
 import { Testimonial } from "./TestimonialTypes";
 import { TestimonialDialog } from "./TestimonialDialog";
 import { RequestTestimonialDialog } from "./RequestTestimonialDialog";
@@ -124,21 +124,7 @@ export function TestimonialsTab() {
         </div>
       </div>
 
-      {/* LinkedIn Import Placeholder */}
-      <Card className="border-dashed bg-muted/30">
-        <CardContent className="py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Linkedin className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="font-medium">Import from LinkedIn</p>
-              <p className="text-sm text-muted-foreground">Automatically import recommendations from your profile</p>
-            </div>
-          </div>
-          <Badge variant="secondary">Coming Soon</Badge>
-        </CardContent>
-      </Card>
+      {/* LinkedIn Import — hidden until shipped (feature not yet available) */}
 
       {/* Testimonials Grid */}
       {testimonials.length === 0 ? (

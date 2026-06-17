@@ -4,8 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Code, Copy, Check, ExternalLink, Palette } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -81,9 +79,6 @@ export function EmbedWidgetSection({ speakerId, slug, isPublic }: EmbedWidgetSec
   frameborder="0" 
   style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
 </iframe>`;
-
-  const scriptCode = `<div id="nextmic-widget" data-speaker="${slug}"></div>
-<script src="${baseUrl}/widget.js" async></script>`;
 
   const copyToClipboard = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
@@ -203,56 +198,24 @@ export function EmbedWidgetSection({ speakerId, slug, isPublic }: EmbedWidgetSec
           {/* Embed Codes */}
           <div>
             <h4 className="font-medium mb-3">Embed Code</h4>
-            <Tabs defaultValue="iframe">
-              <TabsList className="w-full">
-                <TabsTrigger value="iframe" className="flex-1">iFrame</TabsTrigger>
-                <TabsTrigger value="script" className="flex-1">JavaScript</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="iframe" className="mt-3">
-                <div className="relative">
-                  <pre className="text-xs bg-muted p-3 rounded-lg overflow-x-auto">
-                    {iframeCode}
-                  </pre>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute top-2 right-2"
-                    onClick={() => copyToClipboard(iframeCode, "iframe")}
-                  >
-                    {copied === "iframe" ? (
-                      <Check className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="script" className="mt-3">
-                <div className="relative">
-                  <pre className="text-xs bg-muted p-3 rounded-lg overflow-x-auto">
-                    {scriptCode}
-                  </pre>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute top-2 right-2"
-                    onClick={() => copyToClipboard(scriptCode, "script")}
-                  >
-                    {copied === "script" ? (
-                      <Check className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  <Badge variant="outline" className="text-xs">Coming soon</Badge>
-                  {" "}JavaScript widget with more customization options
-                </p>
-              </TabsContent>
-            </Tabs>
+            {/* JavaScript widget embed hidden until shipped — iFrame embed is the supported option. */}
+            <div className="relative">
+              <pre className="text-xs bg-muted p-3 rounded-lg overflow-x-auto">
+                {iframeCode}
+              </pre>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute top-2 right-2"
+                onClick={() => copyToClipboard(iframeCode, "iframe")}
+              >
+                {copied === "iframe" ? (
+                  <Check className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
