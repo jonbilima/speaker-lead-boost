@@ -18,6 +18,8 @@ export default defineConfig(({ mode }) => ({
       injectRegister: null,
       includeAssets: [
         "favicon.ico",
+        "favicon-32.png",
+        "images/og-image.jpg",
         "images/nextmic-logo.svg",
         "images/apple-touch-icon.png",
       ],
