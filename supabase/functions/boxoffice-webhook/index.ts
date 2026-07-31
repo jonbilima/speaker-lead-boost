@@ -27,10 +27,14 @@ const APP_URL = Deno.env.get("APP_URL") ?? "https://app.nextmic.ai";
 // NAME=value, quoted, trailing newline. Two debugging rounds taught us the
 // secret arrives however humans paste it; extract the whsec_ token itself.
 function normalizeSecret(raw: string): string {
-  const m = /whsec_[0-9a-f]+/.exec(raw);
-  return m ? m[0] : raw.trim();
+  // collapse ALL whitespace first (paste line-wraps land inside the token),
+  // then extract the whsec_ token case-insensitively, lowercased.
+  const collapsed = raw.replace(/\s+/g, "");
+  const m = /whsec_[0-9a-f]+/i.exec(collapsed);
+  return m ? m[0].toLowerCase() : collapsed;
 }
-const HOOK_SECRET = normalizeSecret(Deno.env.get("BOXOFFICE_HOOK_SECRET") ?? "");
+const HOOK_SECRET_RAW = Deno.env.get("BOXOFFICE_HOOK_SECRET") ?? "";
+const HOOK_SECRET = normalizeSecret(HOOK_SECRET_RAW);
 const RESEND_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const FUNNEL_ID = "nextmic-challenge";
 
@@ -221,9 +225,14 @@ Deno.serve(async (req: Request) => {
   // signed engine events
   const body = await req.text();
   const ok = await verifySignature(req.headers.get("X-BoxOffice-Signature"), body);
-  // TEMPORARY diagnostic while wiring up: reveals only the configured
-  // secret's LENGTH (0 = not set), never its content. Remove once green.
-  if (!ok) return json({ error: "bad signature", secret_len: HOOK_SECRET.length }, 401);
+  // TEMPORARY diagnostic while wiring up: lengths + a non-reversible hash
+  // prefix of the normalized secret so the right value can be confirmed
+  // from outside without ever exposing it. Remove once green.
+  if (!ok) {
+    const digest = await hmacHex(HOOK_SECRET, "fingerprint");
+    return json({ error: "bad signature", raw_len: HOOK_SECRET_RAW.length,
+                  norm_len: HOOK_SECRET.length, fp8: digest.slice(0, 8) }, 401);
+  }
   const evt = JSON.parse(body);
   if (evt.mode && evt.mode !== "live") return json({ ok: true, note: "test-mode event ignored" });
   if (await alreadyProcessed(evt.id)) return json({ ok: true, note: "duplicate" });
