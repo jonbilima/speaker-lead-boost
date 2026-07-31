@@ -23,9 +23,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const ENGINE_URL = Deno.env.get("ENGINE_URL") ??
   "https://engine-production-51cb.up.railway.app";
 const APP_URL = Deno.env.get("APP_URL") ?? "https://app.nextmic.ai";
-// .trim() defends against paste artifacts (trailing newline/space) in the
-// secrets UI — an invisible character here cost us a debugging round.
-const HOOK_SECRET = (Deno.env.get("BOXOFFICE_HOOK_SECRET") ?? "").trim();
+// Normalize whatever paste format the secrets UI received — bare value,
+// NAME=value, quoted, trailing newline. Two debugging rounds taught us the
+// secret arrives however humans paste it; extract the whsec_ token itself.
+function normalizeSecret(raw: string): string {
+  const m = /whsec_[0-9a-f]+/.exec(raw);
+  return m ? m[0] : raw.trim();
+}
+const HOOK_SECRET = normalizeSecret(Deno.env.get("BOXOFFICE_HOOK_SECRET") ?? "");
 const RESEND_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const FUNNEL_ID = "nextmic-challenge";
 
