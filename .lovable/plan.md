@@ -1,30 +1,30 @@
-## Goal
-Remove every Lovable-branded asset from the app's shared-link previews and icons, replacing them with NextMIC branding.
+# Deploy Box Office webhook + idempotency table
 
-## What's there now
-- `index.html` sets both `og:image` and `twitter:image` to `https://lovable.dev/opengraph-image-p98pqg.png` — that's the Lovable heart image showing in the shared link screenshot.
-- Favicon already points to `/images/nextmic-logo.svg` (fine), and `apple-touch-icon` / PWA icons are NextMIC-generated already.
-- The published site also renders the "Edit with Lovable" badge, which is a publish setting, not code.
+Both pieces already exist in the repo. This pass applies them to the live backend as-is.
 
-## Changes
+## 1. Database
+Apply the existing migration `supabase/migrations/20260731200000_boxoffice_events.sql` verbatim:
+- Creates `boxoffice_events` (id, type, processed_at) as the idempotency ledger.
+- RLS enabled with no policies — only the service role touches it, which is correct for a webhook ledger.
 
-1. **Create a branded 1200x630 OG image**
-   - Generate `public/images/og-image.png` (1200x630) using the NextMIC gradient mark + wordmark on the dark brand background, with the tagline "AI Lead Generation for Public Speakers".
+## 2. Edge function
+Deploy `supabase/functions/boxoffice-webhook` using the committed code, no rewrite. It handles:
+- `POST /boxoffice-webhook` — HMAC-signed engine events: `purchase.completed` (create account + Resend welcome/set-password email) and `access.revoked` (ban account, deferring future-dated cancellations).
+- `POST /boxoffice-webhook/claim` — thank-you page flow: validates the session token with the engine, sets the buyer's password, returns a magiclink redirect.
 
-2. **Update `index.html` head**
-   - Point `og:image` and `twitter:image` at `https://app.nextmic.ai/images/og-image.png` (absolute URL required by crawlers; the custom domain is live).
-   - Add `og:url`, `og:site_name` ("NextMIC"), `og:image:width`/`height`, and `twitter:image:alt`.
-   - Add `<link rel="canonical" href="https://app.nextmic.ai/" />`.
-   - Verify no remaining `lovable.dev` references in the head.
+`supabase/config.toml` already has `[functions.boxoffice-webhook] verify_jwt = false`, which the route-level HMAC/hook-secret auth requires. No config change needed.
 
-3. **Sweep the rest of the project for Lovable branding**
-   - Search `index.html`, `public/manifest.webmanifest`, `public/sw.js`, `README.md`, and `src/` for `lovable` references tied to user-visible branding, and replace/remove those (leaving internal platform code such as `src/pwa.ts` preview-host detection and Supabase config untouched, since those are functional, not branding).
+## 3. Secrets
+`RESEND_API_KEY` is already set. Missing and required before the function works:
+- `BOXOFFICE_HOOK_SECRET` — shared with the engine's fulfillment webhook config (also used for the server-to-server claim call).
 
-4. **Hide the "Edit with Lovable" badge on published deploys**
-   - Toggle the badge visibility setting off so the published site at app.nextmic.ai shows no Lovable badge.
+Optional overrides (defaults are hardcoded in the function, so only needed if they differ): `ENGINE_URL` (defaults to the Railway engine URL), `APP_URL` (defaults to `https://app.nextmic.ai`).
 
-## Note on caching
-Social platforms (iMessage, Slack, LinkedIn, Facebook) cache previews. After publishing, the old Lovable image can persist until they re-scrape; forcing a refresh through each platform's link-preview debugger clears it faster.
+I'll request `BOXOFFICE_HOOK_SECRET` during implementation.
 
-## Technical detail
-This is a static Vite SPA, so the head in `index.html` is what crawlers read — no per-route social previews are possible without SSR. One accurate app-level set of tags is the correct target here.
+## 4. Verification
+- Confirm the table exists after the migration runs.
+- Confirm the function deploys and responds `401 bad signature` to an unsigned POST (proves routing + signature checks are live) and `400` to a claim call with no body.
+- Report the webhook URL to register in the engine's fulfillment config.
+
+No frontend changes.
