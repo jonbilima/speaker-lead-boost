@@ -236,14 +236,7 @@ Deno.serve(async (req: Request) => {
   // signed engine events
   const body = await req.text();
   const ok = await verifySignature(req.headers.get("X-BoxOffice-Signature"), body);
-  // TEMPORARY diagnostic while wiring up: lengths + a non-reversible hash
-  // prefix of the normalized secret so the right value can be confirmed
-  // from outside without ever exposing it. Remove once green.
-  if (!ok) {
-    const digest = await hmacHex(HOOK_SECRET, "fingerprint");
-    return json({ error: "bad signature", raw_len: HOOK_SECRET_RAW.length,
-                  norm_len: HOOK_SECRET.length, fp8: digest.slice(0, 8) }, 401);
-  }
+  if (!ok) return json({ error: "bad signature" }, 401);
   const evt = JSON.parse(body);
   if (evt.mode && evt.mode !== "live") return json({ ok: true, note: "test-mode event ignored" });
   if (await alreadyProcessed(evt.id)) return json({ ok: true, note: "duplicate" });
