@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.scrape-all-sources]
 verify_jwt = false
+
+[functions.boxoffice-webhook]
+verify_jwt = false
