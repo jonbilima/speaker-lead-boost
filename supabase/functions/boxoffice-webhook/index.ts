@@ -23,7 +23,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const ENGINE_URL = Deno.env.get("ENGINE_URL") ??
   "https://engine-production-51cb.up.railway.app";
 const APP_URL = Deno.env.get("APP_URL") ?? "https://app.nextmic.ai";
-const HOOK_SECRET = Deno.env.get("BOXOFFICE_HOOK_SECRET") ?? "";
+// .trim() defends against paste artifacts (trailing newline/space) in the
+// secrets UI — an invisible character here cost us a debugging round.
+const HOOK_SECRET = (Deno.env.get("BOXOFFICE_HOOK_SECRET") ?? "").trim();
 const RESEND_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const FUNNEL_ID = "nextmic-challenge";
 
@@ -214,7 +216,9 @@ Deno.serve(async (req: Request) => {
   // signed engine events
   const body = await req.text();
   const ok = await verifySignature(req.headers.get("X-BoxOffice-Signature"), body);
-  if (!ok) return json({ error: "bad signature" }, 401);
+  // TEMPORARY diagnostic while wiring up: reveals only the configured
+  // secret's LENGTH (0 = not set), never its content. Remove once green.
+  if (!ok) return json({ error: "bad signature", secret_len: HOOK_SECRET.length }, 401);
   const evt = JSON.parse(body);
   if (evt.mode && evt.mode !== "live") return json({ ok: true, note: "test-mode event ignored" });
   if (await alreadyProcessed(evt.id)) return json({ ok: true, note: "duplicate" });
