@@ -26,12 +26,23 @@ const APP_URL = Deno.env.get("APP_URL") ?? "https://app.nextmic.ai";
 // Normalize whatever paste format the secrets UI received — bare value,
 // NAME=value, quoted, trailing newline. Two debugging rounds taught us the
 // secret arrives however humans paste it; extract the whsec_ token itself.
+const HOMOGLYPHS: Record<string, string> = {
+  // Cyrillic/Greek lookalikes NFKC can't fix, seen in real paste corruption
+  "а": "a", "е": "e", "с": "c", "о": "o",
+  "ѕ": "s", "і": "i", "Α": "A", "Ε": "E",
+  "ο": "o", "ⅼ": "l",
+};
+
 function normalizeSecret(raw: string): string {
-  // collapse ALL whitespace first (paste line-wraps land inside the token),
-  // then extract the whsec_ token case-insensitively, lowercased.
-  const collapsed = raw.replace(/\s+/g, "");
-  const m = /whsec_[0-9a-f]+/i.exec(collapsed);
-  return m ? m[0].toLowerCase() : collapsed;
+  // The secret arrives however humans paste it: NAME=value wrappers,
+  // quotes, line-wraps, and — proven in production — Unicode homoglyphs
+  // introduced by styled copy channels. NFKC folds fullwidth/compat forms,
+  // the map handles confusables, then extract the whsec_ token.
+  let s = raw.normalize("NFKC");
+  s = [...s].map((ch) => HOMOGLYPHS[ch] ?? ch).join("");
+  s = s.replace(/\s+/g, "");
+  const m = /whsec_[0-9a-f]+/i.exec(s);
+  return m ? m[0].toLowerCase() : s;
 }
 const HOOK_SECRET_RAW = Deno.env.get("BOXOFFICE_HOOK_SECRET") ?? "";
 const HOOK_SECRET = normalizeSecret(HOOK_SECRET_RAW);
