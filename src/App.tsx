@@ -3,7 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { ThemeProvider } from "next-themes";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GuidedTour } from "@/components/onboarding/GuidedTour";
@@ -87,6 +88,27 @@ function GlobalErrorHandler({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Recovery links can land on any route (Supabase's redirect allowlist may
+// bounce them to the site root). Wherever the recovery hash or event shows
+// up, forward to /reset-password so the token is never silently dropped.
+const RecoveryRedirect = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (window.location.hash.includes("type=recovery") &&
+        window.location.pathname !== "/reset-password") {
+      navigate("/reset-password" + window.location.hash, { replace: true });
+    }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY" &&
+          window.location.pathname !== "/reset-password") {
+        navigate("/reset-password", { replace: true });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
@@ -96,6 +118,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
+              <RecoveryRedirect />
               <GuidedTour />
               <Routes>
                 <Route path="/" element={<Landing />} />

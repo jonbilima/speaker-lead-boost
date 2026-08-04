@@ -118,6 +118,9 @@ async function ensureUser(email: string, name: string | null, products: string[]
     const attrs: Record<string, unknown> = {
       user_metadata: { ...existing.user_metadata, ...meta },
       ban_duration: "none",
+      // manually-created accounts (dashboard adds, pending invites) can sit
+      // unconfirmed — password sign-in then fails "Email not confirmed"
+      email_confirm: true,
     };
     if (password) attrs.password = password;
     const { data, error } = await admin.auth.admin.updateUserById(existing.id, attrs);
@@ -135,7 +138,8 @@ async function ensureUser(email: string, name: string | null, products: string[]
 async function setPasswordLink(email: string): Promise<string> {
   const { data, error } = await admin.auth.admin.generateLink({
     type: "recovery", email,
-    options: { redirectTo: `${APP_URL}/` },
+    // must land on the route that actually handles PASSWORD_RECOVERY
+    options: { redirectTo: `${APP_URL}/reset-password` },
   });
   if (error) throw error;
   return data.properties.action_link;
