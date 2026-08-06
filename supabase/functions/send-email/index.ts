@@ -97,7 +97,8 @@ const handler = async (req: Request): Promise<Response> => {
     // Prepare email payload for Resend API
     const recipients = Array.isArray(to) ? to : [to];
     const emailPayload: any = {
-      from: `${senderName} <onboarding@resend.dev>`,
+      from: `${senderName} <gigs@nextmic.ai>`,
+      reply_to: "support@nextmic.ai",
       to: recipients,
       subject,
       html: finalBody.replace(/\n/g, "<br>"),

@@ -105,7 +105,8 @@ Deno.serve(async (req) => {
                   Authorization: `Bearer ${resendApiKey}`,
                 },
                 body: JSON.stringify({
-                  from: "NextMic <notifications@nextmic.io>",
+                  from: "NextMIC <digest@nextmic.ai>",
+                  reply_to: "support@nextmic.ai",
                   to: profile.email,
                   subject: `${matchCount} new opportunities match "${search.name}"`,
                   html: `

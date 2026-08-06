@@ -8,6 +8,9 @@ import {
   Calendar,
   LogOut,
   Shield,
+  LifeBuoy,
+  CreditCard,
+  RotateCcw,
 } from "lucide-react";
 import {
   Sidebar,
@@ -171,6 +174,31 @@ export function AppSidebar() {
 
       <SidebarFooter className="p-2">
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton tooltip="Email support"
+              onClick={() => { window.location.href = "mailto:support@nextmic.ai"; }}>
+              <LifeBuoy className="h-4 w-4" />
+              <span>Support</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton tooltip="Manage or cancel your membership"
+              onClick={() => window.open("https://launch.nextmic.ai/cancel", "_blank", "noopener")}>
+              <CreditCard className="h-4 w-4" />
+              <span>Manage Membership</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton tooltip="Watch the guided tour again"
+              onClick={() => {
+                ["tour_completed", "tour_find_completed", "tour_pipeline_completed"].forEach(
+                  (k) => localStorage.removeItem(k));
+                window.location.href = "/dashboard";
+              }}>
+              <RotateCcw className="h-4 w-4" />
+              <span>Replay Tour</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Sign Out"

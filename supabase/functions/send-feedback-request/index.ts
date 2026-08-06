@@ -139,7 +139,8 @@ serve(async (req) => {
       .single();
 
     const emailResponse = await resend.emails.send({
-      from: "NextMic <feedback@resend.dev>",
+      from: "NextMIC <feedback@nextmic.ai>",
+      reply_to: "support@nextmic.ai",
       to: [recipientEmail],
       reply_to: profile?.email_reply_to || user.email,
       subject,

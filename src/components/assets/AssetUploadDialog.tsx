@@ -41,14 +41,24 @@ export function AssetUploadDialog({
   const [description, setDescription] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  // Link-first for reels/videos: real demo reels live on YouTube/Vimeo/Drive
+  // and organizers want a link to click; storage upload is the fallback
+  // (bucket caps objects at 50MB, so most raw video bounces anyway).
+  const [mode, setMode] = useState<"link" | "upload">("link");
+  const [linkUrl, setLinkUrl] = useState("");
+
+  const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // must match speaker-assets bucket limit
 
   const typeConfig = getAssetTypeConfig(assetType);
+  const linkFirst = assetType === "speaker_reel" || assetType === "video";
 
   const resetForm = () => {
     setAssetType(defaultAssetType || "headshot");
     setTitle("");
     setDescription("");
     setFile(null);
+    setLinkUrl("");
+    setMode("link");
   };
 
   const handleDrop = useCallback(
@@ -58,6 +68,10 @@ export function AssetUploadDialog({
 
       const droppedFile = e.dataTransfer.files[0];
       if (droppedFile) {
+        if (droppedFile.size > 50 * 1024 * 1024) {
+          toast.error(`That file is ${formatFileSize(droppedFile.size)} — uploads max out at 50MB. For demo reels, paste a YouTube/Vimeo/Drive link instead (it's also what organizers prefer to click).`);
+          return;
+        }
         setFile(droppedFile);
         if (!title) {
           setTitle(droppedFile.name.split(".")[0]);
@@ -70,6 +84,11 @@ export function AssetUploadDialog({
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
+      if (selectedFile.size > MAX_UPLOAD_BYTES) {
+        toast.error(`That file is ${formatFileSize(selectedFile.size)} — uploads max out at 50MB. For demo reels, paste a YouTube/Vimeo/Drive link instead (it's also what organizers prefer to click).`);
+        e.target.value = "";
+        return;
+      }
       setFile(selectedFile);
       if (!title) {
         setTitle(selectedFile.name.split(".")[0]);
@@ -77,9 +96,46 @@ export function AssetUploadDialog({
     }
   };
 
+  const saveLink = async () => {
+    let url = linkUrl.trim();
+    if (!url) { toast.error("Paste a link first (YouTube, Vimeo, or Drive)"); return; }
+    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+    try { new URL(url); } catch { toast.error("That doesn't look like a valid link"); return; }
+    setUploading(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { toast.error("Please sign in"); setUploading(false); return; }
+    let dbAssetType: "headshot" | "speaker_reel" | "one_sheet" | "slide_deck" | "video" | "audio" | "document" | "other" = "other";
+    if (assetType === "speaker_reel") dbAssetType = "speaker_reel";
+    else if (assetType === "video") dbAssetType = "video";
+    const { error } = await supabase.from("speaker_assets").insert({
+      speaker_id: session.user.id,
+      asset_type: dbAssetType,
+      file_name: "External link",
+      file_url: url,
+      file_size: null,
+      mime_type: null,
+      title: title || url.replace(/^https?:\/\//, "").slice(0, 60),
+      description: description || null,
+      is_primary: false,
+      view_count: 0,
+      download_count: 0,
+    });
+    setUploading(false);
+    if (error) { toast.error(error.message || "Couldn't save the link"); return; }
+    toast.success("Link added!");
+    resetForm();
+    onOpenChange(false);
+    onAssetUploaded();
+  };
+
   const handleUpload = async () => {
+    if (mode === "link" && linkFirst) { await saveLink(); return; }
     if (!file) {
       toast.error("Please select a file");
+      return;
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      toast.error(`That file is ${formatFileSize(file.size)} — uploads max out at 50MB. Paste a hosted link instead.`);
       return;
     }
 
@@ -180,7 +236,24 @@ export function AssetUploadDialog({
             </Select>
           </div>
 
+          {linkFirst && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="asset-link">{mode === "link" ? "Link (YouTube, Vimeo, Drive)" : "Upload a file"}</Label>
+                <Button variant="link" size="sm" className="h-auto p-0 text-xs"
+                  onClick={() => setMode(mode === "link" ? "upload" : "link")}>
+                  {mode === "link" ? "or upload a file instead" : "or paste a link instead"}
+                </Button>
+              </div>
+              {mode === "link" && (
+                <Input id="asset-link" type="url" placeholder="https://youtube.com/watch?v=…"
+                  value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} />
+              )}
+            </div>
+          )}
+
           {/* Drop Zone */}
+          {(!linkFirst || mode === "upload") && (
           <div
             onDrop={handleDrop}
             onDragOver={(e) => {
@@ -234,6 +307,7 @@ export function AssetUploadDialog({
               </>
             )}
           </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
@@ -267,9 +341,9 @@ export function AssetUploadDialog({
             <Button
               className="flex-1 bg-violet-600 hover:bg-violet-700"
               onClick={handleUpload}
-              disabled={!file || uploading}
+              disabled={uploading || (mode === "link" && linkFirst ? !linkUrl.trim() : !file)}
             >
-              {uploading ? "Uploading..." : "Upload"}
+              {uploading ? "Saving..." : (mode === "link" && linkFirst ? "Add Link" : "Upload")}
             </Button>
           </div>
         </div>

@@ -445,7 +445,8 @@ async function sendDigestToUser(supabase: any, user: any, preferences: any, base
 
   try {
     const emailResponse = await resend.emails.send({
-      from: "nextmic <digest@nextmic.io>",
+      from: "NextMIC <digest@nextmic.ai>",
+      reply_to: "support@nextmic.ai",
       to: [userEmail],
       subject: `🎤 Your Weekly Speaker Briefing - ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
       html: emailHtml,
