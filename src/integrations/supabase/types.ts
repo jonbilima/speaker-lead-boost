@@ -142,6 +142,27 @@ export type Database = {
           },
         ]
       }
+      auth_email_log: {
+        Row: {
+          action: string
+          created_at: string
+          email: string
+          id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          email: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          email?: string
+          id?: string
+        }
+        Relationships: []
+      }
       boxoffice_events: {
         Row: {
           id: string
