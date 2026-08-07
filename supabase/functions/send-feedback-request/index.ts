@@ -47,7 +47,9 @@ serve(async (req) => {
 
     // Generate unique token
     const token = crypto.randomUUID();
-    const baseUrl = Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovable.app") || "https://speaker-lead-boost.lovable.app";
+    // Customer-facing link: must be the NextMIC domain, never the
+    // platform's *.lovable.app host (event organizers click this).
+    const baseUrl = Deno.env.get("APP_URL") ?? "https://app.nextmic.ai";
     const feedbackUrl = `${baseUrl}/feedback/${token}`;
 
     // Create feedback request record
