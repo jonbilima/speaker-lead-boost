@@ -87,18 +87,19 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
     
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin,
-      },
-    });
-
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Check your email to confirm your account!");
+    // Routed through our own auth-email function so the confirmation comes
+    // from nextmic.ai (the platform's built-in mail was unbranded and
+    // rate-limited). It creates the account and sends the confirm link.
+    try {
+      const { data, error } = await supabase.functions.invoke("auth-email", {
+        body: { action: "signup", email, password },
+      });
+      if (error) throw error;
+      if (data?.error) toast.error(data.error);
+      else if (data?.existing) toast.info("That email already has an account — try signing in, or use 'Forgot password?'");
+      else toast.success("Check your email to confirm your account!");
+    } catch (err: any) {
+      toast.error(err?.message || "Sign-up failed. Email support@nextmic.ai if it keeps happening.");
     }
     setLoading(false);
   };
@@ -127,13 +128,15 @@ const Auth = () => {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + "/reset-password",
-    });
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Password reset link sent. Check your email.");
+    try {
+      const { data, error } = await supabase.functions.invoke("auth-email", {
+        body: { action: "recovery", email },
+      });
+      if (error) throw error;
+      if (data?.error) toast.error(data.error);
+      else toast.success("Password reset link sent. Check your email.");
+    } catch (err: any) {
+      toast.error(err?.message || "Couldn't send the reset link. Email support@nextmic.ai.");
     }
     setLoading(false);
   };
