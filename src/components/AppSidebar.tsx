@@ -8,6 +8,7 @@ import {
   Calendar,
   LogOut,
   Shield,
+  UserCircle,
   LifeBuoy,
   CreditCard,
   RotateCcw,
@@ -35,6 +36,7 @@ const menuItems = [
   { title: "Pipeline", url: "/pipeline", icon: LayoutGrid },
   { title: "Business", url: "/business", icon: Briefcase },
   { title: "Calendar", url: "/calendar", icon: Calendar },
+  { title: "Profile & Settings", url: "/profile", icon: UserCircle },
 ];
 
 export function AppSidebar() {
