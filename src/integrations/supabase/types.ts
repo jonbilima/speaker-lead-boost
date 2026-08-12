@@ -2155,6 +2155,60 @@ export type Database = {
           },
         ]
       }
+      speaking_opportunities: {
+        Row: {
+          application_deadline: string | null
+          application_link: string | null
+          created_at: string
+          days_until_deadline: string | null
+          event_date: string | null
+          event_name: string
+          id: string
+          is_open: boolean | null
+          lead_quality: string | null
+          location: string | null
+          organization: string | null
+          source_name: string | null
+          speaker_access: string | null
+          topic_or_industry: string | null
+          vertical_tag: string | null
+        }
+        Insert: {
+          application_deadline?: string | null
+          application_link?: string | null
+          created_at?: string
+          days_until_deadline?: string | null
+          event_date?: string | null
+          event_name: string
+          id?: string
+          is_open?: boolean | null
+          lead_quality?: string | null
+          location?: string | null
+          organization?: string | null
+          source_name?: string | null
+          speaker_access?: string | null
+          topic_or_industry?: string | null
+          vertical_tag?: string | null
+        }
+        Update: {
+          application_deadline?: string | null
+          application_link?: string | null
+          created_at?: string
+          days_until_deadline?: string | null
+          event_date?: string | null
+          event_name?: string
+          id?: string
+          is_open?: boolean | null
+          lead_quality?: string | null
+          location?: string | null
+          organization?: string | null
+          source_name?: string | null
+          speaker_access?: string | null
+          topic_or_industry?: string | null
+          vertical_tag?: string | null
+        }
+        Relationships: []
+      }
       speeches: {
         Row: {
           created_at: string
