@@ -9,6 +9,242 @@ const corsHeaders = {
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
+/**
+ * Weekly lead delivery
+ * ---------------------------------------------------------------------------
+ * Leads are selected in tiers so a speaker never gets a short digest:
+ *   1. own      — opportunity.vertical_slug is one of the user's user_verticals
+ *   2. adjacent — vertical_slug is adjacent to one of theirs (map below)
+ *   3. broader  — anything else still scored for them (incl. untagged leads)
+ * Ordered by ai_score desc within each tier, capped at MAX_LEADS, floored at
+ * MIN_LEADS whenever that many undelivered scored leads exist at all.
+ */
+const MIN_LEADS = 5;
+const MAX_LEADS = 10;
+
+const ADJACENT_VERTICALS: Record<string, string[]> = {
+  business: ["hr_workplace", "sales_marketing", "finance"],
+  sales_marketing: ["business", "technology", "real_estate"],
+  faith: ["nonprofit", "education"],
+  healthcare: ["nonprofit", "education"],
+  technology: ["business", "finance", "education"],
+  education: ["nonprofit", "technology", "hr_workplace"],
+  hr_workplace: ["business", "education", "healthcare"],
+  finance: ["business", "technology", "real_estate"],
+  nonprofit: ["faith", "education", "healthcare"],
+  real_estate: ["finance", "sales_marketing", "business"],
+};
+
+const REASON_CODE_LABELS: Record<string, string> = {
+  topic_match_strong: "Matches your topics",
+  topic_match_none: "Topics don't overlap with yours",
+  no_topics_tagged: "No topics listed for this event yet",
+  speaker_topics_missing: "Add topics to your profile to improve matching",
+  fee_above_floor: "Fee meets your minimum",
+  fee_below_floor: "Fee below your minimum",
+  fee_not_listed: "No fee listed",
+  fee_floor_not_set: "Set a fee floor in your profile",
+  deadline_tight: "Deadline within 7 days",
+  deadline_comfortable: "Deadline still open",
+  no_deadline_listed: "No deadline listed",
+  public_cfp: "Open call for speakers",
+  cold_pitch_required: "Requires a cold pitch",
+};
+
+type LeadTier = "own" | "adjacent" | "broader";
+
+interface WeeklyLead {
+  opportunityId: string;
+  name: string;
+  deadline: string | null;
+  eventUrl: string | null;
+  location: string | null;
+  score: number;
+  reasonCodes: string[];
+  verticalSlug: string | null;
+  verticalLabel: string | null;
+  tier: LeadTier;
+}
+
+interface LeadSelection {
+  leads: WeeklyLead[];
+  ownCount: number;
+  adjacentCount: number;
+  broaderCount: number;
+  userVerticals: string[];
+  candidatePool: number;
+  reason: string | null;
+}
+
+async function selectWeeklyLeads(
+  supabase: any,
+  userId: string,
+  verticalLabels: Record<string, string>,
+): Promise<LeadSelection> {
+  const { data: vRows } = await supabase
+    .from("user_verticals")
+    .select("vertical_slug")
+    .eq("user_id", userId);
+  const userVerticals: string[] = (vRows ?? []).map((r: any) => r.vertical_slug);
+
+  const adjacent = new Set<string>();
+  for (const slug of userVerticals) {
+    for (const a of ADJACENT_VERTICALS[slug] ?? []) {
+      if (!userVerticals.includes(a)) adjacent.add(a);
+    }
+  }
+
+  const { data: deliveredRows } = await supabase
+    .from("lead_deliveries")
+    .select("opportunity_id")
+    .eq("user_id", userId)
+    .eq("channel", "weekly_digest");
+  const delivered = new Set<string>((deliveredRows ?? []).map((r: any) => r.opportunity_id));
+
+  const { data: scoreRows } = await supabase
+    .from("opportunity_scores")
+    .select(`
+      opportunity_id,
+      ai_score,
+      reason_codes,
+      opportunities!inner (
+        id, event_name, deadline, event_url, location, vertical_slug, is_active
+      )
+    `)
+    .eq("user_id", userId)
+    .not("ai_score", "is", null)
+    .eq("opportunities.is_active", true)
+    .order("ai_score", { ascending: false })
+    .limit(300);
+
+  const candidates = (scoreRows ?? []).filter((r: any) => !delivered.has(r.opportunity_id));
+
+  const toLead = (r: any, tier: LeadTier): WeeklyLead => {
+    const o = r.opportunities;
+    return {
+      opportunityId: r.opportunity_id,
+      name: o?.event_name || "Untitled opportunity",
+      deadline: o?.deadline || null,
+      eventUrl: o?.event_url || null,
+      location: o?.location || null,
+      score: Number(r.ai_score) || 0,
+      reasonCodes: r.reason_codes || [],
+      verticalSlug: o?.vertical_slug || null,
+      verticalLabel: o?.vertical_slug ? verticalLabels[o.vertical_slug] ?? o.vertical_slug : null,
+      tier,
+    };
+  };
+
+  const tierOf = (slug: string | null): LeadTier => {
+    if (slug && userVerticals.includes(slug)) return "own";
+    if (slug && adjacent.has(slug)) return "adjacent";
+    return "broader";
+  };
+
+  const buckets: Record<LeadTier, WeeklyLead[]> = { own: [], adjacent: [], broader: [] };
+  for (const r of candidates) {
+    const tier = tierOf(r.opportunities?.vertical_slug ?? null);
+    buckets[tier].push(toLead(r, tier));
+  }
+
+  // Tier 1 fills up to MAX. Lower tiers only top up toward MIN.
+  const leads: WeeklyLead[] = buckets.own.slice(0, MAX_LEADS);
+  for (const tier of ["adjacent", "broader"] as const) {
+    if (leads.length >= MIN_LEADS) break;
+    leads.push(...buckets[tier].slice(0, MIN_LEADS - leads.length));
+  }
+
+  let reason: string | null = null;
+  if (leads.length === 0) {
+    if (userVerticals.length === 0 && candidates.length === 0) {
+      reason = "no verticals selected and no undelivered active scored leads";
+    } else if (candidates.length === 0) {
+      reason = "every scored active lead has already been delivered, or no active scored leads exist";
+    } else {
+      reason = "no eligible leads after filtering";
+    }
+  }
+
+  return {
+    leads,
+    ownCount: leads.filter((l) => l.tier === "own").length,
+    adjacentCount: leads.filter((l) => l.tier === "adjacent").length,
+    broaderCount: leads.filter((l) => l.tier === "broader").length,
+    userVerticals,
+    candidatePool: candidates.length,
+    reason,
+  };
+}
+
+async function loadVerticalLabels(supabase: any): Promise<Record<string, string>> {
+  const { data } = await supabase.from("verticals").select("slug, label");
+  const map: Record<string, string> = {};
+  for (const row of data ?? []) map[row.slug] = row.label;
+  return map;
+}
+
+function renderLeadsSection(leads: WeeklyLead[]): string {
+  if (leads.length === 0) return "";
+  const formatDate = (d: string | null) =>
+    d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "No deadline listed";
+
+  const cards = leads
+    .map((lead) => {
+      const reasons = (lead.reasonCodes || [])
+        .map((c) => REASON_CODE_LABELS[c])
+        .filter(Boolean)
+        .map(
+          (label) =>
+            `<span style="display:inline-block; background:#ede9fe; color:#5b21b6; padding:4px 10px; border-radius:12px; font-size:12px; margin:2px 4px 2px 0;">${label}</span>`,
+        )
+        .join("");
+
+      const adjacencyNote =
+        lead.tier === "own"
+          ? ""
+          : `<div style="margin-top:8px; font-size:12px; color:#92400e; background:#fef3c7; padding:6px 10px; border-radius:6px;">
+               ${
+                 lead.tier === "adjacent"
+                   ? `Adjacent audience — this is tagged <strong>${lead.verticalLabel}</strong>, next door to the audiences you selected. Included so your week isn't short on leads.`
+                   : `Outside your stated audiences${lead.verticalLabel ? ` (${lead.verticalLabel})` : " (no audience tag yet)"} — included because your own audiences didn't produce enough leads this week.`
+               }
+             </div>`;
+
+      const title = lead.eventUrl
+        ? `<a href="${lead.eventUrl}" style="color:#1e293b; text-decoration:none;">${lead.name}</a>`
+        : lead.name;
+
+      return `
+        <tr>
+          <td style="padding:0 0 12px 0;">
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px;">
+              <div style="display:block;">
+                <strong style="color:#1e293b; font-size:15px;">${title}</strong>
+                <span style="float:right; background:#7c3aed; color:#ffffff; font-size:12px; font-weight:700; padding:3px 10px; border-radius:12px;">${Math.round(lead.score)}% match</span>
+              </div>
+              <div style="clear:both; color:#64748b; font-size:13px; margin-top:6px;">
+                Deadline: ${formatDate(lead.deadline)}${lead.location ? ` • ${lead.location}` : ""}
+              </div>
+              <div style="margin-top:8px;">${reasons}</div>
+              ${adjacencyNote}
+            </div>
+          </td>
+        </tr>`;
+    })
+    .join("");
+
+  return `
+    <tr>
+      <td style="padding: 24px;">
+        <h2 style="color: #7c3aed; margin: 0 0 16px 0; font-size: 18px;">
+          📬 ${leads.length} Leads For You This Week
+        </h2>
+        <table style="width:100%; border-collapse:collapse;">${cards}</table>
+      </td>
+    </tr>
+  `;
+}
+
 interface DigestData {
   newMatches: Array<{ name: string; deadline: string; score: number }>;
   upcomingDeadlines: Array<{ name: string; deadline: string }>;
@@ -177,7 +413,8 @@ function generateEmailHtml(
   data: DigestData, 
   preferences: any,
   trackingId: string,
-  baseUrl: string
+  baseUrl: string,
+  leads: WeeklyLead[] = []
 ): string {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'No date';
@@ -366,6 +603,8 @@ function generateEmailHtml(
           </td>
         </tr>
 
+        ${renderLeadsSection(leads)}
+
         ${sections}
 
         <!-- CTA -->
@@ -400,11 +639,19 @@ function generateEmailHtml(
   `;
 }
 
-async function sendDigestToUser(supabase: any, user: any, preferences: any, baseUrl: string): Promise<void> {
+async function sendDigestToUser(
+  supabase: any,
+  user: any,
+  preferences: any,
+  baseUrl: string,
+  verticalLabels: Record<string, string>,
+): Promise<void> {
   const digestData = await gatherDigestData(supabase, user.id);
+  const selection = await selectWeeklyLeads(supabase, user.id, verticalLabels);
   
   // Check if there's anything to send
   const hasContent = 
+    selection.leads.length > 0 ||
     (preferences.include_new_matches && digestData.newMatches.length > 0) ||
     (preferences.include_deadlines && digestData.upcomingDeadlines.length > 0) ||
     (preferences.include_follow_ups && digestData.overdueFollowUps.length > 0) ||
@@ -432,7 +679,7 @@ async function sendDigestToUser(supabase: any, user: any, preferences: any, base
 
   const trackingId = logEntry.id;
   const speakerName = user.name || 'Speaker';
-  const emailHtml = generateEmailHtml(speakerName, digestData, preferences, trackingId, baseUrl);
+  const emailHtml = generateEmailHtml(speakerName, digestData, preferences, trackingId, baseUrl, selection.leads);
 
   // Get user email from auth
   const { data: authUser } = await supabase.auth.admin.getUserById(user.id);
@@ -462,9 +709,95 @@ async function sendDigestToUser(supabase: any, user: any, preferences: any, base
     }
 
     console.log(`Digest sent to ${userEmail}`);
+
+    if (selection.leads.length > 0) {
+      const { error: deliveryError } = await supabase.from('lead_deliveries').insert(
+        selection.leads.map((lead) => ({
+          user_id: user.id,
+          opportunity_id: lead.opportunityId,
+          channel: 'weekly_digest',
+          vertical_slug: lead.verticalSlug,
+          metadata: {
+            score_at_send: lead.score,
+            reason_codes: lead.reasonCodes,
+            tier: lead.tier,
+            digest_log_id: trackingId,
+          },
+        })),
+      );
+      if (deliveryError) {
+        console.error(`Failed to record lead_deliveries for ${user.id}:`, deliveryError);
+      }
+    }
   } catch (error) {
     console.error(`Error sending to ${userEmail}:`, error);
   }
+}
+
+/** Reports exactly what would be sent, writing nothing and sending nothing. */
+async function runDryRun(supabase: any) {
+  const verticalLabels = await loadVerticalLabels(supabase);
+
+  const { data: prefs } = await supabase
+    .from('email_digest_preferences')
+    .select('speaker_id, is_enabled, send_day, send_time, profiles ( id, name )');
+
+  const perUser: any[] = [];
+  let totalLeads = 0;
+  let totalOwn = 0;
+  let totalAdjacent = 0;
+  let totalBroader = 0;
+  let wouldReceiveNothing = 0;
+
+  for (const pref of prefs ?? []) {
+    const selection = await selectWeeklyLeads(supabase, pref.speaker_id, verticalLabels);
+    totalLeads += selection.leads.length;
+    totalOwn += selection.ownCount;
+    totalAdjacent += selection.adjacentCount;
+    totalBroader += selection.broaderCount;
+    if (selection.leads.length === 0) wouldReceiveNothing++;
+
+    perUser.push({
+      user_id: pref.speaker_id,
+      name: pref.profiles?.name ?? null,
+      digest_enabled: pref.is_enabled,
+      send_day: pref.send_day,
+      send_time: pref.send_time,
+      user_verticals: selection.userVerticals,
+      undelivered_candidate_pool: selection.candidatePool,
+      leads_total: selection.leads.length,
+      leads_own_vertical: selection.ownCount,
+      leads_adjacent_vertical: selection.adjacentCount,
+      leads_broader_fallback: selection.broaderCount,
+      below_minimum: selection.leads.length > 0 && selection.leads.length < MIN_LEADS,
+      nothing_reason: selection.reason,
+      leads: selection.leads.map((l) => ({
+        opportunity_id: l.opportunityId,
+        name: l.name,
+        score: l.score,
+        tier: l.tier,
+        vertical_slug: l.verticalSlug,
+        reason_codes: l.reasonCodes,
+      })),
+    });
+  }
+
+  return {
+    dry_run: true,
+    emails_sent: 0,
+    delivery_records_written: 0,
+    users_evaluated: perUser.length,
+    users_with_leads: perUser.length - wouldReceiveNothing,
+    users_with_nothing: wouldReceiveNothing,
+    users_below_minimum: perUser.filter((u) => u.below_minimum).length,
+    totals: {
+      leads: totalLeads,
+      own_vertical: totalOwn,
+      adjacent_vertical: totalAdjacent,
+      broader_fallback: totalBroader,
+    },
+    per_user: perUser,
+  };
 }
 
 serve(async (req) => {
@@ -478,7 +811,17 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json().catch(() => ({}));
-    const { userId, isTest } = body;
+    const { userId, isTest, dryRun } = body;
+
+    // Dry run: report only. No email, no lead_deliveries rows, no digest logs.
+    if (dryRun) {
+      const report = await runDryRun(supabase);
+      return new Response(JSON.stringify(report), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const verticalLabels = await loadVerticalLabels(supabase);
 
     // Test mode: send to specific user
     if (isTest && userId) {
@@ -501,7 +844,7 @@ serve(async (req) => {
         );
       }
 
-      await sendDigestToUser(supabase, profile, preferences, supabaseUrl);
+      await sendDigestToUser(supabase, profile, preferences, supabaseUrl, verticalLabels);
       
       return new Response(
         JSON.stringify({ success: true, message: 'Test digest sent' }),
@@ -555,7 +898,7 @@ serve(async (req) => {
         continue;
       }
 
-      await sendDigestToUser(supabase, pref.profiles, pref, supabaseUrl);
+      await sendDigestToUser(supabase, pref.profiles, pref, supabaseUrl, verticalLabels);
       sentCount++;
     }
 
