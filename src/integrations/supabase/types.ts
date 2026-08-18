@@ -965,6 +965,54 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_deliveries: {
+        Row: {
+          channel: string
+          created_at: string
+          delivered_at: string
+          id: string
+          metadata: Json | null
+          opportunity_id: string
+          user_id: string
+          vertical_slug: string | null
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          delivered_at?: string
+          id?: string
+          metadata?: Json | null
+          opportunity_id: string
+          user_id: string
+          vertical_slug?: string | null
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          delivered_at?: string
+          id?: string
+          metadata?: Json | null
+          opportunity_id?: string
+          user_id?: string
+          vertical_slug?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_deliveries_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_deliveries_vertical_slug_fkey"
+            columns: ["vertical_slug"]
+            isOneToOne: false
+            referencedRelation: "verticals"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       onboarding_progress: {
         Row: {
           completed_at: string | null
