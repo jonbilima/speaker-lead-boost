@@ -639,11 +639,19 @@ function generateEmailHtml(
   `;
 }
 
-async function sendDigestToUser(supabase: any, user: any, preferences: any, baseUrl: string): Promise<void> {
+async function sendDigestToUser(
+  supabase: any,
+  user: any,
+  preferences: any,
+  baseUrl: string,
+  verticalLabels: Record<string, string>,
+): Promise<void> {
   const digestData = await gatherDigestData(supabase, user.id);
+  const selection = await selectWeeklyLeads(supabase, user.id, verticalLabels);
   
   // Check if there's anything to send
   const hasContent = 
+    selection.leads.length > 0 ||
     (preferences.include_new_matches && digestData.newMatches.length > 0) ||
     (preferences.include_deadlines && digestData.upcomingDeadlines.length > 0) ||
     (preferences.include_follow_ups && digestData.overdueFollowUps.length > 0) ||
@@ -671,7 +679,7 @@ async function sendDigestToUser(supabase: any, user: any, preferences: any, base
 
   const trackingId = logEntry.id;
   const speakerName = user.name || 'Speaker';
-  const emailHtml = generateEmailHtml(speakerName, digestData, preferences, trackingId, baseUrl);
+  const emailHtml = generateEmailHtml(speakerName, digestData, preferences, trackingId, baseUrl, selection.leads);
 
   // Get user email from auth
   const { data: authUser } = await supabase.auth.admin.getUserById(user.id);
@@ -701,9 +709,95 @@ async function sendDigestToUser(supabase: any, user: any, preferences: any, base
     }
 
     console.log(`Digest sent to ${userEmail}`);
+
+    if (selection.leads.length > 0) {
+      const { error: deliveryError } = await supabase.from('lead_deliveries').insert(
+        selection.leads.map((lead) => ({
+          user_id: user.id,
+          opportunity_id: lead.opportunityId,
+          channel: 'weekly_digest',
+          vertical_slug: lead.verticalSlug,
+          metadata: {
+            score_at_send: lead.score,
+            reason_codes: lead.reasonCodes,
+            tier: lead.tier,
+            digest_log_id: trackingId,
+          },
+        })),
+      );
+      if (deliveryError) {
+        console.error(`Failed to record lead_deliveries for ${user.id}:`, deliveryError);
+      }
+    }
   } catch (error) {
     console.error(`Error sending to ${userEmail}:`, error);
   }
+}
+
+/** Reports exactly what would be sent, writing nothing and sending nothing. */
+async function runDryRun(supabase: any) {
+  const verticalLabels = await loadVerticalLabels(supabase);
+
+  const { data: prefs } = await supabase
+    .from('email_digest_preferences')
+    .select('speaker_id, is_enabled, send_day, send_time, profiles ( id, name )');
+
+  const perUser: any[] = [];
+  let totalLeads = 0;
+  let totalOwn = 0;
+  let totalAdjacent = 0;
+  let totalBroader = 0;
+  let wouldReceiveNothing = 0;
+
+  for (const pref of prefs ?? []) {
+    const selection = await selectWeeklyLeads(supabase, pref.speaker_id, verticalLabels);
+    totalLeads += selection.leads.length;
+    totalOwn += selection.ownCount;
+    totalAdjacent += selection.adjacentCount;
+    totalBroader += selection.broaderCount;
+    if (selection.leads.length === 0) wouldReceiveNothing++;
+
+    perUser.push({
+      user_id: pref.speaker_id,
+      name: pref.profiles?.name ?? null,
+      digest_enabled: pref.is_enabled,
+      send_day: pref.send_day,
+      send_time: pref.send_time,
+      user_verticals: selection.userVerticals,
+      undelivered_candidate_pool: selection.candidatePool,
+      leads_total: selection.leads.length,
+      leads_own_vertical: selection.ownCount,
+      leads_adjacent_vertical: selection.adjacentCount,
+      leads_broader_fallback: selection.broaderCount,
+      below_minimum: selection.leads.length > 0 && selection.leads.length < MIN_LEADS,
+      nothing_reason: selection.reason,
+      leads: selection.leads.map((l) => ({
+        opportunity_id: l.opportunityId,
+        name: l.name,
+        score: l.score,
+        tier: l.tier,
+        vertical_slug: l.verticalSlug,
+        reason_codes: l.reasonCodes,
+      })),
+    });
+  }
+
+  return {
+    dry_run: true,
+    emails_sent: 0,
+    delivery_records_written: 0,
+    users_evaluated: perUser.length,
+    users_with_leads: perUser.length - wouldReceiveNothing,
+    users_with_nothing: wouldReceiveNothing,
+    users_below_minimum: perUser.filter((u) => u.below_minimum).length,
+    totals: {
+      leads: totalLeads,
+      own_vertical: totalOwn,
+      adjacent_vertical: totalAdjacent,
+      broader_fallback: totalBroader,
+    },
+    per_user: perUser,
+  };
 }
 
 serve(async (req) => {
