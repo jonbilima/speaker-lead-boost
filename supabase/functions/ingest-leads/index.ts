@@ -63,6 +63,32 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+/** Long-form vertical names (as sent by the automation) -> canonical slugs. */
+const VERTICAL_MAP: Record<string, string> = {
+  "corporate and business leadership": "business",
+  "sales and marketing": "sales_marketing",
+  "faith and church": "faith",
+  "healthcare and medical associations": "healthcare",
+  "technology and ai": "technology",
+  "education and k-12/higher ed": "education",
+  "human resources and workplace culture": "hr_workplace",
+  "finance and accounting": "finance",
+  "nonprofit and associations": "nonprofit",
+  "real estate and construction": "real_estate",
+};
+
+const CANONICAL_SLUGS = new Set(Object.values(VERTICAL_MAP));
+
+function toVerticalSlug(v: unknown): string | null {
+  const s = str(v);
+  if (!s) return null;
+  const key = s.toLowerCase().trim().replace(/\s+/g, " ");
+  if (VERTICAL_MAP[key]) return VERTICAL_MAP[key];
+  const asSlug = key.replace(/[\s-]+/g, "_");
+  if (CANONICAL_SLUGS.has(asSlug)) return asSlug;
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -105,6 +131,7 @@ Deno.serve(async (req) => {
   const received = raw.length;
   const valid: Record<string, unknown>[] = [];
   let skippedInvalid = 0;
+  const unmappedVerticals: string[] = [];
 
   for (const item of raw) {
     const rec = (item ?? {}) as IncomingRecord;
@@ -129,6 +156,10 @@ Deno.serve(async (req) => {
       str(rec.lead_quality) ? `Lead quality: ${str(rec.lead_quality)}` : null,
     ].filter(Boolean);
 
+    const verticalRaw = str(rec.vertical_tag);
+    const verticalSlug = toVerticalSlug(rec.vertical_tag);
+    if (verticalRaw && !verticalSlug) unmappedVerticals.push(verticalRaw);
+
     valid.push({
       event_name: eventName,
       event_url: link,
@@ -142,6 +173,8 @@ Deno.serve(async (req) => {
       fee_estimate_max: num(rec.fee_estimate_max),
       audience_size: num(rec.audience_size),
       source: str(rec.source_name) ?? "ingest",
+      ingest_source: "ingest-leads",
+      vertical_slug: verticalSlug,
       is_active: isOpen,
       scraped_at: new Date().toISOString(),
       raw_data: item as Record<string, unknown>,
@@ -202,7 +235,14 @@ Deno.serve(async (req) => {
     skippedDuplicates += toInsert.length - inserted;
   }
 
-  console.log(`ingest-leads: received=${received} inserted=${inserted} duplicates=${skippedDuplicates} invalid=${skippedInvalid}`);
+  const insertedRows = toInsert;
+  const mappedVertical = insertedRows.filter((r) => r.vertical_slug !== null).length;
+  const unmappedVertical = insertedRows.length - mappedVertical;
+  const unmappedValues = [...new Set(unmappedVerticals)];
+
+  console.log(
+    `ingest-leads: received=${received} inserted=${inserted} duplicates=${skippedDuplicates} invalid=${skippedInvalid} mapped_vertical=${mappedVertical} unmapped_vertical=${unmappedVertical} unmapped_values=${JSON.stringify(unmappedValues)}`,
+  );
 
   return new Response(
     JSON.stringify({
@@ -210,6 +250,9 @@ Deno.serve(async (req) => {
       inserted,
       skipped_duplicates: skippedDuplicates,
       skipped_invalid: skippedInvalid,
+      mapped_vertical: mappedVertical,
+      unmapped_vertical: unmappedVertical,
+      unmapped_vertical_values: unmappedValues,
     }),
     { status: 200, headers: jsonHeaders },
   );
