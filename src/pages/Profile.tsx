@@ -15,6 +15,8 @@ import { EmailDigestPreferences } from "@/components/settings/EmailDigestPrefere
 import { TrackingKeywordsSection } from "@/components/settings/TrackingKeywordsSection";
 import { AppearanceSection } from "@/components/settings/AppearanceSection";
 import { TopicSelector } from "@/components/profile/TopicSelector";
+import { VerticalSelector } from "@/components/profile/VerticalSelector";
+import { useVerticals } from "@/hooks/useVerticals";
 import { rescoreMatches } from "@/lib/rescoreMatches";
 
 /**
@@ -40,6 +42,13 @@ const Profile = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [allTopics, setAllTopics] = useState<{ id: string; name: string; category?: string }[]>([]);
   const navigate = useNavigate();
+  const {
+    verticals,
+    selected: selectedVerticals,
+    toggle: toggleVertical,
+    save: saveVerticals,
+    hasChanged: verticalsChanged,
+  } = useVerticals(userId);
 
   // Snapshot of the scoring-relevant fields as last persisted, used to decide
   // whether a save needs to trigger a rescore at all.
@@ -157,7 +166,13 @@ const Profile = () => {
       const needsRescore = scoringInputsChanged(savedScoringInputs.current, {
         feeRangeMin: formData.feeRangeMin,
         topics: formData.selectedTopics,
-      });
+      }) || verticalsChanged();
+
+      if (selectedVerticals.length === 0) {
+        toast.error("Select at least one audience you speak to");
+        setSaving(false);
+        return;
+      }
 
       // Save profile
       const { error: profileError } = await supabase
@@ -197,6 +212,12 @@ const Profile = () => {
           );
 
         if (topicsError) throw topicsError;
+      }
+
+      const verticalsSaved = await saveVerticals();
+      if (!verticalsSaved) {
+        toast.error("Couldn't save your audience selection. Please try again.");
+        return;
       }
 
       savedScoringInputs.current = {
