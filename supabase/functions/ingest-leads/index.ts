@@ -183,6 +183,7 @@ Deno.serve(async (req) => {
   const valid: Record<string, unknown>[] = [];
   let skippedInvalid = 0;
   const unmappedVerticals: string[] = [];
+  const unrecognizedIsOpen: string[] = [];
 
   for (const item of raw) {
     const rec = (item ?? {}) as IncomingRecord;
@@ -193,11 +194,9 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    const isOpen = rec.is_open === undefined || rec.is_open === null
-      ? true
-      : typeof rec.is_open === "boolean"
-        ? rec.is_open
-        : String(rec.is_open).toLowerCase() === "true";
+    const openParsed = toIsOpen(rec.is_open);
+    const isOpen = openParsed.value;
+    if (openParsed.unrecognized !== null) unrecognizedIsOpen.push(openParsed.unrecognized);
 
     const descriptionParts = [
       str(rec.description),
@@ -290,9 +289,10 @@ Deno.serve(async (req) => {
   const mappedVertical = insertedRows.filter((r) => r.vertical_slug !== null).length;
   const unmappedVertical = insertedRows.length - mappedVertical;
   const unmappedValues = [...new Set(unmappedVerticals)];
+  const unrecognizedIsOpenValues = [...new Set(unrecognizedIsOpen)];
 
   console.log(
-    `ingest-leads: received=${received} inserted=${inserted} duplicates=${skippedDuplicates} invalid=${skippedInvalid} mapped_vertical=${mappedVertical} unmapped_vertical=${unmappedVertical} unmapped_values=${JSON.stringify(unmappedValues)}`,
+    `ingest-leads: received=${received} inserted=${inserted} duplicates=${skippedDuplicates} invalid=${skippedInvalid} mapped_vertical=${mappedVertical} unmapped_vertical=${unmappedVertical} unmapped_values=${JSON.stringify(unmappedValues)} unrecognized_is_open=${JSON.stringify(unrecognizedIsOpenValues)}`,
   );
 
   return new Response(
@@ -304,6 +304,7 @@ Deno.serve(async (req) => {
       mapped_vertical: mappedVertical,
       unmapped_vertical: unmappedVertical,
       unmapped_vertical_values: unmappedValues,
+      unrecognized_is_open_values: unrecognizedIsOpenValues,
     }),
     { status: 200, headers: jsonHeaders },
   );
