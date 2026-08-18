@@ -13,6 +13,7 @@ import { GapAnalysisSection } from "@/components/topics/GapAnalysisSection";
 import { TopicCombinationsSection } from "@/components/topics/TopicCombinationsSection";
 import { TopicTrendsSection } from "@/components/topics/TopicTrendsSection";
 import { OptimizeTopicsDialog } from "@/components/topics/OptimizeTopicsDialog";
+import { rescoreMatches } from "@/lib/rescoreMatches";
 
 interface Topic {
   id: string;
