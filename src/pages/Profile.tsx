@@ -90,13 +90,16 @@ const Profile = () => {
         .single();
 
       if (profile) {
+        const loadedTopics = profile.user_topics?.map((ut: any) => ut.topic_id) || [];
+        const loadedFeeMin = profile.fee_range_min?.toString() || "1000";
+        savedScoringInputs.current = { feeRangeMin: loadedFeeMin, topics: loadedTopics };
         setFormData({
           name: profile.name || "",
           email: session.user.email || "",
           bio: profile.bio || "",
-          selectedTopics: profile.user_topics?.map((ut: any) => ut.topic_id) || [],
+          selectedTopics: loadedTopics,
           customTopics: (profile as any).custom_topics || [],
-          feeRangeMin: profile.fee_range_min?.toString() || "1000",
+          feeRangeMin: loadedFeeMin,
           feeRangeMax: profile.fee_range_max?.toString() || "50000",
           pastTalks: profile.past_talks?.join('\n') || "",
           linkedinUrl: profile.linkedin_url || "",
