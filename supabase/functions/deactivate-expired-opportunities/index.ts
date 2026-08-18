@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
 
   const { data, error } = await supabase
     .from("opportunities")
-    .select("id, deadline, event_date, raw_data")
+    .select("id, deadline, event_date, raw_data, created_at")
     .eq("is_active", true);
 
   if (error) {
@@ -55,6 +55,7 @@ Deno.serve(async (req) => {
 
   const expired: string[] = [];
   let skippedRolling = 0;
+  let skippedImplausible = 0;
 
   for (const row of data ?? []) {
     const raw = (row.raw_data ?? {}) as Record<string, unknown>;
@@ -71,6 +72,16 @@ Deno.serve(async (req) => {
     if (!reference) continue;
     const when = new Date(reference as string);
     if (isNaN(when.getTime())) continue;
+    // Guard: a reference date older than the row itself (or absurdly old) is a
+    // parsing artefact, not a genuine expiry. Never deactivate on those.
+    const createdAt = row.created_at ? new Date(row.created_at as string) : null;
+    const floor = createdAt && !isNaN(createdAt.getTime())
+      ? new Date(createdAt.getTime() - 86400000)
+      : new Date(now.getFullYear() - 1, 0, 1);
+    if (when < floor) {
+      skippedImplausible++;
+      continue;
+    }
     if (when < now) expired.push(row.id as string);
   }
 
@@ -91,9 +102,16 @@ Deno.serve(async (req) => {
     deactivated += chunk.length;
   }
 
-  console.log(`deactivated ${deactivated}, skipped rolling ${skippedRolling}`);
+  console.log(
+    `deactivated ${deactivated}, skipped rolling ${skippedRolling}, skipped implausible ${skippedImplausible}`,
+  );
   return new Response(
-    JSON.stringify({ checked: data?.length ?? 0, deactivated, skipped_rolling: skippedRolling }),
+    JSON.stringify({
+      checked: data?.length ?? 0,
+      deactivated,
+      skipped_rolling: skippedRolling,
+      skipped_implausible: skippedImplausible,
+    }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
 });
