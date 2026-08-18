@@ -35,6 +35,8 @@ export function SmartSubmitDialog({ onSuccess }: SmartSubmitDialogProps) {
   const [loading, setLoading] = useState(false);
   const [extracted, setExtracted] = useState<ExtractedData | null>(null);
   const [karmaPoints, setKarmaPoints] = useState(0);
+  const [matchScore, setMatchScore] = useState<number | null>(null);
+  const [alreadyExisted, setAlreadyExisted] = useState(false);
 
   const handleExtract = async () => {
     if (!url.trim()) {
@@ -85,10 +87,9 @@ export function SmartSubmitDialog({ onSuccess }: SmartSubmitDialogProps) {
         return;
       }
 
-      // Submit the opportunity
-      const { error } = await supabase
-        .from("opportunities")
-        .insert({
+      // Submit + dedupe + score in one authenticated server call
+      const { data, error } = await supabase.functions.invoke("submit-and-score-opportunity", {
+        body: {
           event_name: extracted.event_name,
           organizer_name: extracted.organizer_name || null,
           organizer_email: extracted.organizer_email || null,
@@ -96,36 +97,40 @@ export function SmartSubmitDialog({ onSuccess }: SmartSubmitDialogProps) {
           deadline: extracted.deadline || null,
           event_date: extracted.event_date || null,
           location: extracted.location || null,
-          fee_estimate_min: extracted.fee_estimate_min || null,
-          fee_estimate_max: extracted.fee_estimate_max || null,
-          audience_size: extracted.audience_size || null,
+          fee_estimate_min: extracted.fee_estimate_min ?? null,
+          fee_estimate_max: extracted.fee_estimate_max ?? null,
+          audience_size: extracted.audience_size ?? null,
           description: extracted.description || null,
-          covers_travel: extracted.covers_travel || null,
-          covers_accommodation: extracted.covers_accommodation || null,
-          source: "manual",
-          submitted_by: session.user.id,
-          is_verified: false,
-          is_active: true,
-          scraped_at: new Date().toISOString(),
-        });
+          covers_travel: extracted.covers_travel ?? null,
+          covers_accommodation: extracted.covers_accommodation ?? null,
+        },
+      });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-      // Award karma points
-      const { error: karmaError } = await supabase
-        .from("opportunity_karma")
-        .insert({
-          user_id: session.user.id,
-          action: "submitted",
-          points: 5,
-        });
+      const existed = !!data?.already_existed;
+      setAlreadyExisted(existed);
+      setMatchScore(typeof data?.ai_score === "number" ? Math.round(data.ai_score) : null);
 
-      if (!karmaError) {
-        setKarmaPoints(5);
+      if (existed) {
+        toast.info("Already tracked — we scored the existing listing for you.");
+      } else {
+        // Award karma points for a genuinely new contribution
+        const { error: karmaError } = await supabase
+          .from("opportunity_karma")
+          .insert({
+            user_id: session.user.id,
+            action: "submitted",
+            points: 5,
+            opportunity_id: data?.opportunity_id ?? null,
+          });
+
+        if (!karmaError) setKarmaPoints(5);
+        toast.success("Opportunity added and scored!");
       }
 
       setStep("success");
-      toast.success("Opportunity submitted!");
       onSuccess?.();
     } catch (error) {
       console.error("Submit error:", error);
@@ -142,6 +147,8 @@ export function SmartSubmitDialog({ onSuccess }: SmartSubmitDialogProps) {
       setUrl("");
       setExtracted(null);
       setKarmaPoints(0);
+      setMatchScore(null);
+      setAlreadyExisted(false);
     }, 300);
   };
 
@@ -262,6 +269,20 @@ export function SmartSubmitDialog({ onSuccess }: SmartSubmitDialogProps) {
               </div>
             </div>
 
+            <div>
+              <Label htmlFor="review_url">Event / CFP URL</Label>
+              <Input
+                id="review_url"
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://conference.com/cfp"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Used to avoid creating a duplicate of an opportunity we already track.
+              </p>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="deadline">CFP Deadline</Label>
@@ -352,7 +373,7 @@ export function SmartSubmitDialog({ onSuccess }: SmartSubmitDialogProps) {
                     Submitting...
                   </>
                 ) : (
-                  "Submit for Review"
+                  "Add & Score"
                 )}
               </Button>
             </div>
@@ -365,10 +386,19 @@ export function SmartSubmitDialog({ onSuccess }: SmartSubmitDialogProps) {
               <Award className="h-8 w-8 text-white" />
             </div>
             <div>
-              <p className="text-2xl font-bold">+{karmaPoints} Karma Points!</p>
+              {matchScore !== null ? (
+                <p className="text-2xl font-bold">{matchScore}% match</p>
+              ) : (
+                <p className="text-2xl font-bold">Added to your feed</p>
+              )}
               <p className="text-muted-foreground mt-1">
-                Your submission is being reviewed. Once approved, it'll help speakers everywhere!
+                {alreadyExisted
+                  ? "This opportunity was already tracked, so we scored the existing listing against your profile instead of creating a duplicate."
+                  : "Scored against your profile and added to your Find feed."}
               </p>
+              {karmaPoints > 0 && (
+                <p className="text-sm font-medium mt-2">+{karmaPoints} karma points for contributing</p>
+              )}
             </div>
             <Button onClick={handleClose} className="mt-4">
               Done
