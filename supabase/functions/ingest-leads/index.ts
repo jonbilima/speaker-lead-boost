@@ -130,6 +130,81 @@ const VERTICAL_MAP: Record<string, string> = {
 
 const CANONICAL_SLUGS = new Set(Object.values(VERTICAL_MAP));
 
+/**
+ * Keyword -> canonical topics.name. Matching is substring-based against the
+ * lowercased topic_or_industry value. Topics are never created automatically:
+ * a value that matches nothing is reported, and the opportunity still inserts.
+ */
+const TOPIC_ALIASES: [string, string][] = [
+  ["artificial intelligence", "Artificial Intelligence"],
+  ["genai", "Artificial Intelligence"],
+  ["ai/ml", "Artificial Intelligence"],
+  ["ai summit", "Artificial Intelligence"],
+  ["machine learning", "Machine Learning"],
+  ["devops", "DevOps"],
+  ["cloud", "Cloud Computing"],
+  ["aws", "Cloud Computing"],
+  ["serverless", "Cloud Computing"],
+  ["kubernetes", "Cloud Computing"],
+  ["containers", "Cloud Computing"],
+  ["cybersecurity", "Cybersecurity"],
+  ["data", "Data Science"],
+  ["leadership", "Leadership"],
+  ["executive", "Executive Presence"],
+  ["sales", "Sales Strategy"],
+  ["marketing", "Digital Marketing"],
+  ["church", "Faith-Based / Spiritual"],
+  ["ministry", "Faith-Based / Spiritual"],
+  ["faith", "Faith-Based / Spiritual"],
+  ["medical", "Healthcare"],
+  ["healthcare", "Healthcare"],
+  ["finance", "Financial Services"],
+  ["financial", "Financial Services"],
+  ["accounting", "Financial Services"],
+  ["diversity", "Diversity & Inclusion"],
+  ["inclusion", "Diversity & Inclusion"],
+  ["higher education", "Higher Education"],
+  ["education", "Education"],
+  ["k-12", "Education"],
+  ["property management", "Real Estate"],
+  ["real estate", "Real Estate"],
+  ["workplace culture", "Team Building"],
+  ["nonprofit", "Nonprofit / Social Impact"],
+  ["association", "Nonprofit / Social Impact"],
+  ["startup", "Startup Growth"],
+  ["entrepreneur", "Entrepreneurship"],
+  ["innovation", "Innovation"],
+  ["product management", "Product Management"],
+  ["agile", "Agile Methodology"],
+  ["blockchain", "Blockchain"],
+  ["fintech", "Fintech"],
+  ["e-commerce", "E-commerce"],
+  ["ecommerce", "E-commerce"],
+  ["saas", "SaaS"],
+  ["remote work", "Remote Work"],
+  ["mental health", "Mental Health"],
+  ["wellness", "Wellness"],
+  ["public speaking", "Public Speaking"],
+  ["storytelling", "Storytelling"],
+  ["manufacturing", "Manufacturing"],
+  ["government", "Government / Public Sector"],
+  ["public sector", "Government / Public Sector"],
+  ["performance", "Productivity"],
+  ["networking", "Networking"],
+  ["resilience", "Resilience"],
+  ["motivation", "Motivation"],
+];
+
+/** Returns the canonical topic names a raw topic_or_industry value maps to. */
+function matchTopicNames(value: string): string[] {
+  const hay = value.toLowerCase();
+  const names = new Set<string>();
+  for (const [kw, topic] of TOPIC_ALIASES) {
+    if (hay.includes(kw)) names.add(topic);
+  }
+  return [...names];
+}
+
 function toVerticalSlug(v: unknown): string | null {
   const s = str(v);
   if (!s) return null;
@@ -228,6 +303,7 @@ Deno.serve(async (req) => {
       is_active: isOpen,
       scraped_at: new Date().toISOString(),
       raw_data: item as Record<string, unknown>,
+      __topic_raw: str(rec.topic_or_industry),
     });
   }
 
@@ -267,11 +343,17 @@ Deno.serve(async (req) => {
   }
 
   let inserted = 0;
+  let topicLinksCreated = 0;
+  const unmatchedTopicValues: string[] = [];
   if (toInsert.length > 0) {
+    const payload = toInsert.map((r) => {
+      const { __topic_raw: _omit, ...rest } = r as Record<string, unknown>;
+      return rest;
+    });
     const { data, error } = await supabase
       .from("opportunities")
-      .insert(toInsert)
-      .select("id");
+      .insert(payload)
+      .select("id, event_url");
 
     if (error) {
       console.error("Insert failed:", error);
@@ -283,6 +365,55 @@ Deno.serve(async (req) => {
 
     inserted = data?.length ?? 0;
     skippedDuplicates += toInsert.length - inserted;
+
+    // Structured topic links. Failures here never fail the ingest.
+    try {
+      const idByLink = new Map<string, string>(
+        (data ?? []).map((r) => [r.event_url as string, r.id as string]),
+      );
+      const wanted = new Map<string, Set<string>>(); // opportunity id -> topic names
+      for (const row of toInsert) {
+        const rawTopic = (row as { __topic_raw?: string | null }).__topic_raw ?? null;
+        const oppId = idByLink.get(row.event_url as string);
+        if (!rawTopic || !oppId) continue;
+        const names = matchTopicNames(rawTopic);
+        if (names.length === 0) {
+          unmatchedTopicValues.push(rawTopic);
+          continue;
+        }
+        wanted.set(oppId, new Set(names));
+      }
+
+      if (wanted.size > 0) {
+        const allNames = [...new Set([...wanted.values()].flatMap((s) => [...s]))];
+        const { data: topicRows, error: topicErr } = await supabase
+          .from("topics")
+          .select("id, name")
+          .in("name", allNames);
+        if (topicErr) throw topicErr;
+        const idByName = new Map<string, string>(
+          (topicRows ?? []).map((t) => [t.name as string, t.id as string]),
+        );
+
+        const links: { opportunity_id: string; topic_id: string }[] = [];
+        for (const [oppId, names] of wanted) {
+          for (const name of names) {
+            const topicId = idByName.get(name);
+            if (topicId) links.push({ opportunity_id: oppId, topic_id: topicId });
+          }
+        }
+
+        if (links.length > 0) {
+          const { error: linkErr } = await supabase
+            .from("opportunity_topics")
+            .upsert(links, { onConflict: "opportunity_id,topic_id", ignoreDuplicates: true });
+          if (linkErr) throw linkErr;
+          topicLinksCreated = links.length;
+        }
+      }
+    } catch (e) {
+      console.error("Topic linking failed (opportunities still inserted):", e);
+    }
   }
 
   const insertedRows = toInsert;
@@ -304,6 +435,8 @@ Deno.serve(async (req) => {
       mapped_vertical: mappedVertical,
       unmapped_vertical: unmappedVertical,
       unmapped_vertical_values: unmappedValues,
+      topic_links_created: topicLinksCreated,
+      unmatched_topic_values: [...new Set(unmatchedTopicValues)],
       unrecognized_is_open_values: unrecognizedIsOpenValues,
     }),
     { status: 200, headers: jsonHeaders },
