@@ -40,20 +40,71 @@ function num(v: unknown): number | null {
   return null;
 }
 
-/** Parse loose date strings ("2026-10-24", "Mon, Aug 17, 10:30 AM EDT") into ISO, else null. */
+/**
+ * Parse loose date strings ("2026-10-24", "Mon, Aug 17, 10:30 AM EDT") into ISO, else null.
+ * A value with no date component at all ("9:00 AM", "TBD") returns null rather than a
+ * bogus date in the distant past.
+ */
 function toTimestamp(v: unknown): string | null {
   const s = str(v);
   if (!s) return null;
-  const iso = Date.parse(s);
-  if (!Number.isNaN(iso)) return new Date(iso).toISOString();
-  // Handle formats like "Mon, Aug 17, 10:30 AM EDT" (no year)
-  const m = s.match(/([A-Z][a-z]{2})\s+(\d{1,2})/);
-  if (m) {
-    const year = new Date().getUTCFullYear();
-    const guess = Date.parse(`${m[1]} ${m[2]}, ${year} 00:00:00 UTC`);
-    if (!Number.isNaN(guess)) return new Date(guess).toISOString();
+
+  const hasYear = /\b(19|20)\d{2}\b/.test(s);
+  const monthDay = s.match(
+    /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2})\b/i,
+  );
+  const numericDate = /\d{1,4}[/-]\d{1,2}([/-]\d{1,4})?/.test(s);
+
+  // No date component whatsoever -> not a date.
+  if (!hasYear && !monthDay && !numericDate) return null;
+
+  if (hasYear || numericDate) {
+    const iso = Date.parse(s);
+    if (!Number.isNaN(iso)) {
+      const d = new Date(iso);
+      if (isPlausibleYear(d)) return d.toISOString();
+    }
   }
+
+  // Month + day but no year (e.g. "Mon, Aug 17, 10:30 AM EDT"): assume the
+  // nearest upcoming occurrence.
+  if (monthDay) {
+    const now = new Date();
+    const year = now.getUTCFullYear();
+    const guess = Date.parse(`${monthDay[1]} ${monthDay[2]}, ${year} 00:00:00 UTC`);
+    if (!Number.isNaN(guess)) {
+      let d = new Date(guess);
+      // More than 6 months in the past -> it almost certainly means next year.
+      if (d.getTime() < now.getTime() - 182 * 86400000) {
+        d = new Date(Date.parse(`${monthDay[1]} ${monthDay[2]}, ${year + 1} 00:00:00 UTC`));
+      }
+      if (isPlausibleYear(d)) return d.toISOString();
+    }
+  }
+
   return null;
+}
+
+function isPlausibleYear(d: Date): boolean {
+  const y = d.getUTCFullYear();
+  const current = new Date().getUTCFullYear();
+  return y >= current - 1 && y <= current + 10;
+}
+
+const TRUE_VALUES = new Set(["1", "true", "yes", "open", "y", "t"]);
+const FALSE_VALUES = new Set(["0", "false", "no", "closed", "n", "f"]);
+
+/**
+ * Coerce a loose is_open value. Unrecognized or absent -> true (never silently
+ * kill a lead from an active CFP feed on a parsing miss).
+ */
+function toIsOpen(v: unknown): { value: boolean; unrecognized: string | null } {
+  if (v === undefined || v === null || v === "") return { value: true, unrecognized: null };
+  if (typeof v === "boolean") return { value: v, unrecognized: null };
+  const key = String(v).trim().toLowerCase();
+  if (TRUE_VALUES.has(key)) return { value: true, unrecognized: null };
+  if (FALSE_VALUES.has(key)) return { value: false, unrecognized: null };
+  return { value: true, unrecognized: String(v) };
 }
 
 function timingSafeEqual(a: string, b: string): boolean {
@@ -132,6 +183,7 @@ Deno.serve(async (req) => {
   const valid: Record<string, unknown>[] = [];
   let skippedInvalid = 0;
   const unmappedVerticals: string[] = [];
+  const unrecognizedIsOpen: string[] = [];
 
   for (const item of raw) {
     const rec = (item ?? {}) as IncomingRecord;
@@ -142,11 +194,9 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    const isOpen = rec.is_open === undefined || rec.is_open === null
-      ? true
-      : typeof rec.is_open === "boolean"
-        ? rec.is_open
-        : String(rec.is_open).toLowerCase() === "true";
+    const openParsed = toIsOpen(rec.is_open);
+    const isOpen = openParsed.value;
+    if (openParsed.unrecognized !== null) unrecognizedIsOpen.push(openParsed.unrecognized);
 
     const descriptionParts = [
       str(rec.description),
@@ -239,9 +289,10 @@ Deno.serve(async (req) => {
   const mappedVertical = insertedRows.filter((r) => r.vertical_slug !== null).length;
   const unmappedVertical = insertedRows.length - mappedVertical;
   const unmappedValues = [...new Set(unmappedVerticals)];
+  const unrecognizedIsOpenValues = [...new Set(unrecognizedIsOpen)];
 
   console.log(
-    `ingest-leads: received=${received} inserted=${inserted} duplicates=${skippedDuplicates} invalid=${skippedInvalid} mapped_vertical=${mappedVertical} unmapped_vertical=${unmappedVertical} unmapped_values=${JSON.stringify(unmappedValues)}`,
+    `ingest-leads: received=${received} inserted=${inserted} duplicates=${skippedDuplicates} invalid=${skippedInvalid} mapped_vertical=${mappedVertical} unmapped_vertical=${unmappedVertical} unmapped_values=${JSON.stringify(unmappedValues)} unrecognized_is_open=${JSON.stringify(unrecognizedIsOpenValues)}`,
   );
 
   return new Response(
@@ -253,6 +304,7 @@ Deno.serve(async (req) => {
       mapped_vertical: mappedVertical,
       unmapped_vertical: unmappedVertical,
       unmapped_vertical_values: unmappedValues,
+      unrecognized_is_open_values: unrecognizedIsOpenValues,
     }),
     { status: 200, headers: jsonHeaders },
   );

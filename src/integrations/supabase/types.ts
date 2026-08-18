@@ -1261,6 +1261,27 @@ export type Database = {
         }
         Relationships: []
       }
+      opportunities_ingest_repair_backup_20260818: {
+        Row: {
+          deadline: string | null
+          event_date: string | null
+          id: string | null
+          is_active: boolean | null
+        }
+        Insert: {
+          deadline?: string | null
+          event_date?: string | null
+          id?: string | null
+          is_active?: boolean | null
+        }
+        Update: {
+          deadline?: string | null
+          event_date?: string | null
+          id?: string | null
+          is_active?: boolean | null
+        }
+        Relationships: []
+      }
       opportunities_vertical_backup_20260818: {
         Row: {
           id: string | null

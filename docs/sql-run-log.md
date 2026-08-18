@@ -143,3 +143,10 @@ WHERE raw_data ? 'application_link' AND raw_data ? 'event_name';   -- 60 rows
 Revert: DELETE FROM public.user_verticals WHERE is_inferred = true;
         ALTER TABLE public.user_verticals DROP COLUMN is_inferred, DROP COLUMN confirmed_at;
         DROP TABLE public.user_verticals_backup_20260818;
+
+## 2026-08-18 — ingest-leads repair
+- Backup: `public.opportunities_ingest_repair_backup_20260818` (id, is_active, event_date, deadline for all ingest-leads rows).
+- Fixed mis-parsed `event_date` years (month+day with no year) for ingest-leads rows.
+- Reactivated ingest-leads rows whose deadline/event_date is still in the future and whose raw_data is_open is not falsy.
+- Code: ingest-leads is_open coercion + toTimestamp date-component guard; deactivate-expired-opportunities implausible-date guard.
+- Revert: `update public.opportunities o set is_active=b.is_active, event_date=b.event_date, deadline=b.deadline from public.opportunities_ingest_repair_backup_20260818 b where b.id=o.id;` then `drop table public.opportunities_ingest_repair_backup_20260818;`
