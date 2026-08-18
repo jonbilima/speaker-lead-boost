@@ -153,6 +153,12 @@ const Profile = () => {
         return;
       }
 
+      // Decide up front whether this save can change any match score.
+      const needsRescore = scoringInputsChanged(savedScoringInputs.current, {
+        feeRangeMin: formData.feeRangeMin,
+        topics: formData.selectedTopics,
+      });
+
       // Save profile
       const { error: profileError } = await supabase
         .from('profiles')
@@ -191,6 +197,19 @@ const Profile = () => {
           );
 
         if (topicsError) throw topicsError;
+      }
+
+      savedScoringInputs.current = {
+        feeRangeMin: formData.feeRangeMin,
+        topics: [...formData.selectedTopics],
+      };
+
+      if (!needsRescore) {
+        // Nothing that feeds the score changed (e.g. bio, LinkedIn URL) — skip
+        // the rescore entirely instead of recomputing every active opportunity.
+        toast.success("Profile saved");
+        navigate("/dashboard");
+        return;
       }
 
       toast.success("Profile saved! Updating your matches...");
