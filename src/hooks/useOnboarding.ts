@@ -49,6 +49,25 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     },
   },
   {
+    id: "audiences",
+    title: "Choose your audiences",
+    description: "Pick the verticals you speak to — two or three gives you the fullest feed",
+    action: "Select audiences",
+    route: "/profile",
+    checkComplete: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return false;
+
+      const { data: verticals } = await supabase
+        .from("user_verticals")
+        .select("id")
+        .eq("user_id", session.user.id)
+        .limit(1);
+
+      return !!(verticals && verticals.length > 0);
+    },
+  },
+  {
     id: "headshot",
     title: "Upload a headshot",
     description: "Add a professional photo for your speaker packages",
