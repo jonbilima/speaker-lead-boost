@@ -216,7 +216,9 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
                 <DollarSign className="h-3 w-3" />
                 {formatFee(opportunity.fee_estimate_min, opportunity.fee_estimate_max)}
               </span>
-              <Badge variant="outline">{opportunity.ai_score}% match</Badge>
+              {opportunity.ai_score !== null && (
+                <Badge variant="outline">{Math.round(opportunity.ai_score)}% match</Badge>
+              )}
             </div>
           </CardContent>
         </Card>
