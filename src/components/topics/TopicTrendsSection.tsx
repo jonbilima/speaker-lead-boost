@@ -1,7 +1,5 @@
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Minus, LineChart as LineChartIcon } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 interface TopicWithStats {
   id: string;
@@ -29,7 +27,7 @@ export function TopicTrendsSection({ topicStats }: TopicTrendsSectionProps) {
     <Card className="p-6">
       <h3 className="font-semibold flex items-center gap-2 mb-4">
         <LineChartIcon className="h-5 w-5 text-violet-600" />
-        Topic Trends (Last 6 Months)
+        Topic Trends
       </h3>
 
       {topTopics.length > 0 ? (
