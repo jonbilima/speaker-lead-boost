@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
+import { describeReasonCodes, isMissingDataScore } from "@/lib/reasonCodes";
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
@@ -153,6 +154,14 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
   };
 
   const deadlineInfo = getDeadlineInfo(opportunity.deadline);
+  const reasons = describeReasonCodes(opportunity.reason_codes);
+  const missingData = isMissingDataScore(opportunity.reason_codes);
+  const reasonToneClass = (tone: string) => {
+    if (tone === "positive") return "border-primary/40 text-primary";
+    if (tone === "negative") return "border-destructive/40 text-destructive";
+    if (tone === "missing") return "border-muted-foreground/30 text-muted-foreground";
+    return "border-border text-foreground";
+  };
 
   if (viewMode === "list") {
     return (
@@ -310,6 +319,31 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
                 <Badge variant="secondary" className="text-xs">
                   +{opportunity.topics.length - 3}
                 </Badge>
+              )}
+            </div>
+          )}
+
+          {/* Why this score */}
+          {reasons.length > 0 && (
+            <div className="space-y-1 rounded-md bg-muted/40 p-2">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Why this score
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {reasons.map((r, i) => (
+                  <Badge
+                    key={i}
+                    variant="outline"
+                    className={`text-[11px] font-normal ${reasonToneClass(r.tone)}`}
+                  >
+                    {r.label}
+                  </Badge>
+                ))}
+              </div>
+              {missingData && (
+                <p className="text-[11px] text-muted-foreground">
+                  Low score here is due to missing information on this listing, not a confirmed poor fit.
+                </p>
               )}
             </div>
           )}

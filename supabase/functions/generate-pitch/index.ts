@@ -72,6 +72,37 @@ serve(async (req) => {
       });
     }
 
+    // Deterministic reason codes for this speaker/opportunity match
+    const { data: scoreRow } = await supabase
+      .from('opportunity_scores')
+      .select('ai_score, reason_codes')
+      .eq('user_id', user.id)
+      .eq('opportunity_id', opportunity_id)
+      .maybeSingle();
+
+    const REASON_CODE_PITCH_HINTS: Record<string, string> = {
+      topic_match_strong: "the speaker's core topics directly match this event's stated topics",
+      topic_match_none: 'the event topics differ, so lead with transferable expertise',
+      no_topics_tagged: "the event has no topics listed, so lead with the speaker's strongest theme",
+      speaker_topics_missing: "the speaker's topics are not on file, so lead with their bio",
+      fee_above_floor: "the listed fee fits the speaker's range",
+      fee_below_floor: 'do not mention fee',
+      fee_not_listed: 'do not mention fee',
+      fee_floor_not_set: 'do not mention fee',
+      deadline_tight: 'the deadline is imminent, so be brief and direct',
+      deadline_comfortable: 'there is time, so a warm introduction works',
+      no_deadline_listed: 'no deadline is listed',
+      public_cfp: 'this is an open call for speakers',
+      cold_pitch_required: 'this is cold outreach with no public call',
+    };
+
+    const reasonCodes: string[] = (scoreRow?.reason_codes as string[] | null) || [];
+    const fitReasons = reasonCodes
+      .map((c) => REASON_CODE_PITCH_HINTS[c])
+      .filter(Boolean)
+      .map((h) => `- ${h}`)
+      .join('\n') || '- no scored match data available';
+
     const userTopics = profile.user_topics?.map((ut: any) => ut.topics.name).join(', ') || 'Not specified';
     const oppTopics = opportunity.opportunity_topics?.map((ot: any) => ot.topics.name).join(', ') || 'Not specified';
     const pastTalks = profile.past_talks?.join(', ') || 'None listed';
@@ -93,12 +124,16 @@ Opportunity:
 - Description: ${opportunity.description || 'No description provided'}
 - Location: ${opportunity.location || 'Unknown'}
 
+Match analysis (deterministic, use this to frame the pitch):
+${fitReasons}
+
 Tone: ${tone}
 
 Requirements:
 - 3 different variants (concise, balanced, detailed)
 - Each max 150 words
 - Include subject line
+- Open the first sentence with the strongest fit reason from the match analysis above
 - Reference relevant expertise
 - Clear CTA to discuss speaking opportunity
 - Professional, humble, confident
