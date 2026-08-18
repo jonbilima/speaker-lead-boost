@@ -413,7 +413,8 @@ function generateEmailHtml(
   data: DigestData, 
   preferences: any,
   trackingId: string,
-  baseUrl: string
+  baseUrl: string,
+  leads: WeeklyLead[] = []
 ): string {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'No date';
@@ -601,6 +602,8 @@ function generateEmailHtml(
             </p>
           </td>
         </tr>
+
+        ${renderLeadsSection(leads)}
 
         ${sections}
 
