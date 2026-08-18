@@ -321,6 +321,15 @@ const Profile = () => {
                 />
               </div>
 
+              <div className="space-y-2 pt-2 border-t">
+                <VerticalSelector
+                  verticals={verticals}
+                  selected={selectedVerticals}
+                  onToggle={toggleVertical}
+                  disabled={saving}
+                />
+              </div>
+
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="feeRangeMin">Minimum Fee ($)</Label>
@@ -426,7 +435,11 @@ const Profile = () => {
               <Button 
                 type="submit" 
                 className="w-full"
-                disabled={saving || (formData.selectedTopics.length === 0 && formData.customTopics.length === 0)}
+                disabled={
+                  saving ||
+                  selectedVerticals.length === 0 ||
+                  (formData.selectedTopics.length === 0 && formData.customTopics.length === 0)
+                }
               >
                 {saving ? "Saving..." : "Save Profile & Find Opportunities"}
               </Button>
