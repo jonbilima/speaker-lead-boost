@@ -110,3 +110,26 @@ DELETE FROM public.opportunities       WHERE id = 'ed2ec56d-...' AND source = 't
 
 -- OK: post-cleanup verification — 0 leftovers, 48471 scores, 721 active opportunities (unchanged baseline)
 ```
+
+## 2026-08-18 22:1x UTC — verticals schema + 60-row backfill
+
+```sql
+-- OK: read-only audit of ingest marker (60 rows, all with event_name + source_name)
+select lower(trim(raw_data->>'vertical_tag')), count(*) from public.opportunities
+where raw_data ? 'application_link' group by 1;
+
+-- OK: migration 1 — verticals + user_verticals + opportunities columns + backup + backfill
+CREATE TABLE public.verticals (slug text primary key, label text not null, sort_order int, created_at timestamptz);
+GRANT SELECT ... ; ALTER TABLE ... ENABLE RLS; CREATE POLICY "Verticals are readable by everyone" ...;
+INSERT INTO public.verticals (10 canonical slugs) ON CONFLICT DO NOTHING;
+CREATE TABLE public.user_verticals (... unique(user_id, vertical_slug)); GRANT/RLS/3 policies;
+ALTER TABLE public.opportunities ADD COLUMN IF NOT EXISTS vertical_slug text REFERENCES public.verticals(slug);
+ALTER TABLE public.opportunities ADD COLUMN IF NOT EXISTS ingest_source text;
+CREATE TABLE public.opportunities_vertical_backup_20260818 AS SELECT id, vertical_slug, ingest_source FROM public.opportunities;
+UPDATE public.opportunities SET ingest_source='ingest-leads', vertical_slug = CASE lower(trim(raw_data->>'vertical_tag')) ... END
+WHERE raw_data ? 'application_link' AND raw_data ? 'event_name';   -- 60 rows
+
+-- OK: migration 2 — lock backup table (RLS on, revoke anon/authenticated, grant service_role)
+
+-- OK: verification — verticals 10; marked 60; null vertical 0; false positives 0
+```
