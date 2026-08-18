@@ -1605,6 +1605,27 @@ export type Database = {
           },
         ]
       }
+      opportunity_topics_backup_20260818: {
+        Row: {
+          id: string | null
+          opportunity_id: string | null
+          relevance_score: number | null
+          topic_id: string | null
+        }
+        Insert: {
+          id?: string | null
+          opportunity_id?: string | null
+          relevance_score?: number | null
+          topic_id?: string | null
+        }
+        Update: {
+          id?: string | null
+          opportunity_id?: string | null
+          relevance_score?: number | null
+          topic_id?: string | null
+        }
+        Relationships: []
+      }
       organizers: {
         Row: {
           created_at: string
