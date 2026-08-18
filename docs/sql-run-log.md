@@ -150,3 +150,19 @@ Revert: DELETE FROM public.user_verticals WHERE is_inferred = true;
 - Reactivated ingest-leads rows whose deadline/event_date is still in the future and whose raw_data is_open is not falsy.
 - Code: ingest-leads is_open coercion + toTimestamp date-component guard; deactivate-expired-opportunities implausible-date guard.
 - Revert: `update public.opportunities o set is_active=b.is_active, event_date=b.event_date, deadline=b.deadline from public.opportunities_ingest_repair_backup_20260818 b where b.id=o.id;` then `drop table public.opportunities_ingest_repair_backup_20260818;`
+
+## 2026-08-18 — Structured topics from ingested leads
+
+- Snapshot: `public.opportunity_topics_backup_20260818` (96 rows, pre-backfill copy of `opportunity_topics`), RLS enabled, service_role only.
+- Backfill: inserted `opportunity_topics` rows for opportunities whose `raw_data->>'topic_or_industry'` matched the keyword→topic alias map. No topics created. `ON CONFLICT DO NOTHING`.
+- Result: opportunity_topics 96 → 146 rows; opportunities with ≥1 topic 24 → 63.
+- Edge function `ingest-leads` now writes matched topics into `opportunity_topics` and returns `topic_links_created` + `unmatched_topic_values`.
+
+### Revert
+```sql
+DELETE FROM public.opportunity_topics ot
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.opportunity_topics_backup_20260818 b WHERE b.id = ot.id
+);
+-- then rescore: SELECT public.score_opportunities_for_user(id) FROM public.profiles;
+```
