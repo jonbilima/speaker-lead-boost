@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.rescore-opportunities]
 verify_jwt = true
+
+[functions.submit-and-score-opportunity]
+verify_jwt = true
