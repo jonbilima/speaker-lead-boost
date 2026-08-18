@@ -323,21 +323,6 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex items-center gap-2 pt-2 border-t">
-            <Button className="flex-1" size="sm" onClick={onQuickApply}>
-              <Zap className="h-4 w-4 mr-1" />
-              Quick Apply
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleSave}>
-              <Bookmark className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="sm" onClick={handlePassClick}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
               <Zap className="h-4 w-4 mr-1" />
               Quick Apply
             </Button>
