@@ -39,6 +39,7 @@ export interface Opportunity {
   ai_reason: string | null;
   topics: string[];
   pipeline_stage?: string;
+  created_at?: string | null;
 }
 
 export interface FilterState {
@@ -100,7 +101,8 @@ const Find = () => {
             event_date,
             location,
             audience_size,
-            event_url
+            event_url,
+            created_at
           )
         `)
         .eq("user_id", session.user.id)
@@ -156,6 +158,7 @@ const Find = () => {
           location: string | null;
           audience_size: number | null;
           event_url: string | null;
+          created_at: string | null;
         } | null;
       }
 
@@ -179,6 +182,7 @@ const Find = () => {
           event_url: s.opportunities!.event_url,
           ai_score: s.ai_score || 0,
           ai_reason: s.ai_reason,
+          created_at: s.opportunities!.created_at,
           topics: topicsMap[s.opportunities!.id] || [],
           pipeline_stage: s.pipeline_stage || undefined,
         }));
@@ -200,6 +204,7 @@ const Find = () => {
           event_url: o.event_url,
           ai_score: 50, // Default score for unscored
           ai_reason: null,
+          created_at: o.created_at,
           topics: topicsMap[o.id] || [],
         }));
 
@@ -291,7 +296,9 @@ const Find = () => {
       if (daysLeft > 14 || daysLeft < 0) return false;
     }
     if (activeSmartList === "new-this-week") {
-      // Assume opportunities from last 7 days (would need created_at field in reality)
+      if (!opp.created_at) return false;
+      const addedDaysAgo = (Date.now() - new Date(opp.created_at).getTime()) / (1000 * 60 * 60 * 24);
+      if (addedDaysAgo > 7) return false;
     }
 
     // Fee range filter
