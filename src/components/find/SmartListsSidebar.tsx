@@ -55,9 +55,12 @@ export function SmartListsSidebar({
     opp.ai_score >= 85 && (!opp.pipeline_stage || opp.pipeline_stage === "new")
   ).length;
 
-  const newThisWeekCount = opportunities.filter(opp => 
-    !opp.pipeline_stage || opp.pipeline_stage === "new"
-  ).length;
+  const newThisWeekCount = opportunities.filter(opp => {
+    if (opp.pipeline_stage && opp.pipeline_stage !== "new") return false;
+    if (!opp.created_at) return false;
+    const addedDaysAgo = (Date.now() - new Date(opp.created_at).getTime()) / (1000 * 60 * 60 * 24);
+    return addedDaysAgo <= 7;
+  }).length;
 
   const smartLists = [
     {
