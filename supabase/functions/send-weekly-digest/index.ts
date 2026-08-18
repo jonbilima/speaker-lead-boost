@@ -811,7 +811,17 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json().catch(() => ({}));
-    const { userId, isTest } = body;
+    const { userId, isTest, dryRun } = body;
+
+    // Dry run: report only. No email, no lead_deliveries rows, no digest logs.
+    if (dryRun) {
+      const report = await runDryRun(supabase);
+      return new Response(JSON.stringify(report), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const verticalLabels = await loadVerticalLabels(supabase);
 
     // Test mode: send to specific user
     if (isTest && userId) {
@@ -834,7 +844,7 @@ serve(async (req) => {
         );
       }
 
-      await sendDigestToUser(supabase, profile, preferences, supabaseUrl);
+      await sendDigestToUser(supabase, profile, preferences, supabaseUrl, verticalLabels);
       
       return new Response(
         JSON.stringify({ success: true, message: 'Test digest sent' }),
@@ -888,7 +898,7 @@ serve(async (req) => {
         continue;
       }
 
-      await sendDigestToUser(supabase, pref.profiles, pref, supabaseUrl);
+      await sendDigestToUser(supabase, pref.profiles, pref, supabaseUrl, verticalLabels);
       sentCount++;
     }
 
