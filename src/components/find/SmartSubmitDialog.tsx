@@ -269,6 +269,20 @@ export function SmartSubmitDialog({ onSuccess }: SmartSubmitDialogProps) {
               </div>
             </div>
 
+            <div>
+              <Label htmlFor="review_url">Event / CFP URL</Label>
+              <Input
+                id="review_url"
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://conference.com/cfp"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Used to avoid creating a duplicate of an opportunity we already track.
+              </p>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="deadline">CFP Deadline</Label>
