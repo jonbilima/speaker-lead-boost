@@ -2068,6 +2068,27 @@ export type Database = {
           },
         ]
       }
+      scoring_run_20260817: {
+        Row: {
+          duration_ms: number | null
+          ran_at: string
+          rows_written: number
+          user_id: string
+        }
+        Insert: {
+          duration_ms?: number | null
+          ran_at?: string
+          rows_written: number
+          user_id: string
+        }
+        Update: {
+          duration_ms?: number | null
+          ran_at?: string
+          rows_written?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       scraping_logs: {
         Row: {
           completed_at: string | null
