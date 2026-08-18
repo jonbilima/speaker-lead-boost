@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
+import { describeReasonCodes, isMissingDataScore } from "@/lib/reasonCodes";
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
@@ -153,6 +154,14 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
   };
 
   const deadlineInfo = getDeadlineInfo(opportunity.deadline);
+  const reasons = describeReasonCodes(opportunity.reason_codes);
+  const missingData = isMissingDataScore(opportunity.reason_codes);
+  const reasonToneClass = (tone: string) => {
+    if (tone === "positive") return "border-primary/40 text-primary";
+    if (tone === "negative") return "border-destructive/40 text-destructive";
+    if (tone === "missing") return "border-muted-foreground/30 text-muted-foreground";
+    return "border-border text-foreground";
+  };
 
   if (viewMode === "list") {
     return (
