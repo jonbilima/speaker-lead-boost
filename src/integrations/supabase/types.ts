@@ -2878,8 +2878,25 @@ export type Database = {
         }
         Returns: boolean
       }
+      score_missing_opportunities: {
+        Args: { p_limit?: number }
+        Returns: number
+      }
       score_opportunities_for_user: {
         Args: { p_user_id: string }
+        Returns: number
+      }
+      score_opportunity_for_all_users: {
+        Args: { p_opportunity_id: string }
+        Returns: number
+      }
+      score_opportunity_matches: {
+        Args: {
+          p_limit?: number
+          p_only_missing?: boolean
+          p_opportunity_id?: string
+          p_user_id?: string
+        }
         Returns: number
       }
     }
