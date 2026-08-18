@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.80.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
 const SKIP_WORDS = ["rolling", "ongoing", "continual", "continuous", "tbd", "open"];
@@ -13,15 +13,24 @@ function hasSkipWord(value: unknown): boolean {
   return SKIP_WORDS.some((w) => v.includes(w));
 }
 
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  const cronSecret = Deno.env.get("EXPIRY_CRON_SECRET") ?? "";
   const bearer = (req.headers.get("Authorization") ?? "").replace("Bearer ", "").trim();
-  const apikey = (req.headers.get("apikey") ?? "").trim();
-  const allowed = [serviceKey, anonKey].filter(Boolean);
-  if (!allowed.includes(bearer) && !allowed.includes(apikey)) {
+  const provided = (req.headers.get("x-cron-secret") ?? "").trim();
+  const authorized =
+    (cronSecret !== "" && provided !== "" && timingSafeEqual(provided, cronSecret)) ||
+    (bearer !== "" && timingSafeEqual(bearer, serviceKey));
+  if (!authorized) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
