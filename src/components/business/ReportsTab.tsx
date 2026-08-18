@@ -41,7 +41,6 @@ export function ReportsTab({ userId }: ReportsTabProps) {
   const [dateRange, setDateRange] = useState("this-year");
   const [monthlyRevenue, setMonthlyRevenue] = useState<MonthlyRevenue[]>([]);
   const [clientRevenue, setClientRevenue] = useState<ClientRevenue[]>([]);
-  const [industryRevenue, setIndustryRevenue] = useState<ClientRevenue[]>([]);
   const [conversionData, setConversionData] = useState<ConversionData[]>([]);
 
   const loadData = useCallback(async () => {
@@ -81,14 +80,6 @@ export function ReportsTab({ userId }: ReportsTabProps) {
         .sort((a, b) => b.revenue - a.revenue)
         .slice(0, 5);
       setClientRevenue(clientData);
-
-      // Industry revenue (placeholder data since we don't track industry per booking)
-      setIndustryRevenue([
-        { name: "Corporate", revenue: thisYearBookings.reduce((s, b) => s + (b.confirmed_fee || 0), 0) * 0.4 },
-        { name: "Education", revenue: thisYearBookings.reduce((s, b) => s + (b.confirmed_fee || 0), 0) * 0.25 },
-        { name: "Nonprofit", revenue: thisYearBookings.reduce((s, b) => s + (b.confirmed_fee || 0), 0) * 0.2 },
-        { name: "Healthcare", revenue: thisYearBookings.reduce((s, b) => s + (b.confirmed_fee || 0), 0) * 0.15 },
-      ]);
 
       // Pipeline conversion
       const { data: scores } = await supabase
@@ -233,43 +224,15 @@ export function ReportsTab({ userId }: ReportsTabProps) {
           </CardContent>
         </Card>
 
-        {/* Revenue by Industry */}
+        {/* Revenue by Industry — hidden until bookings carry industry data */}
         <Card>
           <CardHeader>
             <CardTitle>Revenue by Industry</CardTitle>
           </CardHeader>
           <CardContent>
-            {industryRevenue.some(i => i.revenue > 0) ? (
-              <div className="h-[250px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={industryRevenue}
-                      dataKey="revenue"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                    >
-                      {industryRevenue.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value: number) => [`$${value.toLocaleString()}`, "Revenue"]}
-                      contentStyle={{ 
-                        backgroundColor: "hsl(var(--card))", 
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px"
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <p className="text-center text-muted-foreground py-8">No data available</p>
-            )}
+            <p className="text-center text-muted-foreground py-8 text-sm">
+              Industry breakdown will appear once your bookings have industry data.
+            </p>
           </CardContent>
         </Card>
 
