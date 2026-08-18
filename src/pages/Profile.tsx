@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -17,12 +17,33 @@ import { AppearanceSection } from "@/components/settings/AppearanceSection";
 import { TopicSelector } from "@/components/profile/TopicSelector";
 import { rescoreMatches } from "@/lib/rescoreMatches";
 
+/**
+ * Fields that actually feed score_opportunities_for_user:
+ *   - profiles.fee_range_min  (fee_alignment_score)
+ *   - user_topics             (topic_match_score)
+ * Nothing else in this form affects a score, so nothing else should trigger a
+ * full rescore of every active opportunity. fee_range_max, bio, links, and
+ * follow-up intervals are deliberately excluded.
+ */
+type ScoringInputs = { feeRangeMin: string; topics: string[] };
+
+const scoringInputsChanged = (a: ScoringInputs, b: ScoringInputs): boolean => {
+  if (a.feeRangeMin.trim() !== b.feeRangeMin.trim()) return true;
+  const sortedA = [...a.topics].sort().join(",");
+  const sortedB = [...b.topics].sort().join(",");
+  return sortedA !== sortedB;
+};
+
 const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [allTopics, setAllTopics] = useState<{ id: string; name: string; category?: string }[]>([]);
   const navigate = useNavigate();
+
+  // Snapshot of the scoring-relevant fields as last persisted, used to decide
+  // whether a save needs to trigger a rescore at all.
+  const savedScoringInputs = useRef<ScoringInputs>({ feeRangeMin: "1000", topics: [] });
 
   const [formData, setFormData] = useState({
     name: "",
