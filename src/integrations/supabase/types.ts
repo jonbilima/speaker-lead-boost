@@ -1016,6 +1016,7 @@ export type Database = {
           fee_estimate_max: number | null
           fee_estimate_min: number | null
           id: string
+          ingest_source: string | null
           is_active: boolean | null
           is_featured: boolean | null
           is_verified: boolean | null
@@ -1033,6 +1034,7 @@ export type Database = {
           source: string | null
           submitted_by: string | null
           timezone: string | null
+          vertical_slug: string | null
         }
         Insert: {
           audience_size?: number | null
@@ -1048,6 +1050,7 @@ export type Database = {
           fee_estimate_max?: number | null
           fee_estimate_min?: number | null
           id?: string
+          ingest_source?: string | null
           is_active?: boolean | null
           is_featured?: boolean | null
           is_verified?: boolean | null
@@ -1065,6 +1068,7 @@ export type Database = {
           source?: string | null
           submitted_by?: string | null
           timezone?: string | null
+          vertical_slug?: string | null
         }
         Update: {
           audience_size?: number | null
@@ -1080,6 +1084,7 @@ export type Database = {
           fee_estimate_max?: number | null
           fee_estimate_min?: number | null
           id?: string
+          ingest_source?: string | null
           is_active?: boolean | null
           is_featured?: boolean | null
           is_verified?: boolean | null
@@ -1097,8 +1102,17 @@ export type Database = {
           source?: string | null
           submitted_by?: string | null
           timezone?: string | null
+          vertical_slug?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "opportunities_vertical_slug_fkey"
+            columns: ["vertical_slug"]
+            isOneToOne: false
+            referencedRelation: "verticals"
+            referencedColumns: ["slug"]
+          },
+        ]
       }
       opportunities_backup_20260817: {
         Row: {
@@ -1196,6 +1210,24 @@ export type Database = {
           source?: string | null
           submitted_by?: string | null
           timezone?: string | null
+        }
+        Relationships: []
+      }
+      opportunities_vertical_backup_20260818: {
+        Row: {
+          id: string | null
+          ingest_source: string | null
+          vertical_slug: string | null
+        }
+        Insert: {
+          id?: string | null
+          ingest_source?: string | null
+          vertical_slug?: string | null
+        }
+        Update: {
+          id?: string | null
+          ingest_source?: string | null
+          vertical_slug?: string | null
         }
         Relationships: []
       }
@@ -2729,6 +2761,56 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_verticals: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+          vertical_slug: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+          vertical_slug: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+          vertical_slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_verticals_vertical_slug_fkey"
+            columns: ["vertical_slug"]
+            isOneToOne: false
+            referencedRelation: "verticals"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
+      verticals: {
+        Row: {
+          created_at: string
+          label: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          label: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          label?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
       }
       waitlist: {
         Row: {
