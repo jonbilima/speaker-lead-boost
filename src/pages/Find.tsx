@@ -35,7 +35,7 @@ export interface Opportunity {
   location: string | null;
   audience_size: number | null;
   event_url: string | null;
-  ai_score: number;
+  ai_score: number | null;
   ai_reason: string | null;
   topics: string[];
   pipeline_stage?: string;
@@ -180,7 +180,7 @@ const Find = () => {
           location: s.opportunities!.location,
           audience_size: s.opportunities!.audience_size,
           event_url: s.opportunities!.event_url,
-          ai_score: s.ai_score || 0,
+          ai_score: s.ai_score ?? null,
           ai_reason: s.ai_reason,
           created_at: s.opportunities!.created_at,
           topics: topicsMap[s.opportunities!.id] || [],
@@ -202,7 +202,7 @@ const Find = () => {
           location: o.location,
           audience_size: o.audience_size,
           event_url: o.event_url,
-          ai_score: 50, // Default score for unscored
+          ai_score: null, // No score yet — card hides the match badge
           ai_reason: null,
           created_at: o.created_at,
           topics: topicsMap[o.id] || [],
