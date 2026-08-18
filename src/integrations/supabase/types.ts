@@ -2782,6 +2782,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      score_opportunities_for_user: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
     }
     Enums: {
       activity_type:
