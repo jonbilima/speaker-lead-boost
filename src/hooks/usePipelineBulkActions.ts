@@ -334,7 +334,7 @@ export function usePipelineBulkActions(
         const response = await supabase.functions.invoke("generate-pitch", {
           body: {
             userId: session.user.id,
-            opportunityId: opp.id,
+            opportunity_id: opp.id,
             tone: "professional",
           },
         });
