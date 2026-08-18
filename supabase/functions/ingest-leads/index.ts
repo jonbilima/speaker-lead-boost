@@ -303,6 +303,7 @@ Deno.serve(async (req) => {
       is_active: isOpen,
       scraped_at: new Date().toISOString(),
       raw_data: item as Record<string, unknown>,
+      __topic_raw: str(rec.topic_or_industry),
     });
   }
 
@@ -342,11 +343,17 @@ Deno.serve(async (req) => {
   }
 
   let inserted = 0;
+  let topicLinksCreated = 0;
+  const unmatchedTopicValues: string[] = [];
   if (toInsert.length > 0) {
+    const payload = toInsert.map((r) => {
+      const { __topic_raw: _omit, ...rest } = r as Record<string, unknown>;
+      return rest;
+    });
     const { data, error } = await supabase
       .from("opportunities")
-      .insert(toInsert)
-      .select("id");
+      .insert(payload)
+      .select("id, event_url");
 
     if (error) {
       console.error("Insert failed:", error);
@@ -358,6 +365,55 @@ Deno.serve(async (req) => {
 
     inserted = data?.length ?? 0;
     skippedDuplicates += toInsert.length - inserted;
+
+    // Structured topic links. Failures here never fail the ingest.
+    try {
+      const idByLink = new Map<string, string>(
+        (data ?? []).map((r) => [r.event_url as string, r.id as string]),
+      );
+      const wanted = new Map<string, Set<string>>(); // opportunity id -> topic names
+      for (const row of toInsert) {
+        const rawTopic = (row as { __topic_raw?: string | null }).__topic_raw ?? null;
+        const oppId = idByLink.get(row.event_url as string);
+        if (!rawTopic || !oppId) continue;
+        const names = matchTopicNames(rawTopic);
+        if (names.length === 0) {
+          unmatchedTopicValues.push(rawTopic);
+          continue;
+        }
+        wanted.set(oppId, new Set(names));
+      }
+
+      if (wanted.size > 0) {
+        const allNames = [...new Set([...wanted.values()].flatMap((s) => [...s]))];
+        const { data: topicRows, error: topicErr } = await supabase
+          .from("topics")
+          .select("id, name")
+          .in("name", allNames);
+        if (topicErr) throw topicErr;
+        const idByName = new Map<string, string>(
+          (topicRows ?? []).map((t) => [t.name as string, t.id as string]),
+        );
+
+        const links: { opportunity_id: string; topic_id: string }[] = [];
+        for (const [oppId, names] of wanted) {
+          for (const name of names) {
+            const topicId = idByName.get(name);
+            if (topicId) links.push({ opportunity_id: oppId, topic_id: topicId });
+          }
+        }
+
+        if (links.length > 0) {
+          const { error: linkErr } = await supabase
+            .from("opportunity_topics")
+            .upsert(links, { onConflict: "opportunity_id,topic_id", ignoreDuplicates: true });
+          if (linkErr) throw linkErr;
+          topicLinksCreated = links.length;
+        }
+      }
+    } catch (e) {
+      console.error("Topic linking failed (opportunities still inserted):", e);
+    }
   }
 
   const insertedRows = toInsert;
@@ -379,6 +435,8 @@ Deno.serve(async (req) => {
       mapped_vertical: mappedVertical,
       unmapped_vertical: unmappedVertical,
       unmapped_vertical_values: unmappedValues,
+      topic_links_created: topicLinksCreated,
+      unmatched_topic_values: [...new Set(unmatchedTopicValues)],
       unrecognized_is_open_values: unrecognizedIsOpenValues,
     }),
     { status: 200, headers: jsonHeaders },
