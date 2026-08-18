@@ -35,6 +35,8 @@ export function SmartSubmitDialog({ onSuccess }: SmartSubmitDialogProps) {
   const [loading, setLoading] = useState(false);
   const [extracted, setExtracted] = useState<ExtractedData | null>(null);
   const [karmaPoints, setKarmaPoints] = useState(0);
+  const [matchScore, setMatchScore] = useState<number | null>(null);
+  const [alreadyExisted, setAlreadyExisted] = useState(false);
 
   const handleExtract = async () => {
     if (!url.trim()) {
@@ -85,10 +87,9 @@ export function SmartSubmitDialog({ onSuccess }: SmartSubmitDialogProps) {
         return;
       }
 
-      // Submit the opportunity
-      const { error } = await supabase
-        .from("opportunities")
-        .insert({
+      // Submit + dedupe + score in one authenticated server call
+      const { data, error } = await supabase.functions.invoke("submit-and-score-opportunity", {
+        body: {
           event_name: extracted.event_name,
           organizer_name: extracted.organizer_name || null,
           organizer_email: extracted.organizer_email || null,
@@ -96,36 +97,40 @@ export function SmartSubmitDialog({ onSuccess }: SmartSubmitDialogProps) {
           deadline: extracted.deadline || null,
           event_date: extracted.event_date || null,
           location: extracted.location || null,
-          fee_estimate_min: extracted.fee_estimate_min || null,
-          fee_estimate_max: extracted.fee_estimate_max || null,
-          audience_size: extracted.audience_size || null,
+          fee_estimate_min: extracted.fee_estimate_min ?? null,
+          fee_estimate_max: extracted.fee_estimate_max ?? null,
+          audience_size: extracted.audience_size ?? null,
           description: extracted.description || null,
-          covers_travel: extracted.covers_travel || null,
-          covers_accommodation: extracted.covers_accommodation || null,
-          source: "manual",
-          submitted_by: session.user.id,
-          is_verified: false,
-          is_active: true,
-          scraped_at: new Date().toISOString(),
-        });
+          covers_travel: extracted.covers_travel ?? null,
+          covers_accommodation: extracted.covers_accommodation ?? null,
+        },
+      });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-      // Award karma points
-      const { error: karmaError } = await supabase
-        .from("opportunity_karma")
-        .insert({
-          user_id: session.user.id,
-          action: "submitted",
-          points: 5,
-        });
+      const existed = !!data?.already_existed;
+      setAlreadyExisted(existed);
+      setMatchScore(typeof data?.ai_score === "number" ? Math.round(data.ai_score) : null);
 
-      if (!karmaError) {
-        setKarmaPoints(5);
+      if (existed) {
+        toast.info("Already tracked — we scored the existing listing for you.");
+      } else {
+        // Award karma points for a genuinely new contribution
+        const { error: karmaError } = await supabase
+          .from("opportunity_karma")
+          .insert({
+            user_id: session.user.id,
+            action: "submitted",
+            points: 5,
+            opportunity_id: data?.opportunity_id ?? null,
+          });
+
+        if (!karmaError) setKarmaPoints(5);
+        toast.success("Opportunity added and scored!");
       }
 
       setStep("success");
-      toast.success("Opportunity submitted!");
       onSuccess?.();
     } catch (error) {
       console.error("Submit error:", error);
@@ -142,6 +147,8 @@ export function SmartSubmitDialog({ onSuccess }: SmartSubmitDialogProps) {
       setUrl("");
       setExtracted(null);
       setKarmaPoints(0);
+      setMatchScore(null);
+      setAlreadyExisted(false);
     }, 300);
   };
 
