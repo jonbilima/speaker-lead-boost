@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.ingest-leads]
 verify_jwt = false
+
+[functions.rescore-opportunities]
+verify_jwt = true

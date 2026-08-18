@@ -13,6 +13,7 @@ import { GapAnalysisSection } from "@/components/topics/GapAnalysisSection";
 import { TopicCombinationsSection } from "@/components/topics/TopicCombinationsSection";
 import { TopicTrendsSection } from "@/components/topics/TopicTrendsSection";
 import { OptimizeTopicsDialog } from "@/components/topics/OptimizeTopicsDialog";
+import { rescoreMatches } from "@/lib/rescoreMatches";
 
 interface Topic {
   id: string;
@@ -220,6 +221,7 @@ const Topics = () => {
       toast.error("Failed to add topic");
     } else {
       toast.success("Topic added to your profile");
+      await rescoreMatches();
       loadData();
     }
   };
@@ -237,6 +239,7 @@ const Topics = () => {
       toast.error("Failed to remove topic");
     } else {
       toast.success("Topic removed from your profile");
+      await rescoreMatches();
       loadData();
     }
   };
