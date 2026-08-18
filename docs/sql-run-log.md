@@ -133,3 +133,13 @@ WHERE raw_data ? 'application_link' AND raw_data ? 'event_name';   -- 60 rows
 
 -- OK: verification — verticals 10; marked 60; null vertical 0; false positives 0
 ```
+
+## 2026-08-18 — Vertical backfill for existing users
+1. CREATE TABLE public.user_verticals_backup_20260818 AS SELECT * FROM public.user_verticals; (0 rows — table was empty)
+2. ALTER TABLE public.user_verticals ADD COLUMN is_inferred boolean NOT NULL DEFAULT false, ADD COLUMN confirmed_at timestamptz;
+3. INSERT INTO public.user_verticals (user_id, vertical_slug, is_inferred) — deterministic topic→vertical map, 158 rows / 36 users, all is_inferred = true.
+4. DO $$ ... score_opportunities_for_user(u) for each of the 36 users — 25,956 score rows refreshed, total unchanged at 48,471.
+
+Revert: DELETE FROM public.user_verticals WHERE is_inferred = true;
+        ALTER TABLE public.user_verticals DROP COLUMN is_inferred, DROP COLUMN confirmed_at;
+        DROP TABLE public.user_verticals_backup_20260818;

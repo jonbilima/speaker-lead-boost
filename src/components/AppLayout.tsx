@@ -8,6 +8,7 @@ import { PWAInstallPrompt } from "@/components/mobile/PWAInstallPrompt";
 import { ToolkitDrawer } from "@/components/toolkit/ToolkitDrawer";
 import { KeyboardShortcutsDialog } from "@/components/KeyboardShortcutsDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ConfirmVerticalsPrompt } from "@/components/profile/ConfirmVerticalsPrompt";
 import { Button } from "@/components/ui/button";
 import { Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -105,6 +106,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </header>
           
           <main className="flex-1 p-4 md:p-6 pb-24 md:pb-6">
+            <ConfirmVerticalsPrompt />
             {children}
           </main>
         </SidebarInset>

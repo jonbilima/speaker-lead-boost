@@ -2764,20 +2764,26 @@ export type Database = {
       }
       user_verticals: {
         Row: {
+          confirmed_at: string | null
           created_at: string
           id: string
+          is_inferred: boolean
           user_id: string
           vertical_slug: string
         }
         Insert: {
+          confirmed_at?: string | null
           created_at?: string
           id?: string
+          is_inferred?: boolean
           user_id: string
           vertical_slug: string
         }
         Update: {
+          confirmed_at?: string | null
           created_at?: string
           id?: string
+          is_inferred?: boolean
           user_id?: string
           vertical_slug?: string
         }
@@ -2790,6 +2796,27 @@ export type Database = {
             referencedColumns: ["slug"]
           },
         ]
+      }
+      user_verticals_backup_20260818: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          user_id: string | null
+          vertical_slug: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          user_id?: string | null
+          vertical_slug?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          user_id?: string | null
+          vertical_slug?: string | null
+        }
+        Relationships: []
       }
       verticals: {
         Row: {
