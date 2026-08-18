@@ -15,6 +15,7 @@ import { EmailDigestPreferences } from "@/components/settings/EmailDigestPrefere
 import { TrackingKeywordsSection } from "@/components/settings/TrackingKeywordsSection";
 import { AppearanceSection } from "@/components/settings/AppearanceSection";
 import { TopicSelector } from "@/components/profile/TopicSelector";
+import { rescoreMatches } from "@/lib/rescoreMatches";
 
 const Profile = () => {
   const [loading, setLoading] = useState(true);
@@ -168,16 +169,15 @@ const Profile = () => {
         if (topicsError) throw topicsError;
       }
 
-      toast.success("Profile saved! Finding opportunities for you...");
+      toast.success("Profile saved! Updating your matches...");
 
-      // Trigger opportunity ranking
-      const { error: rankError } = await supabase.functions.invoke('rank-opportunities', {
-        body: { user_id: session.user.id }
-      });
+      // Recalculate match scores now (fast, deterministic) and surface real errors
+      const scored = await rescoreMatches({ silent: true });
 
-      if (rankError) {
-        console.error('Ranking error:', rankError);
-        toast.info("Profile saved, but ranking will happen later");
+      if (scored === null) {
+        toast.error("Profile saved, but we couldn't update your matches. Try saving again.");
+      } else {
+        toast.success(`Matches updated — ${scored} opportunities rescored`);
       }
 
       navigate("/dashboard");
