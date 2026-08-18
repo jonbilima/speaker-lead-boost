@@ -1,0 +1,3 @@
+alter table public.opportunities_ingest_repair_backup_20260818 enable row level security;
+revoke all on public.opportunities_ingest_repair_backup_20260818 from anon, authenticated;
+grant all on public.opportunities_ingest_repair_backup_20260818 to service_role;
