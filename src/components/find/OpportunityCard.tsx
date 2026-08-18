@@ -160,9 +160,11 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-4">
             <div className="flex items-center gap-4">
-              <Badge className={`${getScoreColor(opportunity.ai_score)} shrink-0`}>
-                {opportunity.ai_score}%
-              </Badge>
+              {opportunity.ai_score !== null && (
+                <Badge className={`${getScoreColor(opportunity.ai_score)} shrink-0`}>
+                  {Math.round(opportunity.ai_score)}%
+                </Badge>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <h3 className="font-medium truncate">{opportunity.event_name}</h3>
@@ -232,9 +234,13 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
         <CardContent className="p-4 space-y-3">
           {/* Header */}
           <div className="flex items-start justify-between gap-2">
-            <Badge className={getScoreColor(opportunity.ai_score)}>
-              {opportunity.ai_score}% match
-            </Badge>
+            {opportunity.ai_score !== null ? (
+              <Badge className={getScoreColor(opportunity.ai_score)}>
+                {Math.round(opportunity.ai_score)}% match
+              </Badge>
+            ) : (
+              <span className="text-xs text-muted-foreground">Match score pending</span>
+            )}
             {deadlineInfo.urgent && (
               <Badge variant="destructive" className="shrink-0">
                 <Clock className="h-3 w-3 mr-1" />

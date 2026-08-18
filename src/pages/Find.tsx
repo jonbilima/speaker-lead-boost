@@ -289,7 +289,7 @@ const Find = () => {
     }
 
     // Smart list filters
-    if (activeSmartList === "perfect-matches" && opp.ai_score < 85) return false;
+    if (activeSmartList === "perfect-matches" && (opp.ai_score === null || opp.ai_score < 85)) return false;
     if (activeSmartList === "closing-soon") {
       if (!opp.deadline) return false;
       const daysLeft = Math.ceil((new Date(opp.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
@@ -335,7 +335,7 @@ const Find = () => {
   const sortedOpportunities = [...filteredOpportunities].sort((a, b) => {
     switch (sortBy) {
       case "match":
-        return b.ai_score - a.ai_score;
+        return (b.ai_score ?? -1) - (a.ai_score ?? -1);
       case "deadline":
         if (!a.deadline) return 1;
         if (!b.deadline) return -1;

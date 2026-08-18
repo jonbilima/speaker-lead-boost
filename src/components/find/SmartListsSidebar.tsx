@@ -52,7 +52,7 @@ export function SmartListsSidebar({
   }).length;
 
   const perfectMatchesCount = opportunities.filter(opp => 
-    opp.ai_score >= 85 && (!opp.pipeline_stage || opp.pipeline_stage === "new")
+    opp.ai_score !== null && opp.ai_score >= 85 && (!opp.pipeline_stage || opp.pipeline_stage === "new")
   ).length;
 
   const newThisWeekCount = opportunities.filter(opp => {
