@@ -1321,6 +1321,78 @@ export type Database = {
           },
         ]
       }
+      opportunity_scores_backup_20260817: {
+        Row: {
+          accepted_at: string | null
+          ai_reason: string | null
+          ai_score: number | null
+          calculated_at: string | null
+          completed_at: string | null
+          deadline_urgency_score: number | null
+          fee_alignment_score: number | null
+          id: string | null
+          interested_at: string | null
+          is_archived: boolean | null
+          opportunity_id: string | null
+          pipeline_stage: Database["public"]["Enums"]["pipeline_stage"] | null
+          rejected_at: string | null
+          rejection_reason: string | null
+          response_received_at: string | null
+          shared_at: string | null
+          shared_by: string | null
+          tags: string[] | null
+          topic_match_score: number | null
+          user_id: string | null
+          viewed_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          ai_reason?: string | null
+          ai_score?: number | null
+          calculated_at?: string | null
+          completed_at?: string | null
+          deadline_urgency_score?: number | null
+          fee_alignment_score?: number | null
+          id?: string | null
+          interested_at?: string | null
+          is_archived?: boolean | null
+          opportunity_id?: string | null
+          pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"] | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          response_received_at?: string | null
+          shared_at?: string | null
+          shared_by?: string | null
+          tags?: string[] | null
+          topic_match_score?: number | null
+          user_id?: string | null
+          viewed_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          ai_reason?: string | null
+          ai_score?: number | null
+          calculated_at?: string | null
+          completed_at?: string | null
+          deadline_urgency_score?: number | null
+          fee_alignment_score?: number | null
+          id?: string | null
+          interested_at?: string | null
+          is_archived?: boolean | null
+          opportunity_id?: string | null
+          pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"] | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          response_received_at?: string | null
+          shared_at?: string | null
+          shared_by?: string | null
+          tags?: string[] | null
+          topic_match_score?: number | null
+          user_id?: string | null
+          viewed_at?: string | null
+        }
+        Relationships: []
+      }
       opportunity_topics: {
         Row: {
           id: string
