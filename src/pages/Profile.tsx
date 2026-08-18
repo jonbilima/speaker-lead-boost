@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -17,12 +17,33 @@ import { AppearanceSection } from "@/components/settings/AppearanceSection";
 import { TopicSelector } from "@/components/profile/TopicSelector";
 import { rescoreMatches } from "@/lib/rescoreMatches";
 
+/**
+ * Fields that actually feed score_opportunities_for_user:
+ *   - profiles.fee_range_min  (fee_alignment_score)
+ *   - user_topics             (topic_match_score)
+ * Nothing else in this form affects a score, so nothing else should trigger a
+ * full rescore of every active opportunity. fee_range_max, bio, links, and
+ * follow-up intervals are deliberately excluded.
+ */
+type ScoringInputs = { feeRangeMin: string; topics: string[] };
+
+const scoringInputsChanged = (a: ScoringInputs, b: ScoringInputs): boolean => {
+  if (a.feeRangeMin.trim() !== b.feeRangeMin.trim()) return true;
+  const sortedA = [...a.topics].sort().join(",");
+  const sortedB = [...b.topics].sort().join(",");
+  return sortedA !== sortedB;
+};
+
 const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [allTopics, setAllTopics] = useState<{ id: string; name: string; category?: string }[]>([]);
   const navigate = useNavigate();
+
+  // Snapshot of the scoring-relevant fields as last persisted, used to decide
+  // whether a save needs to trigger a rescore at all.
+  const savedScoringInputs = useRef<ScoringInputs>({ feeRangeMin: "1000", topics: [] });
 
   const [formData, setFormData] = useState({
     name: "",
@@ -69,13 +90,16 @@ const Profile = () => {
         .single();
 
       if (profile) {
+        const loadedTopics = profile.user_topics?.map((ut: any) => ut.topic_id) || [];
+        const loadedFeeMin = profile.fee_range_min?.toString() || "1000";
+        savedScoringInputs.current = { feeRangeMin: loadedFeeMin, topics: loadedTopics };
         setFormData({
           name: profile.name || "",
           email: session.user.email || "",
           bio: profile.bio || "",
-          selectedTopics: profile.user_topics?.map((ut: any) => ut.topic_id) || [],
+          selectedTopics: loadedTopics,
           customTopics: (profile as any).custom_topics || [],
-          feeRangeMin: profile.fee_range_min?.toString() || "1000",
+          feeRangeMin: loadedFeeMin,
           feeRangeMax: profile.fee_range_max?.toString() || "50000",
           pastTalks: profile.past_talks?.join('\n') || "",
           linkedinUrl: profile.linkedin_url || "",
@@ -129,6 +153,12 @@ const Profile = () => {
         return;
       }
 
+      // Decide up front whether this save can change any match score.
+      const needsRescore = scoringInputsChanged(savedScoringInputs.current, {
+        feeRangeMin: formData.feeRangeMin,
+        topics: formData.selectedTopics,
+      });
+
       // Save profile
       const { error: profileError } = await supabase
         .from('profiles')
@@ -167,6 +197,19 @@ const Profile = () => {
           );
 
         if (topicsError) throw topicsError;
+      }
+
+      savedScoringInputs.current = {
+        feeRangeMin: formData.feeRangeMin,
+        topics: [...formData.selectedTopics],
+      };
+
+      if (!needsRescore) {
+        // Nothing that feeds the score changed (e.g. bio, LinkedIn URL) — skip
+        // the rescore entirely instead of recomputing every active opportunity.
+        toast.success("Profile saved");
+        navigate("/dashboard");
+        return;
       }
 
       toast.success("Profile saved! Updating your matches...");

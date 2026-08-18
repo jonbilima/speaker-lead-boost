@@ -59,3 +59,9 @@ verify_jwt = true
 
 [functions.submit-and-score-opportunity]
 verify_jwt = true
+
+# Cron-driven safety-net sweep. Not JWT-protected: authorized in-code by the
+# x-cron-secret header (EXPIRY_CRON_SECRET) or a service-role bearer token,
+# matching deactivate-expired-opportunities. Never callable by anon.
+[functions.score-new-opportunities]
+verify_jwt = false
