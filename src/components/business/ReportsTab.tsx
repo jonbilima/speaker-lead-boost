@@ -224,6 +224,18 @@ export function ReportsTab({ userId }: ReportsTabProps) {
           </CardContent>
         </Card>
 
+        {/* Revenue by Industry — hidden until bookings carry industry data */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Revenue by Industry</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-center text-muted-foreground py-8 text-sm">
+              Industry breakdown will appear once your bookings have industry data.
+            </p>
+          </CardContent>
+        </Card>
+
         {/* Pipeline Conversion */}
         <Card className="md:col-span-2">
           <CardHeader>

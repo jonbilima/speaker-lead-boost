@@ -17,32 +17,8 @@ interface TopicTrendsSectionProps {
 }
 
 export function TopicTrendsSection({ topicStats }: TopicTrendsSectionProps) {
-  // Generate mock trend data for visualization (in production, this would come from historical data)
-  const months = ['Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'];
-  
-  // Get top 5 topics for trend visualization
+  // Get top 5 topics referenced in the summary below
   const topTopics = topicStats.filter(t => t.count > 0).slice(0, 5);
-  
-  // Create trend data (simulated based on current count and trend)
-  const trendData = months.map((month, idx) => {
-    const dataPoint: Record<string, number | string> = { month };
-    topTopics.forEach(topic => {
-      // Simulate historical values based on trend
-      const baseValue = topic.count;
-      let multiplier = 1;
-      if (topic.trend === 'up') {
-        multiplier = 0.6 + (idx * 0.08); // Growing trend
-      } else if (topic.trend === 'down') {
-        multiplier = 1.2 - (idx * 0.04); // Declining trend
-      } else {
-        multiplier = 0.9 + (Math.random() * 0.2); // Stable with slight variation
-      }
-      dataPoint[topic.name] = Math.round(baseValue * multiplier);
-    });
-    return dataPoint;
-  });
-
-  const COLORS = ['#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6'];
 
   // Categorize topics by trend
   const risingTopics = topicStats.filter(t => t.trend === 'up' && t.count > 0).slice(0, 5);
@@ -58,43 +34,10 @@ export function TopicTrendsSection({ topicStats }: TopicTrendsSectionProps) {
 
       {topTopics.length > 0 ? (
         <>
-          {/* Trend Chart */}
-          <div className="h-64 mb-6">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                {topTopics.map((topic, idx) => (
-                  <Line
-                    key={topic.id}
-                    type="monotone"
-                    dataKey={topic.name}
-                    stroke={COLORS[idx % COLORS.length]}
-                    strokeWidth={2}
-                    dot={{ r: 3 }}
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Legend */}
-          <div className="flex flex-wrap gap-4 mb-6">
-            {topTopics.map((topic, idx) => (
-              <div key={topic.id} className="flex items-center gap-2 text-sm">
-                <div 
-                  className="w-3 h-3 rounded-full" 
-                  style={{ backgroundColor: COLORS[idx % COLORS.length] }}
-                />
-                <span>{topic.name}</span>
-                {topic.userHas && (
-                  <Badge variant="outline" className="text-xs">You</Badge>
-                )}
-              </div>
-            ))}
-          </div>
+          {/* Trend chart hidden: no historical topic-demand data is stored yet */}
+          <p className="text-sm text-muted-foreground mb-6">
+            Trend charts will appear once there is enough history of topic demand.
+          </p>
 
           {/* Trend Summary */}
           <div className="grid md:grid-cols-3 gap-4">
