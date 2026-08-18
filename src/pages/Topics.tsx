@@ -220,6 +220,7 @@ const Topics = () => {
       toast.error("Failed to add topic");
     } else {
       toast.success("Topic added to your profile");
+      await rescoreMatches();
       loadData();
     }
   };
@@ -237,6 +238,7 @@ const Topics = () => {
       toast.error("Failed to remove topic");
     } else {
       toast.success("Topic removed from your profile");
+      await rescoreMatches();
       loadData();
     }
   };
