@@ -323,6 +323,34 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
             </div>
           )}
 
+          {/* Why this score */}
+          {reasons.length > 0 && (
+            <div className="space-y-1 rounded-md bg-muted/40 p-2">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Why this score
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {reasons.map((r, i) => (
+                  <Badge
+                    key={i}
+                    variant="outline"
+                    className={`text-[11px] font-normal ${reasonToneClass(r.tone)}`}
+                  >
+                    {r.label}
+                  </Badge>
+                ))}
+              </div>
+              {missingData && (
+                <p className="text-[11px] text-muted-foreground">
+                  Low score here is due to missing information on this listing, not a confirmed poor fit.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex items-center gap-2 pt-2 border-t">
+            <Button className="flex-1" size="sm" onClick={onQuickApply}>
               <Zap className="h-4 w-4 mr-1" />
               Quick Apply
             </Button>
