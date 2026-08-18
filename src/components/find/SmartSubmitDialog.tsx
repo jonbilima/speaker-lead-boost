@@ -373,7 +373,7 @@ export function SmartSubmitDialog({ onSuccess }: SmartSubmitDialogProps) {
                     Submitting...
                   </>
                 ) : (
-                  "Submit for Review"
+                  "Add & Score"
                 )}
               </Button>
             </div>
@@ -386,10 +386,19 @@ export function SmartSubmitDialog({ onSuccess }: SmartSubmitDialogProps) {
               <Award className="h-8 w-8 text-white" />
             </div>
             <div>
-              <p className="text-2xl font-bold">+{karmaPoints} Karma Points!</p>
+              {matchScore !== null ? (
+                <p className="text-2xl font-bold">{matchScore}% match</p>
+              ) : (
+                <p className="text-2xl font-bold">Added to your feed</p>
+              )}
               <p className="text-muted-foreground mt-1">
-                Your submission is being reviewed. Once approved, it'll help speakers everywhere!
+                {alreadyExisted
+                  ? "This opportunity was already tracked, so we scored the existing listing against your profile instead of creating a duplicate."
+                  : "Scored against your profile and added to your Find feed."}
               </p>
+              {karmaPoints > 0 && (
+                <p className="text-sm font-medium mt-2">+{karmaPoints} karma points for contributing</p>
+              )}
             </div>
             <Button onClick={handleClose} className="mt-4">
               Done
