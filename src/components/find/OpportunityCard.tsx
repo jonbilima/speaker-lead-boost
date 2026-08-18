@@ -338,6 +338,18 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
           </div>
         </CardContent>
       </Card>
+              <Zap className="h-4 w-4 mr-1" />
+              Quick Apply
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleSave}>
+              <Bookmark className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handlePassClick}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <AlertDialog open={showShareDialog} onOpenChange={setShowShareDialog}>
         <AlertDialogContent>
