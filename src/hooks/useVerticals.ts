@@ -74,11 +74,28 @@ export function useVerticals(userId: string | null) {
     if (toAdd.length > 0) {
       const { error } = await supabase
         .from("user_verticals")
-        .insert(toAdd.map((vertical_slug) => ({ user_id: userId, vertical_slug })));
+        .insert(
+          toAdd.map((vertical_slug) => ({
+            user_id: userId,
+            vertical_slug,
+            is_inferred: false,
+            confirmed_at: new Date().toISOString(),
+          })),
+        );
       if (error) {
         console.error("Failed to add verticals:", error);
         return false;
       }
+    }
+
+    // Anything the user explicitly kept is now a stated preference, not a guess.
+    const { error: confirmError } = await supabase
+      .from("user_verticals")
+      .update({ is_inferred: false, confirmed_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("is_inferred", true);
+    if (confirmError) {
+      console.error("Failed to confirm verticals:", confirmError);
     }
 
     savedSelection.current = [...selected];
