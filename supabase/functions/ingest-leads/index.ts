@@ -130,6 +130,81 @@ const VERTICAL_MAP: Record<string, string> = {
 
 const CANONICAL_SLUGS = new Set(Object.values(VERTICAL_MAP));
 
+/**
+ * Keyword -> canonical topics.name. Matching is substring-based against the
+ * lowercased topic_or_industry value. Topics are never created automatically:
+ * a value that matches nothing is reported, and the opportunity still inserts.
+ */
+const TOPIC_ALIASES: [string, string][] = [
+  ["artificial intelligence", "Artificial Intelligence"],
+  ["genai", "Artificial Intelligence"],
+  ["ai/ml", "Artificial Intelligence"],
+  ["ai summit", "Artificial Intelligence"],
+  ["machine learning", "Machine Learning"],
+  ["devops", "DevOps"],
+  ["cloud", "Cloud Computing"],
+  ["aws", "Cloud Computing"],
+  ["serverless", "Cloud Computing"],
+  ["kubernetes", "Cloud Computing"],
+  ["containers", "Cloud Computing"],
+  ["cybersecurity", "Cybersecurity"],
+  ["data", "Data Science"],
+  ["leadership", "Leadership"],
+  ["executive", "Executive Presence"],
+  ["sales", "Sales Strategy"],
+  ["marketing", "Digital Marketing"],
+  ["church", "Faith-Based / Spiritual"],
+  ["ministry", "Faith-Based / Spiritual"],
+  ["faith", "Faith-Based / Spiritual"],
+  ["medical", "Healthcare"],
+  ["healthcare", "Healthcare"],
+  ["finance", "Financial Services"],
+  ["financial", "Financial Services"],
+  ["accounting", "Financial Services"],
+  ["diversity", "Diversity & Inclusion"],
+  ["inclusion", "Diversity & Inclusion"],
+  ["higher education", "Higher Education"],
+  ["education", "Education"],
+  ["k-12", "Education"],
+  ["property management", "Real Estate"],
+  ["real estate", "Real Estate"],
+  ["workplace culture", "Team Building"],
+  ["nonprofit", "Nonprofit / Social Impact"],
+  ["association", "Nonprofit / Social Impact"],
+  ["startup", "Startup Growth"],
+  ["entrepreneur", "Entrepreneurship"],
+  ["innovation", "Innovation"],
+  ["product management", "Product Management"],
+  ["agile", "Agile Methodology"],
+  ["blockchain", "Blockchain"],
+  ["fintech", "Fintech"],
+  ["e-commerce", "E-commerce"],
+  ["ecommerce", "E-commerce"],
+  ["saas", "SaaS"],
+  ["remote work", "Remote Work"],
+  ["mental health", "Mental Health"],
+  ["wellness", "Wellness"],
+  ["public speaking", "Public Speaking"],
+  ["storytelling", "Storytelling"],
+  ["manufacturing", "Manufacturing"],
+  ["government", "Government / Public Sector"],
+  ["public sector", "Government / Public Sector"],
+  ["performance", "Productivity"],
+  ["networking", "Networking"],
+  ["resilience", "Resilience"],
+  ["motivation", "Motivation"],
+];
+
+/** Returns the canonical topic names a raw topic_or_industry value maps to. */
+function matchTopicNames(value: string): string[] {
+  const hay = value.toLowerCase();
+  const names = new Set<string>();
+  for (const [kw, topic] of TOPIC_ALIASES) {
+    if (hay.includes(kw)) names.add(topic);
+  }
+  return [...names];
+}
+
 function toVerticalSlug(v: unknown): string | null {
   const s = str(v);
   if (!s) return null;
