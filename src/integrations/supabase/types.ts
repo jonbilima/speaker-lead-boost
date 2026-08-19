@@ -1277,6 +1277,126 @@ export type Database = {
         }
         Relationships: []
       }
+      opportunities_dedupe_backup_20260819: {
+        Row: {
+          audience_size: number | null
+          canonical_url: string | null
+          covers_accommodation: boolean | null
+          covers_travel: boolean | null
+          created_at: string | null
+          d: string | null
+          deadline: string | null
+          description: string | null
+          event_date: string | null
+          event_end_date: string | null
+          event_fingerprint: string | null
+          event_name: string | null
+          event_url: string | null
+          fee_estimate_max: number | null
+          fee_estimate_min: number | null
+          id: string | null
+          ingest_source: string | null
+          is_active: boolean | null
+          is_featured: boolean | null
+          is_verified: boolean | null
+          karma_awarded: boolean | null
+          location: string | null
+          location_venue: string | null
+          merged_into: string | null
+          nname: string | null
+          organization_website: string | null
+          organizer_email: string | null
+          organizer_linkedin: string | null
+          organizer_name: string | null
+          organizer_phone: string | null
+          raw_data: Json | null
+          scraped_at: string | null
+          seniority_level: string | null
+          source: string | null
+          submitted_by: string | null
+          timezone: string | null
+          vertical_slug: string | null
+        }
+        Insert: {
+          audience_size?: number | null
+          canonical_url?: string | null
+          covers_accommodation?: boolean | null
+          covers_travel?: boolean | null
+          created_at?: string | null
+          d?: string | null
+          deadline?: string | null
+          description?: string | null
+          event_date?: string | null
+          event_end_date?: string | null
+          event_fingerprint?: string | null
+          event_name?: string | null
+          event_url?: string | null
+          fee_estimate_max?: number | null
+          fee_estimate_min?: number | null
+          id?: string | null
+          ingest_source?: string | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          is_verified?: boolean | null
+          karma_awarded?: boolean | null
+          location?: string | null
+          location_venue?: string | null
+          merged_into?: string | null
+          nname?: string | null
+          organization_website?: string | null
+          organizer_email?: string | null
+          organizer_linkedin?: string | null
+          organizer_name?: string | null
+          organizer_phone?: string | null
+          raw_data?: Json | null
+          scraped_at?: string | null
+          seniority_level?: string | null
+          source?: string | null
+          submitted_by?: string | null
+          timezone?: string | null
+          vertical_slug?: string | null
+        }
+        Update: {
+          audience_size?: number | null
+          canonical_url?: string | null
+          covers_accommodation?: boolean | null
+          covers_travel?: boolean | null
+          created_at?: string | null
+          d?: string | null
+          deadline?: string | null
+          description?: string | null
+          event_date?: string | null
+          event_end_date?: string | null
+          event_fingerprint?: string | null
+          event_name?: string | null
+          event_url?: string | null
+          fee_estimate_max?: number | null
+          fee_estimate_min?: number | null
+          id?: string | null
+          ingest_source?: string | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          is_verified?: boolean | null
+          karma_awarded?: boolean | null
+          location?: string | null
+          location_venue?: string | null
+          merged_into?: string | null
+          nname?: string | null
+          organization_website?: string | null
+          organizer_email?: string | null
+          organizer_linkedin?: string | null
+          organizer_name?: string | null
+          organizer_phone?: string | null
+          raw_data?: Json | null
+          scraped_at?: string | null
+          seniority_level?: string | null
+          source?: string | null
+          submitted_by?: string | null
+          timezone?: string | null
+          vertical_slug?: string | null
+        }
+        Relationships: []
+      }
       opportunities_ingest_repair_backup_20260818: {
         Row: {
           deadline: string | null
@@ -1585,6 +1705,81 @@ export type Database = {
         }
         Relationships: []
       }
+      opportunity_scores_dedupe_backup_20260819: {
+        Row: {
+          accepted_at: string | null
+          ai_reason: string | null
+          ai_score: number | null
+          calculated_at: string | null
+          completed_at: string | null
+          deadline_urgency_score: number | null
+          fee_alignment_score: number | null
+          id: string | null
+          interested_at: string | null
+          is_archived: boolean | null
+          opportunity_id: string | null
+          pipeline_stage: Database["public"]["Enums"]["pipeline_stage"] | null
+          reason_codes: string[] | null
+          rejected_at: string | null
+          rejection_reason: string | null
+          response_received_at: string | null
+          shared_at: string | null
+          shared_by: string | null
+          tags: string[] | null
+          topic_match_score: number | null
+          user_id: string | null
+          viewed_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          ai_reason?: string | null
+          ai_score?: number | null
+          calculated_at?: string | null
+          completed_at?: string | null
+          deadline_urgency_score?: number | null
+          fee_alignment_score?: number | null
+          id?: string | null
+          interested_at?: string | null
+          is_archived?: boolean | null
+          opportunity_id?: string | null
+          pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"] | null
+          reason_codes?: string[] | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          response_received_at?: string | null
+          shared_at?: string | null
+          shared_by?: string | null
+          tags?: string[] | null
+          topic_match_score?: number | null
+          user_id?: string | null
+          viewed_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          ai_reason?: string | null
+          ai_score?: number | null
+          calculated_at?: string | null
+          completed_at?: string | null
+          deadline_urgency_score?: number | null
+          fee_alignment_score?: number | null
+          id?: string | null
+          interested_at?: string | null
+          is_archived?: boolean | null
+          opportunity_id?: string | null
+          pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"] | null
+          reason_codes?: string[] | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          response_received_at?: string | null
+          shared_at?: string | null
+          shared_by?: string | null
+          tags?: string[] | null
+          topic_match_score?: number | null
+          user_id?: string | null
+          viewed_at?: string | null
+        }
+        Relationships: []
+      }
       opportunity_topics: {
         Row: {
           id: string
@@ -1622,6 +1817,27 @@ export type Database = {
         ]
       }
       opportunity_topics_backup_20260818: {
+        Row: {
+          id: string | null
+          opportunity_id: string | null
+          relevance_score: number | null
+          topic_id: string | null
+        }
+        Insert: {
+          id?: string | null
+          opportunity_id?: string | null
+          relevance_score?: number | null
+          topic_id?: string | null
+        }
+        Update: {
+          id?: string | null
+          opportunity_id?: string | null
+          relevance_score?: number | null
+          topic_id?: string | null
+        }
+        Relationships: []
+      }
+      opportunity_topics_dedupe_backup_20260819: {
         Row: {
           id: string | null
           opportunity_id: string | null
