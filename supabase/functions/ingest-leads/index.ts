@@ -415,15 +415,18 @@ Deno.serve(async (req) => {
     const verticalSlug = toVerticalSlug(rec.vertical_tag);
     if (verticalRaw && !verticalSlug) unmappedVerticals.push(verticalRaw);
 
+    const eventDateIso = toTimestamp(rec.event_date);
     valid.push({
       event_name: eventName,
       event_url: link,
+      canonical_url: canonicalizeUrl(link),
+      event_fingerprint: buildFingerprint(eventName, eventDateIso),
       organizer_name: str(rec.organizer_name) ?? str(rec.organization),
       organizer_email: str(rec.organizer_email),
       description: descriptionParts.length > 0 ? descriptionParts.join(" | ") : null,
       location: str(rec.location),
       deadline: toTimestamp(rec.application_deadline),
-      event_date: toTimestamp(rec.event_date),
+      event_date: eventDateIso,
       fee_estimate_min: num(rec.fee_estimate_min),
       fee_estimate_max: num(rec.fee_estimate_max),
       audience_size: num(rec.audience_size),
