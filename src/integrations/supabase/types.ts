@@ -1052,6 +1052,7 @@ export type Database = {
       opportunities: {
         Row: {
           audience_size: number | null
+          canonical_url: string | null
           covers_accommodation: boolean | null
           covers_travel: boolean | null
           created_at: string
@@ -1059,6 +1060,7 @@ export type Database = {
           description: string | null
           event_date: string | null
           event_end_date: string | null
+          event_fingerprint: string | null
           event_name: string
           event_url: string | null
           fee_estimate_max: number | null
@@ -1071,6 +1073,7 @@ export type Database = {
           karma_awarded: boolean | null
           location: string | null
           location_venue: string | null
+          merged_into: string | null
           organization_website: string | null
           organizer_email: string | null
           organizer_linkedin: string | null
@@ -1086,6 +1089,7 @@ export type Database = {
         }
         Insert: {
           audience_size?: number | null
+          canonical_url?: string | null
           covers_accommodation?: boolean | null
           covers_travel?: boolean | null
           created_at?: string
@@ -1093,6 +1097,7 @@ export type Database = {
           description?: string | null
           event_date?: string | null
           event_end_date?: string | null
+          event_fingerprint?: string | null
           event_name: string
           event_url?: string | null
           fee_estimate_max?: number | null
@@ -1105,6 +1110,7 @@ export type Database = {
           karma_awarded?: boolean | null
           location?: string | null
           location_venue?: string | null
+          merged_into?: string | null
           organization_website?: string | null
           organizer_email?: string | null
           organizer_linkedin?: string | null
@@ -1120,6 +1126,7 @@ export type Database = {
         }
         Update: {
           audience_size?: number | null
+          canonical_url?: string | null
           covers_accommodation?: boolean | null
           covers_travel?: boolean | null
           created_at?: string
@@ -1127,6 +1134,7 @@ export type Database = {
           description?: string | null
           event_date?: string | null
           event_end_date?: string | null
+          event_fingerprint?: string | null
           event_name?: string
           event_url?: string | null
           fee_estimate_max?: number | null
@@ -1139,6 +1147,7 @@ export type Database = {
           karma_awarded?: boolean | null
           location?: string | null
           location_venue?: string | null
+          merged_into?: string | null
           organization_website?: string | null
           organizer_email?: string | null
           organizer_linkedin?: string | null
@@ -1153,6 +1162,13 @@ export type Database = {
           vertical_slug?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "opportunities_merged_into_fkey"
+            columns: ["merged_into"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "opportunities_vertical_slug_fkey"
             columns: ["vertical_slug"]

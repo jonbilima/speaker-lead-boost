@@ -225,6 +225,131 @@ function toVerticalSlug(v: unknown): string | null {
   return null;
 }
 
+// ---------------------------------------------------------------------------
+// Deduplication
+// ---------------------------------------------------------------------------
+
+const TRACKING_PARAMS = /^(utm_|ref$|ref_|fbclid$|gclid$|mc_cid$|mc_eid$|source$|src$|campaign$)/i;
+
+/** Normalize a URL for duplicate matching: scheme/host case, www, tracking params, trailing slash, hash. */
+function canonicalizeUrl(u: string | null): string | null {
+  if (!u) return null;
+  try {
+    const url = new URL(u.trim());
+    url.hash = "";
+    url.protocol = "https:";
+    url.host = url.host.toLowerCase().replace(/^www\./, "");
+    const keep: [string, string][] = [];
+    for (const [k, v] of url.searchParams) {
+      if (!TRACKING_PARAMS.test(k)) keep.push([k, v]);
+    }
+    keep.sort((a, b) => a[0].localeCompare(b[0]));
+    url.search = "";
+    for (const [k, v] of keep) url.searchParams.append(k, v);
+    let out = url.toString();
+    out = out.replace(/\/(\?|$)/, "$1");
+    return out.toLowerCase();
+  } catch {
+    return u.trim().toLowerCase().replace(/\/+$/, "") || null;
+  }
+}
+
+const NAME_SUFFIXES =
+  /\b(inc|inc\.|llc|l\.l\.c|ltd|limited|corp|corporation|co|company|gmbh|plc|foundation|association)\b/g;
+
+/** Normalize an event/org name: case, leading articles, corporate suffixes, punctuation. */
+function normalizeName(s: string | null): string | null {
+  if (!s) return null;
+  let n = s.toLowerCase();
+  n = n.replace(NAME_SUFFIXES, " ");
+  n = n.replace(/[^a-z0-9]+/g, " ");
+  n = n.replace(/^\s*(the|a|an)\s+/, " ");
+  n = n.replace(/\s+/g, " ").trim();
+  return n.length > 0 ? n : null;
+}
+
+/**
+ * Fuzzy identity key: normalized event name + event date (day precision).
+ * Requires a real date so undated index/listing pages never collapse together.
+ */
+function buildFingerprint(eventName: string | null, eventDate: string | null): string | null {
+  const name = normalizeName(eventName);
+  if (!name || !eventDate) return null;
+  const day = eventDate.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+  return `${name}|${day}`;
+}
+
+/** Higher wins. Organizer-direct feeds are trusted over aggregators. */
+const SOURCE_TRUST: Record<string, number> = {
+  user_submitted: 100,
+  manual: 90,
+  sessionize: 70,
+  callingallpapers: 60,
+  papercall: 60,
+  conferencelist: 50,
+  eventbrite: 40,
+  meetup: 30,
+  ingest: 20,
+};
+
+function sourceTrust(source: unknown): number {
+  const s = str(source)?.toLowerCase().replace(/[^a-z]/g, "") ?? "";
+  for (const [key, score] of Object.entries(SOURCE_TRUST)) {
+    if (s.includes(key.replace(/[^a-z]/g, ""))) return score;
+  }
+  return 10;
+}
+
+const ENRICHABLE_FIELDS = [
+  "organizer_name",
+  "organizer_email",
+  "description",
+  "location",
+  "deadline",
+  "event_date",
+  "fee_estimate_min",
+  "fee_estimate_max",
+  "audience_size",
+  "vertical_slug",
+  "canonical_url",
+  "event_fingerprint",
+] as const;
+
+function isEmpty(v: unknown): boolean {
+  return v === null || v === undefined || (typeof v === "string" && v.trim() === "");
+}
+
+/** Quote a value for a PostgREST `in.(...)` list. */
+function quoteIn(v: string): string {
+  return `"${v.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
+/**
+ * Never downgrade a populated field: only fill blanks on the surviving row.
+ * event_url is the single exception — it is upgraded when the incoming record
+ * comes from a strictly more trusted source.
+ */
+function buildEnrichment(
+  existing: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+): Record<string, unknown> {
+  const patch: Record<string, unknown> = {};
+  for (const field of ENRICHABLE_FIELDS) {
+    if (isEmpty(existing[field]) && !isEmpty(incoming[field])) {
+      patch[field] = incoming[field];
+    }
+  }
+  if (sourceTrust(incoming.source) > sourceTrust(existing.source)) {
+    if (!isEmpty(incoming.event_url) && incoming.event_url !== existing.event_url) {
+      patch.event_url = incoming.event_url;
+      patch.canonical_url = incoming.canonical_url;
+      patch.source = incoming.source;
+    }
+  }
+  return patch;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -295,15 +420,18 @@ Deno.serve(async (req) => {
     const verticalSlug = toVerticalSlug(rec.vertical_tag);
     if (verticalRaw && !verticalSlug) unmappedVerticals.push(verticalRaw);
 
+    const eventDateIso = toTimestamp(rec.event_date);
     valid.push({
       event_name: eventName,
       event_url: link,
+      canonical_url: canonicalizeUrl(link),
+      event_fingerprint: buildFingerprint(eventName, eventDateIso),
       organizer_name: str(rec.organizer_name) ?? str(rec.organization),
       organizer_email: str(rec.organizer_email),
       description: descriptionParts.length > 0 ? descriptionParts.join(" | ") : null,
       location: str(rec.location),
       deadline: toTimestamp(rec.application_deadline),
-      event_date: toTimestamp(rec.event_date),
+      event_date: eventDateIso,
       fee_estimate_min: num(rec.fee_estimate_min),
       fee_estimate_max: num(rec.fee_estimate_max),
       audience_size: num(rec.audience_size),
@@ -317,13 +445,25 @@ Deno.serve(async (req) => {
     });
   }
 
-  // De-duplicate within the payload itself (last one wins)
-  const byLink = new Map<string, Record<string, unknown>>();
+  // De-duplicate within the payload itself: canonical URL first, then fingerprint.
   let skippedDuplicates = 0;
+  const deduped: Record<string, unknown>[] = [];
+  const seenUrl = new Map<string, number>();
+  const seenFp = new Map<string, number>();
   for (const row of valid) {
-    const link = row.event_url as string;
-    if (byLink.has(link)) skippedDuplicates++;
-    byLink.set(link, row);
+    const urlKey = (row.canonical_url as string | null) ?? (row.event_url as string);
+    const fpKey = row.event_fingerprint as string | null;
+    const hit = seenUrl.get(urlKey) ?? (fpKey ? seenFp.get(fpKey) : undefined);
+    if (hit !== undefined) {
+      // Last one wins on blanks only; never downgrade a populated field.
+      const patch = buildEnrichment(deduped[hit], row);
+      Object.assign(deduped[hit], patch);
+      skippedDuplicates++;
+      continue;
+    }
+    const idx = deduped.push(row) - 1;
+    seenUrl.set(urlKey, idx);
+    if (fpKey) seenFp.set(fpKey, idx);
   }
 
   const supabase = createClient(
@@ -332,26 +472,116 @@ Deno.serve(async (req) => {
     { auth: { persistSession: false } },
   );
 
-  const links = [...byLink.keys()];
-  let toInsert = [...byLink.values()];
+  let toInsert = deduped;
+  let matchedByUrl = 0;
+  let matchedByCanonicalUrl = 0;
+  let matchedByFingerprint = 0;
+  let enrichedRows = 0;
+  let enrichedFields = 0;
+  const fuzzyMatchLog: Record<string, unknown>[] = [];
 
-  if (links.length > 0) {
+  if (deduped.length > 0) {
+    const urls = deduped.map((r) => r.event_url as string);
+    const canon = deduped.map((r) => r.canonical_url as string | null).filter((v): v is string => !!v);
+    const fps = deduped.map((r) => r.event_fingerprint as string | null).filter((v): v is string => !!v);
+
+    const selectCols =
+      "id, event_name, event_url, canonical_url, event_fingerprint, source, organizer_name, organizer_email, description, location, deadline, event_date, fee_estimate_min, fee_estimate_max, audience_size, vertical_slug, merged_into";
+
+    const orParts = [`event_url.in.(${urls.map(quoteIn).join(",")})`];
+    if (canon.length > 0) orParts.push(`canonical_url.in.(${canon.map(quoteIn).join(",")})`);
+    if (fps.length > 0) orParts.push(`event_fingerprint.in.(${fps.map(quoteIn).join(",")})`);
+
     const { data: existing, error: lookupError } = await supabase
       .from("opportunities")
-      .select("event_url")
-      .in("event_url", links);
+      .select(selectCols)
+      .is("merged_into", null)
+      .or(orParts.join(","));
 
     if (lookupError) {
       console.error("Duplicate lookup failed:", lookupError);
       return new Response(JSON.stringify({ error: "Duplicate lookup failed" }), { status: 500, headers: jsonHeaders });
     }
 
-    const existingLinks = new Set((existing ?? []).map((r) => r.event_url as string));
-    const filtered = toInsert.filter((r) => !existingLinks.has(r.event_url as string));
-    skippedDuplicates += toInsert.length - filtered.length;
-    toInsert = filtered;
-  }
+    const rows = (existing ?? []) as Record<string, unknown>[];
+    const byUrl = new Map<string, Record<string, unknown>>();
+    const byCanon = new Map<string, Record<string, unknown>>();
+    const byFp = new Map<string, Record<string, unknown>>();
+    for (const r of rows) {
+      if (r.event_url) byUrl.set(r.event_url as string, r);
+      if (r.canonical_url) byCanon.set(r.canonical_url as string, r);
+      if (r.event_fingerprint) byFp.set(r.event_fingerprint as string, r);
+    }
 
+    const fresh: Record<string, unknown>[] = [];
+    for (const row of deduped) {
+      const canonKey = row.canonical_url as string | null;
+      const fpKey = row.event_fingerprint as string | null;
+
+      let match = byUrl.get(row.event_url as string);
+      let matchType: "event_url" | "canonical_url" | "fingerprint" | null = match ? "event_url" : null;
+      if (!match && canonKey && byCanon.has(canonKey)) {
+        match = byCanon.get(canonKey);
+        matchType = "canonical_url";
+      }
+      if (!match && fpKey && byFp.has(fpKey)) {
+        match = byFp.get(fpKey);
+        matchType = "fingerprint";
+      }
+
+      if (!match || !matchType) {
+        fresh.push(row);
+        continue;
+      }
+
+      if (matchType === "event_url") matchedByUrl++;
+      else if (matchType === "canonical_url") matchedByCanonicalUrl++;
+      else matchedByFingerprint++;
+
+      skippedDuplicates++;
+
+      const patch = buildEnrichment(match, row);
+
+      if (matchType === "fingerprint") {
+        // Audit trail: enough detail to judge whether the fuzzy match was correct.
+        const entry = {
+          match_type: "fingerprint",
+          shared_date: ((match.event_date as string | null) ?? "").slice(0, 10),
+          fingerprint: fpKey,
+          existing: {
+            id: match.id,
+            event_name: match.event_name,
+            event_url: match.event_url,
+            source: match.source,
+          },
+          incoming: {
+            event_name: row.event_name,
+            event_url: row.event_url,
+            source: row.source,
+          },
+          fields_enriched: Object.keys(patch),
+        };
+        fuzzyMatchLog.push(entry);
+        console.log(`ingest-leads fuzzy-match: ${JSON.stringify(entry)}`);
+      }
+
+      if (Object.keys(patch).length > 0) {
+        const { error: updErr } = await supabase
+          .from("opportunities")
+          .update(patch)
+          .eq("id", match.id as string);
+        if (updErr) {
+          console.error(`Enrichment update failed for ${match.id}:`, updErr);
+        } else {
+          enrichedRows++;
+          enrichedFields += Object.keys(patch).length;
+          Object.assign(match, patch);
+        }
+      }
+    }
+
+    toInsert = fresh;
+  }
   let inserted = 0;
   let topicLinksCreated = 0;
   const unmatchedTopicValues: string[] = [];
@@ -433,7 +663,7 @@ Deno.serve(async (req) => {
   const unrecognizedIsOpenValues = [...new Set(unrecognizedIsOpen)];
 
   console.log(
-    `ingest-leads: received=${received} inserted=${inserted} duplicates=${skippedDuplicates} invalid=${skippedInvalid} mapped_vertical=${mappedVertical} unmapped_vertical=${unmappedVertical} unmapped_values=${JSON.stringify(unmappedValues)} unrecognized_is_open=${JSON.stringify(unrecognizedIsOpenValues)}`,
+    `ingest-leads: received=${received} inserted=${inserted} duplicates=${skippedDuplicates} invalid=${skippedInvalid} matched_by_event_url=${matchedByUrl} matched_by_canonical_url=${matchedByCanonicalUrl} matched_by_fingerprint=${matchedByFingerprint} enriched_rows=${enrichedRows} enriched_fields=${enrichedFields} mapped_vertical=${mappedVertical} unmapped_vertical=${unmappedVertical} unmapped_values=${JSON.stringify(unmappedValues)} unrecognized_is_open=${JSON.stringify(unrecognizedIsOpenValues)}`,
   );
 
   return new Response(
@@ -442,6 +672,12 @@ Deno.serve(async (req) => {
       inserted,
       skipped_duplicates: skippedDuplicates,
       skipped_invalid: skippedInvalid,
+      matched_by_event_url: matchedByUrl,
+      matched_by_canonical_url: matchedByCanonicalUrl,
+      matched_by_fingerprint: matchedByFingerprint,
+      enriched_rows: enrichedRows,
+      enriched_fields: enrichedFields,
+      fuzzy_matches: fuzzyMatchLog,
       mapped_vertical: mappedVertical,
       unmapped_vertical: unmappedVertical,
       unmapped_vertical_values: unmappedValues,
