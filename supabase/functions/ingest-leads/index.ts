@@ -320,6 +320,11 @@ function isEmpty(v: unknown): boolean {
   return v === null || v === undefined || (typeof v === "string" && v.trim() === "");
 }
 
+/** Quote a value for a PostgREST `in.(...)` list. */
+function quoteIn(v: string): string {
+  return `"${v.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
 /**
  * Never downgrade a populated field: only fill blanks on the surviving row.
  * event_url is the single exception — it is upgraded when the incoming record
