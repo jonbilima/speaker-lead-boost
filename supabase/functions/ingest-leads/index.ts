@@ -440,13 +440,25 @@ Deno.serve(async (req) => {
     });
   }
 
-  // De-duplicate within the payload itself (last one wins)
-  const byLink = new Map<string, Record<string, unknown>>();
+  // De-duplicate within the payload itself: canonical URL first, then fingerprint.
   let skippedDuplicates = 0;
+  const deduped: Record<string, unknown>[] = [];
+  const seenUrl = new Map<string, number>();
+  const seenFp = new Map<string, number>();
   for (const row of valid) {
-    const link = row.event_url as string;
-    if (byLink.has(link)) skippedDuplicates++;
-    byLink.set(link, row);
+    const urlKey = (row.canonical_url as string | null) ?? (row.event_url as string);
+    const fpKey = row.event_fingerprint as string | null;
+    const hit = seenUrl.get(urlKey) ?? (fpKey ? seenFp.get(fpKey) : undefined);
+    if (hit !== undefined) {
+      // Last one wins on blanks only; never downgrade a populated field.
+      const patch = buildEnrichment(deduped[hit], row);
+      Object.assign(deduped[hit], patch);
+      skippedDuplicates++;
+      continue;
+    }
+    const idx = deduped.push(row) - 1;
+    seenUrl.set(urlKey, idx);
+    if (fpKey) seenFp.set(fpKey, idx);
   }
 
   const supabase = createClient(
@@ -455,26 +467,116 @@ Deno.serve(async (req) => {
     { auth: { persistSession: false } },
   );
 
-  const links = [...byLink.keys()];
-  let toInsert = [...byLink.values()];
+  let toInsert = deduped;
+  let matchedByUrl = 0;
+  let matchedByCanonicalUrl = 0;
+  let matchedByFingerprint = 0;
+  let enrichedRows = 0;
+  let enrichedFields = 0;
+  const fuzzyMatchLog: Record<string, unknown>[] = [];
 
-  if (links.length > 0) {
+  if (deduped.length > 0) {
+    const urls = deduped.map((r) => r.event_url as string);
+    const canon = deduped.map((r) => r.canonical_url as string | null).filter((v): v is string => !!v);
+    const fps = deduped.map((r) => r.event_fingerprint as string | null).filter((v): v is string => !!v);
+
+    const selectCols =
+      "id, event_name, event_url, canonical_url, event_fingerprint, source, organizer_name, organizer_email, description, location, deadline, event_date, fee_estimate_min, fee_estimate_max, audience_size, vertical_slug, merged_into";
+
+    const orParts = [`event_url.in.(${urls.map(quoteIn).join(",")})`];
+    if (canon.length > 0) orParts.push(`canonical_url.in.(${canon.map(quoteIn).join(",")})`);
+    if (fps.length > 0) orParts.push(`event_fingerprint.in.(${fps.map(quoteIn).join(",")})`);
+
     const { data: existing, error: lookupError } = await supabase
       .from("opportunities")
-      .select("event_url")
-      .in("event_url", links);
+      .select(selectCols)
+      .is("merged_into", null)
+      .or(orParts.join(","));
 
     if (lookupError) {
       console.error("Duplicate lookup failed:", lookupError);
       return new Response(JSON.stringify({ error: "Duplicate lookup failed" }), { status: 500, headers: jsonHeaders });
     }
 
-    const existingLinks = new Set((existing ?? []).map((r) => r.event_url as string));
-    const filtered = toInsert.filter((r) => !existingLinks.has(r.event_url as string));
-    skippedDuplicates += toInsert.length - filtered.length;
-    toInsert = filtered;
-  }
+    const rows = (existing ?? []) as Record<string, unknown>[];
+    const byUrl = new Map<string, Record<string, unknown>>();
+    const byCanon = new Map<string, Record<string, unknown>>();
+    const byFp = new Map<string, Record<string, unknown>>();
+    for (const r of rows) {
+      if (r.event_url) byUrl.set(r.event_url as string, r);
+      if (r.canonical_url) byCanon.set(r.canonical_url as string, r);
+      if (r.event_fingerprint) byFp.set(r.event_fingerprint as string, r);
+    }
 
+    const fresh: Record<string, unknown>[] = [];
+    for (const row of deduped) {
+      const canonKey = row.canonical_url as string | null;
+      const fpKey = row.event_fingerprint as string | null;
+
+      let match = byUrl.get(row.event_url as string);
+      let matchType: "event_url" | "canonical_url" | "fingerprint" | null = match ? "event_url" : null;
+      if (!match && canonKey && byCanon.has(canonKey)) {
+        match = byCanon.get(canonKey);
+        matchType = "canonical_url";
+      }
+      if (!match && fpKey && byFp.has(fpKey)) {
+        match = byFp.get(fpKey);
+        matchType = "fingerprint";
+      }
+
+      if (!match || !matchType) {
+        fresh.push(row);
+        continue;
+      }
+
+      if (matchType === "event_url") matchedByUrl++;
+      else if (matchType === "canonical_url") matchedByCanonicalUrl++;
+      else matchedByFingerprint++;
+
+      skippedDuplicates++;
+
+      const patch = buildEnrichment(match, row);
+
+      if (matchType === "fingerprint") {
+        // Audit trail: enough detail to judge whether the fuzzy match was correct.
+        const entry = {
+          match_type: "fingerprint",
+          shared_date: ((match.event_date as string | null) ?? "").slice(0, 10),
+          fingerprint: fpKey,
+          existing: {
+            id: match.id,
+            event_name: match.event_name,
+            event_url: match.event_url,
+            source: match.source,
+          },
+          incoming: {
+            event_name: row.event_name,
+            event_url: row.event_url,
+            source: row.source,
+          },
+          fields_enriched: Object.keys(patch),
+        };
+        fuzzyMatchLog.push(entry);
+        console.log(`ingest-leads fuzzy-match: ${JSON.stringify(entry)}`);
+      }
+
+      if (Object.keys(patch).length > 0) {
+        const { error: updErr } = await supabase
+          .from("opportunities")
+          .update(patch)
+          .eq("id", match.id as string);
+        if (updErr) {
+          console.error(`Enrichment update failed for ${match.id}:`, updErr);
+        } else {
+          enrichedRows++;
+          enrichedFields += Object.keys(patch).length;
+          Object.assign(match, patch);
+        }
+      }
+    }
+
+    toInsert = fresh;
+  }
   let inserted = 0;
   let topicLinksCreated = 0;
   const unmatchedTopicValues: string[] = [];
