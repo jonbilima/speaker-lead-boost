@@ -663,7 +663,7 @@ Deno.serve(async (req) => {
   const unrecognizedIsOpenValues = [...new Set(unrecognizedIsOpen)];
 
   console.log(
-    `ingest-leads: received=${received} inserted=${inserted} duplicates=${skippedDuplicates} invalid=${skippedInvalid} mapped_vertical=${mappedVertical} unmapped_vertical=${unmappedVertical} unmapped_values=${JSON.stringify(unmappedValues)} unrecognized_is_open=${JSON.stringify(unrecognizedIsOpenValues)}`,
+    `ingest-leads: received=${received} inserted=${inserted} duplicates=${skippedDuplicates} invalid=${skippedInvalid} matched_by_event_url=${matchedByUrl} matched_by_canonical_url=${matchedByCanonicalUrl} matched_by_fingerprint=${matchedByFingerprint} enriched_rows=${enrichedRows} enriched_fields=${enrichedFields} mapped_vertical=${mappedVertical} unmapped_vertical=${unmappedVertical} unmapped_values=${JSON.stringify(unmappedValues)} unrecognized_is_open=${JSON.stringify(unrecognizedIsOpenValues)}`,
   );
 
   return new Response(
@@ -672,6 +672,12 @@ Deno.serve(async (req) => {
       inserted,
       skipped_duplicates: skippedDuplicates,
       skipped_invalid: skippedInvalid,
+      matched_by_event_url: matchedByUrl,
+      matched_by_canonical_url: matchedByCanonicalUrl,
+      matched_by_fingerprint: matchedByFingerprint,
+      enriched_rows: enrichedRows,
+      enriched_fields: enrichedFields,
+      fuzzy_matches: fuzzyMatchLog,
       mapped_vertical: mappedVertical,
       unmapped_vertical: unmappedVertical,
       unmapped_vertical_values: unmappedValues,
