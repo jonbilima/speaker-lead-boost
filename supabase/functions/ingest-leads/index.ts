@@ -225,6 +225,126 @@ function toVerticalSlug(v: unknown): string | null {
   return null;
 }
 
+// ---------------------------------------------------------------------------
+// Deduplication
+// ---------------------------------------------------------------------------
+
+const TRACKING_PARAMS = /^(utm_|ref$|ref_|fbclid$|gclid$|mc_cid$|mc_eid$|source$|src$|campaign$)/i;
+
+/** Normalize a URL for duplicate matching: scheme/host case, www, tracking params, trailing slash, hash. */
+function canonicalizeUrl(u: string | null): string | null {
+  if (!u) return null;
+  try {
+    const url = new URL(u.trim());
+    url.hash = "";
+    url.protocol = "https:";
+    url.host = url.host.toLowerCase().replace(/^www\./, "");
+    const keep: [string, string][] = [];
+    for (const [k, v] of url.searchParams) {
+      if (!TRACKING_PARAMS.test(k)) keep.push([k, v]);
+    }
+    keep.sort((a, b) => a[0].localeCompare(b[0]));
+    url.search = "";
+    for (const [k, v] of keep) url.searchParams.append(k, v);
+    let out = url.toString();
+    out = out.replace(/\/(\?|$)/, "$1");
+    return out.toLowerCase();
+  } catch {
+    return u.trim().toLowerCase().replace(/\/+$/, "") || null;
+  }
+}
+
+const NAME_SUFFIXES =
+  /\b(inc|inc\.|llc|l\.l\.c|ltd|limited|corp|corporation|co|company|gmbh|plc|foundation|association)\b/g;
+
+/** Normalize an event/org name: case, leading articles, corporate suffixes, punctuation. */
+function normalizeName(s: string | null): string | null {
+  if (!s) return null;
+  let n = s.toLowerCase();
+  n = n.replace(NAME_SUFFIXES, " ");
+  n = n.replace(/[^a-z0-9]+/g, " ");
+  n = n.replace(/^\s*(the|a|an)\s+/, " ");
+  n = n.replace(/\s+/g, " ").trim();
+  return n.length > 0 ? n : null;
+}
+
+/**
+ * Fuzzy identity key: normalized event name + event date (day precision).
+ * Requires a real date so undated index/listing pages never collapse together.
+ */
+function buildFingerprint(eventName: string | null, eventDate: string | null): string | null {
+  const name = normalizeName(eventName);
+  if (!name || !eventDate) return null;
+  const day = eventDate.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+  return `${name}|${day}`;
+}
+
+/** Higher wins. Organizer-direct feeds are trusted over aggregators. */
+const SOURCE_TRUST: Record<string, number> = {
+  user_submitted: 100,
+  manual: 90,
+  sessionize: 70,
+  callingallpapers: 60,
+  papercall: 60,
+  conferencelist: 50,
+  eventbrite: 40,
+  meetup: 30,
+  ingest: 20,
+};
+
+function sourceTrust(source: unknown): number {
+  const s = str(source)?.toLowerCase().replace(/[^a-z]/g, "") ?? "";
+  for (const [key, score] of Object.entries(SOURCE_TRUST)) {
+    if (s.includes(key.replace(/[^a-z]/g, ""))) return score;
+  }
+  return 10;
+}
+
+const ENRICHABLE_FIELDS = [
+  "organizer_name",
+  "organizer_email",
+  "description",
+  "location",
+  "deadline",
+  "event_date",
+  "fee_estimate_min",
+  "fee_estimate_max",
+  "audience_size",
+  "vertical_slug",
+  "canonical_url",
+  "event_fingerprint",
+] as const;
+
+function isEmpty(v: unknown): boolean {
+  return v === null || v === undefined || (typeof v === "string" && v.trim() === "");
+}
+
+/**
+ * Never downgrade a populated field: only fill blanks on the surviving row.
+ * event_url is the single exception — it is upgraded when the incoming record
+ * comes from a strictly more trusted source.
+ */
+function buildEnrichment(
+  existing: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+): Record<string, unknown> {
+  const patch: Record<string, unknown> = {};
+  for (const field of ENRICHABLE_FIELDS) {
+    if (isEmpty(existing[field]) && !isEmpty(incoming[field])) {
+      patch[field] = incoming[field];
+    }
+  }
+  if (sourceTrust(incoming.source) > sourceTrust(existing.source)) {
+    if (!isEmpty(incoming.event_url) && incoming.event_url !== existing.event_url) {
+      patch.event_url = incoming.event_url;
+      patch.canonical_url = incoming.canonical_url;
+      patch.source = incoming.source;
+    }
+  }
+  return patch;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
