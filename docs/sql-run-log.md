@@ -191,3 +191,37 @@ ALTER TABLE public.opportunities
   DROP COLUMN IF EXISTS merged_into;
 ```
 Then redeploy the previous ingest-leads build. No existing rows were modified; backfill of the 5 known duplicate groups has NOT been run.
+
+## 2026-08-19 — Duplicate merge backfill (26 groups)
+
+- Snapshots (pre-existing): `opportunities_dedupe_backup_20260819` (64), `opportunity_scores_dedupe_backup_20260819` (3684), `opportunity_topics_dedupe_backup_20260819` (33).
+- Merged 26 groups / 28 loser rows. 5 groups (10 rows, both sides user-touched) deliberately skipped.
+- Per group: enrich survivor (never downgrade), union `opportunity_topics`, copy pipeline stage onto survivor score rows only where survivor stage was `new`, repoint `opportunity_karma`, append `raw_data.merged_from[]`, set `merged_into` + `is_active=false` on losers, backfill `canonical_url`/`event_fingerprint` on survivor.
+- Rescored all 26 survivors via `score_opportunity_for_all_users`.
+- Before → after: active opportunities 851 → 823; opportunity_topics 204 → 232; score rows with `no_topics_tagged` 51544 → 49913; `topic_match_strong` 667 → 674; pipeline rows 75 → 75 (unchanged); karma 4 → 4 (unchanged).
+- Digest dry run (no writes): 66 users, 461 leads, 284 own vertical / 12 adjacent / 165 fallback, score range 27–79 (median 77), 0 users with nothing, 0 tombstones surfaced.
+
+### Revert
+```sql
+update public.opportunities o set
+  organizer_name=b.organizer_name, organizer_email=b.organizer_email, organizer_linkedin=b.organizer_linkedin,
+  organizer_phone=b.organizer_phone, organization_website=b.organization_website, description=b.description,
+  deadline=b.deadline, fee_estimate_min=b.fee_estimate_min, fee_estimate_max=b.fee_estimate_max,
+  location=b.location, location_venue=b.location_venue, audience_size=b.audience_size,
+  vertical_slug=b.vertical_slug, timezone=b.timezone, event_end_date=b.event_end_date,
+  covers_travel=b.covers_travel, covers_accommodation=b.covers_accommodation, ingest_source=b.ingest_source,
+  raw_data=b.raw_data, canonical_url=b.canonical_url, event_fingerprint=b.event_fingerprint,
+  merged_into=b.merged_into, is_active=b.is_active
+from public.opportunities_dedupe_backup_20260819 b where b.id=o.id;
+
+update public.opportunity_scores s set
+  pipeline_stage=b.pipeline_stage, viewed_at=b.viewed_at, interested_at=b.interested_at,
+  response_received_at=b.response_received_at, accepted_at=b.accepted_at, rejected_at=b.rejected_at,
+  completed_at=b.completed_at, rejection_reason=b.rejection_reason
+from public.opportunity_scores_dedupe_backup_20260819 b where b.id=s.id;
+
+delete from public.opportunity_topics t
+where not exists (select 1 from public.opportunity_topics_backup_20260819 b where b.id=t.id)
+  and t.opportunity_id in (select distinct merged_into from public.opportunities_dedupe_backup_20260819 where merged_into is not null);
+-- karma: repoint back from the backup's opportunity_id if needed, then rescore survivors.
+```
