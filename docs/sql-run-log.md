@@ -166,3 +166,28 @@ WHERE NOT EXISTS (
 );
 -- then rescore: SELECT public.score_opportunities_for_user(id) FROM public.profiles;
 ```
+
+## 2026-08-19 — Dedupe columns + ingest-side dedupe (ingest-leads)
+
+Migration (additive only):
+```sql
+ALTER TABLE public.opportunities
+  ADD COLUMN IF NOT EXISTS canonical_url text,
+  ADD COLUMN IF NOT EXISTS event_fingerprint text,
+  ADD COLUMN IF NOT EXISTS merged_into uuid REFERENCES public.opportunities(id) ON DELETE SET NULL;
+CREATE INDEX idx_opportunities_canonical_url ON public.opportunities (canonical_url) WHERE canonical_url IS NOT NULL;
+CREATE INDEX idx_opportunities_event_fingerprint ON public.opportunities (event_fingerprint) WHERE event_fingerprint IS NOT NULL;
+CREATE INDEX idx_opportunities_merged_into ON public.opportunities (merged_into) WHERE merged_into IS NOT NULL;
+```
+
+Revert:
+```sql
+DROP INDEX IF EXISTS idx_opportunities_canonical_url;
+DROP INDEX IF EXISTS idx_opportunities_event_fingerprint;
+DROP INDEX IF EXISTS idx_opportunities_merged_into;
+ALTER TABLE public.opportunities
+  DROP COLUMN IF EXISTS canonical_url,
+  DROP COLUMN IF EXISTS event_fingerprint,
+  DROP COLUMN IF EXISTS merged_into;
+```
+Then redeploy the previous ingest-leads build. No existing rows were modified; backfill of the 5 known duplicate groups has NOT been run.
