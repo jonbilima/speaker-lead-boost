@@ -7,9 +7,7 @@ import { RevenueBusinessTab } from "@/components/admin/RevenueBusinessTab";
 import { SystemHealthTab } from "@/components/admin/SystemHealthTab";
 import { AdminActionsTab } from "@/components/admin/AdminActionsTab";
 import { Badge } from "@/components/ui/badge";
-import { Users, TrendingUp, Briefcase, DollarSign, Activity, Settings, Database } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Users, TrendingUp, Briefcase, DollarSign, Activity, Settings } from "lucide-react";
 
 export default function Admin() {
   const { isAdmin, loading } = useAdminCheck(true);
@@ -40,12 +38,6 @@ export default function Admin() {
               Platform analytics and management
             </p>
           </div>
-          <Button variant="outline" asChild>
-            <Link to="/admin/sources">
-              <Database className="h-4 w-4 mr-2" />
-              Source Yield
-            </Link>
-          </Button>
         </div>
 
         {/* Tabs */}

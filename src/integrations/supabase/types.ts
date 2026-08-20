@@ -1013,6 +1013,18 @@ export type Database = {
           },
         ]
       }
+      meetup_purge_retained_20260820: {
+        Row: {
+          opportunity_id: string | null
+        }
+        Insert: {
+          opportunity_id?: string | null
+        }
+        Update: {
+          opportunity_id?: string | null
+        }
+        Relationships: []
+      }
       onboarding_progress: {
         Row: {
           completed_at: string | null
@@ -1415,6 +1427,120 @@ export type Database = {
           event_date?: string | null
           id?: string | null
           is_active?: boolean | null
+        }
+        Relationships: []
+      }
+      opportunities_meetup_backup_20260820: {
+        Row: {
+          audience_size: number | null
+          canonical_url: string | null
+          covers_accommodation: boolean | null
+          covers_travel: boolean | null
+          created_at: string | null
+          deadline: string | null
+          description: string | null
+          event_date: string | null
+          event_end_date: string | null
+          event_fingerprint: string | null
+          event_name: string | null
+          event_url: string | null
+          fee_estimate_max: number | null
+          fee_estimate_min: number | null
+          id: string | null
+          ingest_source: string | null
+          is_active: boolean | null
+          is_featured: boolean | null
+          is_verified: boolean | null
+          karma_awarded: boolean | null
+          location: string | null
+          location_venue: string | null
+          merged_into: string | null
+          organization_website: string | null
+          organizer_email: string | null
+          organizer_linkedin: string | null
+          organizer_name: string | null
+          organizer_phone: string | null
+          raw_data: Json | null
+          scraped_at: string | null
+          seniority_level: string | null
+          source: string | null
+          submitted_by: string | null
+          timezone: string | null
+          vertical_slug: string | null
+        }
+        Insert: {
+          audience_size?: number | null
+          canonical_url?: string | null
+          covers_accommodation?: boolean | null
+          covers_travel?: boolean | null
+          created_at?: string | null
+          deadline?: string | null
+          description?: string | null
+          event_date?: string | null
+          event_end_date?: string | null
+          event_fingerprint?: string | null
+          event_name?: string | null
+          event_url?: string | null
+          fee_estimate_max?: number | null
+          fee_estimate_min?: number | null
+          id?: string | null
+          ingest_source?: string | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          is_verified?: boolean | null
+          karma_awarded?: boolean | null
+          location?: string | null
+          location_venue?: string | null
+          merged_into?: string | null
+          organization_website?: string | null
+          organizer_email?: string | null
+          organizer_linkedin?: string | null
+          organizer_name?: string | null
+          organizer_phone?: string | null
+          raw_data?: Json | null
+          scraped_at?: string | null
+          seniority_level?: string | null
+          source?: string | null
+          submitted_by?: string | null
+          timezone?: string | null
+          vertical_slug?: string | null
+        }
+        Update: {
+          audience_size?: number | null
+          canonical_url?: string | null
+          covers_accommodation?: boolean | null
+          covers_travel?: boolean | null
+          created_at?: string | null
+          deadline?: string | null
+          description?: string | null
+          event_date?: string | null
+          event_end_date?: string | null
+          event_fingerprint?: string | null
+          event_name?: string | null
+          event_url?: string | null
+          fee_estimate_max?: number | null
+          fee_estimate_min?: number | null
+          id?: string | null
+          ingest_source?: string | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          is_verified?: boolean | null
+          karma_awarded?: boolean | null
+          location?: string | null
+          location_venue?: string | null
+          merged_into?: string | null
+          organization_website?: string | null
+          organizer_email?: string | null
+          organizer_linkedin?: string | null
+          organizer_name?: string | null
+          organizer_phone?: string | null
+          raw_data?: Json | null
+          scraped_at?: string | null
+          seniority_level?: string | null
+          source?: string | null
+          submitted_by?: string | null
+          timezone?: string | null
+          vertical_slug?: string | null
         }
         Relationships: []
       }
