@@ -115,6 +115,7 @@ export default function AdminSources() {
     return Array.from(byDay.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([, v]) => v);
   }, [daily]);
 
+  const palette = ["--primary", "--accent", "--destructive", "--ring", "--muted-foreground"];
   const chartSources = useMemo(() => rows.slice(0, 5).map((r) => r.source ?? "unknown"), [rows]);
 
   if (checking) {
@@ -234,7 +235,7 @@ export default function AdminSources() {
                   <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
                   {chartSources.map((s, i) => (
-                    <Line key={s} type="monotone" dataKey={s} stroke={`hsl(var(--chart-${(i % 5) + 1}))`} strokeWidth={2} dot={false} />
+                    <Line key={s} type="monotone" dataKey={s} stroke={`hsl(var(${palette[i % palette.length]}))`} strokeWidth={2} dot={false} />
                   ))}
                 </LineChart>
               </ResponsiveContainer>
