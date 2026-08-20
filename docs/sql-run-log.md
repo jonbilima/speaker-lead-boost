@@ -225,3 +225,27 @@ where not exists (select 1 from public.opportunity_topics_backup_20260819 b wher
   and t.opportunity_id in (select distinct merged_into from public.opportunities_dedupe_backup_20260819 where merged_into is not null);
 -- karma: repoint back from the backup's opportunity_id if needed, then rescore survivors.
 ```
+
+## 2026-08-20 — Source name normalization + source yield views
+
+- Snapshot: `public.opportunities_source_backup_20260820` (id, source, ingest_source for all rows), RLS on, service_role only.
+- Normalized `opportunities.source` to lowercase canonical slugs. 149 rows changed:
+  CallingAllPapers→callingallpapers 74, Eventbrite→eventbrite 60, Sessionize→sessionize 7,
+  "DevOpsDays (global series)"→devopsdays 4, Meetup→meetup 1,
+  three event-name-as-source rows (NACD Directors Summit, Google Next-Gen DevCon 2026,
+  Mile High SHRM 2027 Speaker RFP) → ingest-leads 3.
+- Created views `public.v_source_yield` (per-source coverage, avg/max score, pipeline, won, first/last seen)
+  and `public.v_source_yield_daily` (rows added per source per day). Both `security_invoker = on`,
+  SELECT granted to authenticated + service_role.
+- Added SELECT policies "Admins can view all opportunities" and "Admins can view all opportunity scores"
+  (has_role(auth.uid(),'admin')) so the invoker-security views return complete numbers for admins.
+
+### Revert
+```sql
+UPDATE public.opportunities o SET source = b.source
+FROM public.opportunities_source_backup_20260820 b WHERE b.id = o.id;
+DROP VIEW IF EXISTS public.v_source_yield, public.v_source_yield_daily;
+DROP POLICY IF EXISTS "Admins can view all opportunities" ON public.opportunities;
+DROP POLICY IF EXISTS "Admins can view all opportunity scores" ON public.opportunity_scores;
+DROP TABLE public.opportunities_source_backup_20260820;
+```
