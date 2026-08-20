@@ -1418,6 +1418,24 @@ export type Database = {
         }
         Relationships: []
       }
+      opportunities_source_backup_20260820: {
+        Row: {
+          id: string | null
+          ingest_source: string | null
+          source: string | null
+        }
+        Insert: {
+          id?: string | null
+          ingest_source?: string | null
+          source?: string | null
+        }
+        Update: {
+          id?: string | null
+          ingest_source?: string | null
+          source?: string | null
+        }
+        Relationships: []
+      }
       opportunities_vertical_backup_20260818: {
         Row: {
           id: string | null
@@ -3272,7 +3290,37 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_source_yield: {
+        Row: {
+          accepted_or_completed: number | null
+          active_rows: number | null
+          avg_score: number | null
+          first_seen: string | null
+          last_seen: string | null
+          max_score: number | null
+          merged_rows: number | null
+          opportunities_in_pipeline: number | null
+          source: string | null
+          total_rows: number | null
+          with_deadline: number | null
+          with_event_date: number | null
+          with_fee: number | null
+          with_organizer_email: number | null
+          with_organizer_name: number | null
+          with_topics: number | null
+          with_vertical: number | null
+        }
+        Relationships: []
+      }
+      v_source_yield_daily: {
+        Row: {
+          active_rows_added: number | null
+          day: string | null
+          rows_added: number | null
+          source: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_feedback_by_token: {
