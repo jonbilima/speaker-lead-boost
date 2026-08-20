@@ -225,3 +225,20 @@ where not exists (select 1 from public.opportunity_topics_backup_20260819 b wher
   and t.opportunity_id in (select distinct merged_into from public.opportunities_dedupe_backup_20260819 where merged_into is not null);
 -- karma: repoint back from the backup's opportunity_id if needed, then rescore survivors.
 ```
+
+## 2026-08-20 — Meetup inventory retirement (A6 purge)
+- Backups: `public.opportunities_meetup_backup_20260820` (all 715 meetup rows), `public.meetup_purge_retained_20260820` (29 retained ids). Both RLS-enabled, service_role only.
+- Deactivated 686 meetup rows with no user activity (`is_active = false`, nothing deleted).
+- Retained 29 rows with real user activity (22 pipeline stage past new, 9 pitches, 2 application packages; 0 applied_logs / karma / calendar / bookings).
+- Active opportunities after purge: 537.
+- Scraper disabled: meetup removed from `scrape-all-sources` scrapers list; `scrape-meetup` now short-circuits unless env `MEETUP_SCRAPER_ENABLED=true`.
+- Digest dry run: 66 users, 493 leads, 328 own vertical / 0 adjacent / 165 fallback, 0 users below the 5-lead minimum, score range 27–79.
+
+### Revert
+```sql
+UPDATE public.opportunities o
+SET is_active = b.is_active
+FROM public.opportunities_meetup_backup_20260820 b
+WHERE o.id = b.id;
+```
+Then re-add `{ name: 'meetup', function: 'scrape-meetup' }` to `scrape-all-sources` and remove the disable guard in `scrape-meetup` (or set secret `MEETUP_SCRAPER_ENABLED=true`), then redeploy both.
