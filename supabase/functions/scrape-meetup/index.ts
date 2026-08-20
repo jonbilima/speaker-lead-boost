@@ -14,6 +14,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // DISABLED 2026-08-20: Meetup source retired (no organizer emails, topics or
+  // dates; all rows scored at the floor). To re-enable, delete this block and
+  // re-add meetup to the scrapers list in scrape-all-sources.
+  if (Deno.env.get("MEETUP_SCRAPER_ENABLED") !== "true") {
+    return new Response(
+      JSON.stringify({ success: false, disabled: true, error: "Meetup scraper is disabled" }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

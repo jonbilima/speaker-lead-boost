@@ -84,7 +84,10 @@ serve(async (req) => {
       { name: 'papercall', function: 'scrape-papercall' },
       { name: 'sessionize', function: 'scrape-sessionize' },
       { name: 'eventbrite', function: 'scrape-eventbrite' },
-      { name: 'meetup', function: 'scrape-meetup' },
+      // DISABLED 2026-08-20: Meetup yielded ~80% of inventory with zero organizer
+      // emails/topics/dates and floor scores. Re-enable by uncommenting this line
+      // and redeploying scrape-all-sources.
+      // { name: 'meetup', function: 'scrape-meetup' },
       { name: 'conferencelist', function: 'scrape-conferencelist' },
     ];
 
