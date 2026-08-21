@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
       if (!h || isBlockedHost(h)) return false;
       const c = cacheMap.get(h);
       return !(c && fresh(c as never));
-    }).slice(0, limit);
+    }).slice(offset, offset + limit);
 
     const results = [];
     const CONCURRENCY = 5;
@@ -117,6 +117,8 @@ Deno.serve(async (req) => {
 
     if (!dryRun && rows.length) {
       await supabase.from("organizer_contacts").upsert(rows, { onConflict: "domain" });
+    }
+    if (!dryRun && fillOpportunities) {
       // Fill organizer_email only where it is currently empty (never overwrite).
       for (const row of rows.filter((r) => r.email)) {
         await supabase
@@ -149,6 +151,8 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         dry_run: dryRun,
+        filled_opportunities: fillOpportunities,
+        offset,
         targets: targets.length,
         crawled: rows.length,
         skipped_cached: targets.length - toCrawl.length,
