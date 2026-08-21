@@ -161,6 +161,36 @@ Deno.serve(async (req) => {
       out.push(row);
     }
 
+    // Persist API-resolved organizer domains (apply mode only).
+    let persisted = 0;
+    if (body.apply === true) {
+      const rows = out
+        .filter((r) => (r.api as { domain?: string })?.domain)
+        .map((r) => ({
+          opportunity_id: r.id as string,
+          aggregator: "eventbrite",
+          aggregator_url: r.event_url as string,
+          resolved_domain: (r.api as { domain: string }).domain,
+          resolved_at: new Date().toISOString(),
+        }));
+      if (rows.length) {
+        await supabase
+          .from("aggregator_domain_resolution_20260821")
+          .upsert(rows, { onConflict: "opportunity_id" });
+        persisted = rows.length;
+      }
+      // Fill organizer_name only where it is currently empty.
+      for (const r of out) {
+        const name = (r.api as { organizer_name?: string })?.organizer_name;
+        if (!name) continue;
+        await supabase
+          .from("opportunities")
+          .update({ organizer_name: name })
+          .eq("id", r.id as string)
+          .is("organizer_name", null);
+      }
+    }
+
     const apiWins = out.filter((r) => (r.api as { domain?: string })?.domain).length;
     const renderWins = out.filter((r) => (r.render as { domain?: string })?.domain).length;
     const apiStatuses: Record<string, number> = {};
@@ -175,10 +205,19 @@ Deno.serve(async (req) => {
         api_domains: apiWins,
         render_domains: renderWins,
         api_statuses: apiStatuses,
-        results: out,
+        persisted,
+        domains: [
+          ...new Set(
+            out
+              .map((r) => (r.api as { domain?: string })?.domain)
+              .filter(Boolean) as string[],
+          ),
+        ],
+        results: body.summary_only === true ? undefined : out,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
+
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e) }), {
       status: 500,
