@@ -225,15 +225,45 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
 
         <Separator />
 
-        {/* No Email Warning */}
-        {noEmailWarning && (
-          <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
-            <AlertTriangle className="h-4 w-4 text-yellow-600" />
-            <p className="text-sm text-yellow-700 dark:text-yellow-300">
-              No organizer email found. Your pitch will be saved but not sent automatically.
-            </p>
-          </div>
-        )}
+        {/* Contact path */}
+        <div className="space-y-2 rounded-md border p-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            How to reach the organizer
+          </p>
+          <ContactPathPanel info={contactInfo} />
+          {noEmailWarning && contactInfo.hasAnyPath && (
+            <div className="flex items-start gap-2 pt-1">
+              <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
+              <p className="text-sm text-muted-foreground">
+                No direct email for this organizer — use the contact path above and paste your pitch there.
+              </p>
+            </div>
+          )}
+          {noEmailWarning && !contactInfo.hasAnyPath && (
+            <div className="flex items-start gap-2 pt-1">
+              <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
+              <p className="text-sm text-muted-foreground">
+                No contact path found yet. Your pitch will be saved so you can send it once you find one.
+              </p>
+            </div>
+          )}
+          {noEmailWarning && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button variant="outline" size="sm" onClick={copyPitch} disabled={!emailBody}>
+                <Copy className="h-3 w-3 mr-1" />
+                Copy pitch
+              </Button>
+              {contactInfo.paths[0]?.href && (
+                <Button variant="outline" size="sm" asChild>
+                  <a href={contactInfo.paths[0].href} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Open {contactInfo.paths[0].label}
+                  </a>
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Pitch Editor */}
         {generating ? (
