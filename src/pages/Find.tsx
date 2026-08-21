@@ -250,9 +250,18 @@ const Find = () => {
     loadOpportunities();
   }, [loadOpportunities]);
 
+  // Remember the speaker's location preference between visits
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOCATION_PREF_KEY, JSON.stringify(filters.locations ?? []));
+    } catch {
+      // ignore storage failures
+    }
+  }, [filters.locations]);
+
   const toggleFilter = (category: keyof Omit<FilterState, "search">, value: string) => {
     setFilters(prev => {
-      const current = prev[category] as string[];
+      const current = (prev[category] as string[]) ?? [];
       return {
         ...prev,
         [category]: current.includes(value)
@@ -268,6 +277,7 @@ const Find = () => {
       types: [],
       feeRanges: [],
       deadlines: [],
+      locations: [],
       search: "",
     });
     setSearchTerm("");
@@ -293,7 +303,7 @@ const Find = () => {
   const applySavedSearch = (search: SavedSearch) => {
     setActiveSmartList(null);
     setActiveSavedSearchId(search.id);
-    setFilters(search.filters);
+    setFilters({ ...search.filters, locations: search.filters.locations ?? [] });
     setSearchTerm(search.filters.search || "");
   };
 
@@ -302,6 +312,7 @@ const Find = () => {
     filters.types.length > 0 ||
     filters.feeRanges.length > 0 ||
     filters.deadlines.length > 0 ||
+    (filters.locations?.length ?? 0) > 0 ||
     searchTerm.length > 0;
 
   // Filter and sort opportunities
