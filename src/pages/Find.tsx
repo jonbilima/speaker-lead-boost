@@ -472,6 +472,7 @@ const Find = () => {
                 eventTypes={EVENT_TYPES}
                 feeRanges={FEE_RANGES}
                 deadlineRanges={DEADLINE_RANGES}
+                locationOptions={LOCATION_OPTIONS}
               />
             </SheetContent>
           </Sheet>
