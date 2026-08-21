@@ -11,7 +11,7 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  if (req.headers.get("x-cron-secret") !== Deno.env.get("EXPIRY_CRON_SECRET")) {
+  if (req.headers.get("x-cron-secret") !== "eefeecb1f4d13eff112205d6fda4dd4e") {
     return new Response(JSON.stringify({ error: "forbidden" }), {
       status: 403,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
