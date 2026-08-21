@@ -8,6 +8,7 @@ import {
 } from "@/lib/organizerContact";
 
 let cache: Promise<OrganizerContactRow[]> | null = null;
+let resolvedCache: Promise<Map<string, string>> | null = null;
 
 function loadContacts(): Promise<OrganizerContactRow[]> {
   if (!cache) {
@@ -27,10 +28,32 @@ function loadContacts(): Promise<OrganizerContactRow[]> {
   return cache;
 }
 
+/** opportunity_id -> real organizer domain, for listings hosted on aggregators. */
+function loadResolvedDomains(): Promise<Map<string, string>> {
+  if (!resolvedCache) {
+    resolvedCache = (async () => {
+      try {
+        const { data } = await supabase
+          .from("aggregator_domain_resolution_20260821")
+          .select("opportunity_id, resolved_domain");
+        const map = new Map<string, string>();
+        for (const r of (data ?? []) as { opportunity_id: string; resolved_domain: string | null }[]) {
+          if (r.resolved_domain) map.set(r.opportunity_id, r.resolved_domain);
+        }
+        return map;
+      } catch {
+        return new Map<string, string>();
+      }
+    })();
+  }
+  return resolvedCache;
+}
+
 /** Resolves the speaker-facing contact paths for one opportunity. */
 export function useOrganizerContact(
   eventUrl: string | null | undefined,
   organizerEmail: string | null,
+  opportunityId?: string | null,
 ): OrganizerContactInfo {
   const [info, setInfo] = useState<OrganizerContactInfo>(() =>
     buildContactInfo(organizerEmail, null),
@@ -38,14 +61,20 @@ export function useOrganizerContact(
 
   useEffect(() => {
     let active = true;
-    loadContacts().then((rows) => {
+    Promise.all([loadContacts(), loadResolvedDomains()]).then(([rows, resolved]) => {
       if (!active) return;
-      setInfo(buildContactInfo(organizerEmail, findContactForUrl(eventUrl, rows)));
+      let match = findContactForUrl(eventUrl, rows);
+      if (!match && opportunityId) {
+        const domain = resolved.get(opportunityId);
+        if (domain) match = findContactForUrl(`https://${domain}`, rows);
+      }
+      setInfo(buildContactInfo(organizerEmail, match));
     });
     return () => {
       active = false;
     };
-  }, [eventUrl, organizerEmail]);
+  }, [eventUrl, organizerEmail, opportunityId]);
 
   return info;
 }
+
