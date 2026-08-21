@@ -124,7 +124,8 @@ const Find = () => {
             location,
             audience_size,
             event_url,
-            created_at
+            created_at,
+            country
           )
         `)
         .eq("user_id", session.user.id)
