@@ -41,6 +41,7 @@ export interface Opportunity {
   topics: string[];
   pipeline_stage?: string;
   created_at?: string | null;
+  country?: string | null;
 }
 
 export interface FilterState {
@@ -48,6 +49,7 @@ export interface FilterState {
   types: string[];
   feeRanges: string[];
   deadlines: string[];
+  locations?: string[];
   search: string;
 }
 
@@ -55,6 +57,23 @@ const INDUSTRIES = ["Education", "Corporate", "Faith-Based", "Nonprofit", "Healt
 const EVENT_TYPES = ["Conference", "Corporate Event", "Workshop", "Keynote", "Panel", "Virtual"];
 const FEE_RANGES = ["$1-3k", "$3-5k", "$5-10k", "$10k+"];
 const DEADLINE_RANGES = ["This Week", "This Month", "Next 3 Months"];
+const LOCATION_OPTIONS = ["United States", "International", "Location unknown"];
+const LOCATION_PREF_KEY = "nextmic.find.locationFilter";
+
+const locationBucket = (country?: string | null) => {
+  if (!country) return "Location unknown";
+  return country === "United States" ? "United States" : "International";
+};
+
+const initialLocationFilter = (): string[] => {
+  try {
+    const stored = localStorage.getItem(LOCATION_PREF_KEY);
+    if (stored) return JSON.parse(stored) as string[];
+  } catch {
+    // ignore malformed preference
+  }
+  return ["United States"];
+};
 
 const Find = () => {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
