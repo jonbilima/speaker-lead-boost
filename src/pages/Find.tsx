@@ -366,6 +366,11 @@ const Find = () => {
       if (!matchesDeadline) return false;
     }
 
+    // Location filter
+    if ((filters.locations?.length ?? 0) > 0) {
+      if (!filters.locations!.includes(locationBucket(opp.country))) return false;
+    }
+
     // Exclude already in pipeline (except new)
     if (opp.pipeline_stage && opp.pipeline_stage !== "new") return false;
 
