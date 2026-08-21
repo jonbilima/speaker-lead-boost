@@ -32,10 +32,14 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const dryRun = body.dry_run === true;
+    // Opportunity organizer_email backfill is opt-in only.
+    const fillOpportunities = body.fill_opportunities === true;
     const limit = Math.min(Number(body.limit ?? 50), 300);
+    const offset = Math.max(Number(body.offset ?? 0), 0);
     const firecrawlKey = body.no_render === true
       ? undefined
       : Deno.env.get("FIRECRAWL_API_KEY") ?? undefined;
+
 
     let targets: string[] = [];
     if (body.url) targets = [body.url];
