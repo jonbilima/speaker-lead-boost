@@ -13,6 +13,7 @@ interface FilterPanelProps {
   eventTypes: string[];
   feeRanges: string[];
   deadlineRanges: string[];
+  locationOptions?: string[];
 }
 
 export function FilterPanel({ 
@@ -22,13 +23,15 @@ export function FilterPanel({
   industries, 
   eventTypes, 
   feeRanges, 
-  deadlineRanges 
+  deadlineRanges,
+  locationOptions = []
 }: FilterPanelProps) {
   const activeCount = 
     filters.industries.length + 
     filters.types.length + 
     filters.feeRanges.length + 
-    filters.deadlines.length;
+    filters.deadlines.length +
+    (filters.locations?.length ?? 0);
 
   return (
     <ScrollArea className="h-[calc(100vh-8rem)]">
@@ -43,6 +46,32 @@ export function FilterPanel({
             </Button>
           </div>
         )}
+
+        {/* Location */}
+        {locationOptions.length > 0 && (
+          <>
+            <div className="space-y-3">
+              <h4 className="font-medium text-sm">Location</h4>
+              <div className="flex flex-wrap gap-2">
+                {locationOptions.map(option => (
+                  <Badge
+                    key={option}
+                    variant={filters.locations?.includes(option) ? "default" : "outline"}
+                    className="cursor-pointer"
+                    onClick={() => onToggleFilter("locations", option)}
+                  >
+                    {option}
+                  </Badge>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                No location selected shows every opportunity.
+              </p>
+            </div>
+            <Separator />
+          </>
+        )}
+
 
         {/* Industry */}
         <div className="space-y-3">
