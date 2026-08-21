@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { 
   Search, Filter, LayoutGrid, List, DollarSign, 
-  Clock, Bookmark, X, RefreshCw
+  Clock, Bookmark, X, RefreshCw, MapPin
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -41,6 +41,7 @@ export interface Opportunity {
   topics: string[];
   pipeline_stage?: string;
   created_at?: string | null;
+  country?: string | null;
 }
 
 export interface FilterState {
@@ -48,6 +49,7 @@ export interface FilterState {
   types: string[];
   feeRanges: string[];
   deadlines: string[];
+  locations?: string[];
   search: string;
 }
 
@@ -55,6 +57,23 @@ const INDUSTRIES = ["Education", "Corporate", "Faith-Based", "Nonprofit", "Healt
 const EVENT_TYPES = ["Conference", "Corporate Event", "Workshop", "Keynote", "Panel", "Virtual"];
 const FEE_RANGES = ["$1-3k", "$3-5k", "$5-10k", "$10k+"];
 const DEADLINE_RANGES = ["This Week", "This Month", "Next 3 Months"];
+const LOCATION_OPTIONS = ["United States", "International", "Location unknown"];
+const LOCATION_PREF_KEY = "nextmic.find.locationFilter";
+
+const locationBucket = (country?: string | null) => {
+  if (!country) return "Location unknown";
+  return country === "United States" ? "United States" : "International";
+};
+
+const initialLocationFilter = (): string[] => {
+  try {
+    const stored = localStorage.getItem(LOCATION_PREF_KEY);
+    if (stored) return JSON.parse(stored) as string[];
+  } catch {
+    // ignore malformed preference
+  }
+  return ["United States"];
+};
 
 const Find = () => {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
@@ -65,6 +84,7 @@ const Find = () => {
     types: [],
     feeRanges: [],
     deadlines: [],
+    locations: initialLocationFilter(),
     search: "",
   });
   const [sortBy, setSortBy] = useState<"match" | "deadline" | "fee" | "date">("match");
@@ -104,7 +124,8 @@ const Find = () => {
             location,
             audience_size,
             event_url,
-            created_at
+            created_at,
+            country
           )
         `)
         .eq("user_id", session.user.id)
@@ -162,6 +183,7 @@ const Find = () => {
           audience_size: number | null;
           event_url: string | null;
           created_at: string | null;
+          country: string | null;
         } | null;
       }
 
@@ -187,6 +209,7 @@ const Find = () => {
           ai_reason: s.ai_reason,
           reason_codes: s.reason_codes ?? null,
           created_at: s.opportunities!.created_at,
+          country: s.opportunities!.country,
           topics: topicsMap[s.opportunities!.id] || [],
           pipeline_stage: s.pipeline_stage || undefined,
         }));
@@ -210,6 +233,7 @@ const Find = () => {
           ai_reason: null,
           reason_codes: null,
           created_at: o.created_at,
+          country: o.country,
           topics: topicsMap[o.id] || [],
         }));
 
@@ -226,9 +250,18 @@ const Find = () => {
     loadOpportunities();
   }, [loadOpportunities]);
 
+  // Remember the speaker's location preference between visits
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOCATION_PREF_KEY, JSON.stringify(filters.locations ?? []));
+    } catch {
+      // ignore storage failures
+    }
+  }, [filters.locations]);
+
   const toggleFilter = (category: keyof Omit<FilterState, "search">, value: string) => {
     setFilters(prev => {
-      const current = prev[category] as string[];
+      const current = (prev[category] as string[]) ?? [];
       return {
         ...prev,
         [category]: current.includes(value)
@@ -244,6 +277,7 @@ const Find = () => {
       types: [],
       feeRanges: [],
       deadlines: [],
+      locations: [],
       search: "",
     });
     setSearchTerm("");
@@ -269,7 +303,7 @@ const Find = () => {
   const applySavedSearch = (search: SavedSearch) => {
     setActiveSmartList(null);
     setActiveSavedSearchId(search.id);
-    setFilters(search.filters);
+    setFilters({ ...search.filters, locations: search.filters.locations ?? [] });
     setSearchTerm(search.filters.search || "");
   };
 
@@ -278,6 +312,7 @@ const Find = () => {
     filters.types.length > 0 ||
     filters.feeRanges.length > 0 ||
     filters.deadlines.length > 0 ||
+    (filters.locations?.length ?? 0) > 0 ||
     searchTerm.length > 0;
 
   // Filter and sort opportunities
@@ -331,6 +366,11 @@ const Find = () => {
       if (!matchesDeadline) return false;
     }
 
+    // Location filter
+    if ((filters.locations?.length ?? 0) > 0) {
+      if (!filters.locations!.includes(locationBucket(opp.country))) return false;
+    }
+
     // Exclude already in pipeline (except new)
     if (opp.pipeline_stage && opp.pipeline_stage !== "new") return false;
 
@@ -365,7 +405,8 @@ const Find = () => {
     filters.industries.length + 
     filters.types.length + 
     filters.feeRanges.length + 
-    filters.deadlines.length;
+    filters.deadlines.length +
+    (filters.locations?.length ?? 0);
 
   return (
     <AppLayout>
@@ -431,6 +472,7 @@ const Find = () => {
                 eventTypes={EVENT_TYPES}
                 feeRanges={FEE_RANGES}
                 deadlineRanges={DEADLINE_RANGES}
+                locationOptions={LOCATION_OPTIONS}
               />
             </SheetContent>
           </Sheet>
@@ -439,6 +481,18 @@ const Find = () => {
         {/* Quick Filter Chips */}
         <ScrollArea className="w-full whitespace-nowrap">
           <div className="flex gap-2 pb-2">
+            {LOCATION_OPTIONS.map(option => (
+              <Button
+                key={option}
+                variant={filters.locations?.includes(option) ? "default" : "outline"}
+                size="sm"
+                className="shrink-0"
+                onClick={() => toggleFilter("locations", option)}
+              >
+                <MapPin className="h-3 w-3 mr-1" />
+                {option}
+              </Button>
+            ))}
             {FEE_RANGES.map(range => (
               <Button
                 key={range}

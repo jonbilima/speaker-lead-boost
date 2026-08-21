@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.trg_set_opportunity_country() FROM anon, authenticated, PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.derive_opportunity_country(text, text, jsonb) FROM anon, authenticated, PUBLIC;
