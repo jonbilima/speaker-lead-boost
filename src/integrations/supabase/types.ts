@@ -1568,6 +1568,27 @@ export type Database = {
         }
         Relationships: []
       }
+      opportunities_nonus_backup_20260821: {
+        Row: {
+          id: string | null
+          is_active: boolean | null
+          location: string | null
+          snapshot_at: string | null
+        }
+        Insert: {
+          id?: string | null
+          is_active?: boolean | null
+          location?: string | null
+          snapshot_at?: string | null
+        }
+        Update: {
+          id?: string | null
+          is_active?: boolean | null
+          location?: string | null
+          snapshot_at?: string | null
+        }
+        Relationships: []
+      }
       opportunities_organizer_email_backup_20260821: {
         Row: {
           event_url: string | null
