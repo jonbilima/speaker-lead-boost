@@ -71,3 +71,8 @@ verify_jwt = false
 # (service-role token in practice). Never callable by anon.
 [functions.scrape-organizer-contacts]
 verify_jwt = true
+
+# Temporary diagnostic for Eventbrite organizer resolution. Admin/service only.
+[functions.eventbrite-organizer-test]
+verify_jwt = true
+
