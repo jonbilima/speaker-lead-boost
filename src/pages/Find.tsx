@@ -233,6 +233,7 @@ const Find = () => {
           ai_reason: null,
           reason_codes: null,
           created_at: o.created_at,
+          country: o.country,
           topics: topicsMap[o.id] || [],
         }));
 
