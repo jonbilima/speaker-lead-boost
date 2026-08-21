@@ -209,6 +209,7 @@ const Find = () => {
           ai_reason: s.ai_reason,
           reason_codes: s.reason_codes ?? null,
           created_at: s.opportunities!.created_at,
+          country: s.opportunities!.country,
           topics: topicsMap[s.opportunities!.id] || [],
           pipeline_stage: s.pipeline_stage || undefined,
         }));
