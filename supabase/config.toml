@@ -65,3 +65,8 @@ verify_jwt = true
 # matching deactivate-expired-opportunities. Never callable by anon.
 [functions.score-new-opportunities]
 verify_jwt = false
+
+# Organizer contact discovery. Admin/cron only: requires a valid JWT
+# (service-role token in practice). Never callable by anon.
+[functions.scrape-organizer-contacts]
+verify_jwt = true
