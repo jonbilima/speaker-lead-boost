@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { 
   Search, Filter, LayoutGrid, List, DollarSign, 
-  Clock, Bookmark, X, RefreshCw
+  Clock, Bookmark, X, RefreshCw, MapPin
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
