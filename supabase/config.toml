@@ -3,8 +3,9 @@ project_id = "jzrgcbgqpowmknjyjhon"
 [functions.rank-opportunities]
 verify_jwt = true
 
+# JWT is validated in-code (signing-keys compatible). Gateway verification off.
 [functions.generate-pitch]
-verify_jwt = true
+verify_jwt = false
 
 [functions.scrape-sessionize]
 verify_jwt = true

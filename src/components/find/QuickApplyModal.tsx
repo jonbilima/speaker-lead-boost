@@ -30,7 +30,7 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
   const [emailBody, setEmailBody] = useState("");
   const [hasGenerated, setHasGenerated] = useState(false);
   const [noEmailWarning, setNoEmailWarning] = useState(false);
-  const contactInfo = useOrganizerContact(opportunity?.event_url, opportunity?.organizer_email ?? null);
+  const contactInfo = useOrganizerContact(opportunity?.event_url, opportunity?.organizer_email ?? null, opportunity?.id ?? null);
 
   const copyPitch = async () => {
     try {

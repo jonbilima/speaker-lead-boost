@@ -18,9 +18,16 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get user from auth header
-    const authHeader = req.headers.get('Authorization')!;
-    const token = authHeader.replace('Bearer ', '');
+    // In-code JWT validation (function runs with verify_jwt = false so the
+    // gateway does not reject asymmetric signing-key tokens).
+    const authHeader = req.headers.get('Authorization') ?? '';
+    const token = authHeader.replace('Bearer ', '').trim();
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
@@ -30,6 +37,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
 
     const { opportunity_id, tone = 'professional' } = await req.json();
 
@@ -182,9 +190,11 @@ Return ONLY valid JSON (no markdown, no explanations):
       });
     }
 
-    if (aiResponse.status === 402) {
-      return new Response(JSON.stringify({ 
-        error: 'Payment required, please add funds to your workspace.' 
+    if (aiResponse.status === 402 || aiResponse.status === 403) {
+      const detail = await aiResponse.text().catch(() => '');
+      console.error('AI credit/permission error:', aiResponse.status, detail.slice(0, 300));
+      return new Response(JSON.stringify({
+        error: 'AI pitch generation is temporarily unavailable (workspace AI credit limit reached). Please try again shortly.',
       }), {
         status: 402,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -192,12 +202,14 @@ Return ONLY valid JSON (no markdown, no explanations):
     }
 
     if (!aiResponse.ok) {
-      console.error('AI request failed:', aiResponse.status);
+      const detail = await aiResponse.text().catch(() => '');
+      console.error('AI request failed:', aiResponse.status, detail.slice(0, 300));
       return new Response(JSON.stringify({ error: 'Failed to generate pitch' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
 
     const aiData = await aiResponse.json();
     let pitches;
