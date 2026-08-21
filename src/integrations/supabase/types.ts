@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      aggregator_domain_resolution_20260821: {
+        Row: {
+          aggregator: string
+          aggregator_url: string
+          opportunity_id: string
+          resolved_at: string
+          resolved_domain: string | null
+        }
+        Insert: {
+          aggregator: string
+          aggregator_url: string
+          opportunity_id: string
+          resolved_at?: string
+          resolved_domain?: string | null
+        }
+        Update: {
+          aggregator?: string
+          aggregator_url?: string
+          opportunity_id?: string
+          resolved_at?: string
+          resolved_domain?: string | null
+        }
+        Relationships: []
+      }
       application_packages: {
         Row: {
           cover_message: string | null
