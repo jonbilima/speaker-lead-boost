@@ -183,6 +183,7 @@ const Find = () => {
           audience_size: number | null;
           event_url: string | null;
           created_at: string | null;
+          country: string | null;
         } | null;
       }
 
