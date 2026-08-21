@@ -405,7 +405,8 @@ const Find = () => {
     filters.industries.length + 
     filters.types.length + 
     filters.feeRanges.length + 
-    filters.deadlines.length;
+    filters.deadlines.length +
+    (filters.locations?.length ?? 0);
 
   return (
     <AppLayout>
