@@ -242,3 +242,9 @@ FROM public.opportunities_meetup_backup_20260820 b
 WHERE o.id = b.id;
 ```
 Then re-add `{ name: 'meetup', function: 'scrape-meetup' }` to `scrape-all-sources` and remove the disable guard in `scrape-meetup` (or set secret `MEETUP_SCRAPER_ENABLED=true`), then redeploy both.
+
+## 2026-08-21 — organizer_contacts backfill (132 domains)
+- Snapshot: `public.opportunities_organizer_email_backup_20260821` (id, event_url, organizer_email).
+- `scrape-organizer-contacts` updated: `fill_opportunities` flag (default false — opportunities untouched), `offset` param.
+- Ran chunked backfill (20/10/5 per invocation) → 132 rows in `organizer_contacts`. No writes to `opportunities`.
+- Revert: `DELETE FROM public.organizer_contacts;` (or `DROP TABLE`); restore emails from the snapshot table if ever filled.
