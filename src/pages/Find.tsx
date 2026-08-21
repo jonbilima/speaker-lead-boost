@@ -84,6 +84,7 @@ const Find = () => {
     types: [],
     feeRanges: [],
     deadlines: [],
+    locations: initialLocationFilter(),
     search: "",
   });
   const [sortBy, setSortBy] = useState<"match" | "deadline" | "fee" | "date">("match");
