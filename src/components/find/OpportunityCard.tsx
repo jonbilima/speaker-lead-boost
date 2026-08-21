@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
 import { describeReasonCodes, isMissingDataScore } from "@/lib/reasonCodes";
+import { useOrganizerContact } from "@/hooks/useOrganizerContact";
+import { ContactPathPanel } from "@/components/find/ContactPathPanel";
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
@@ -30,6 +32,7 @@ interface OpportunityCardProps {
 
 export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh }: OpportunityCardProps) {
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const contactInfo = useOrganizerContact(opportunity.event_url, opportunity.organizer_email);
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
