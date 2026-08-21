@@ -1089,6 +1089,7 @@ export type Database = {
         Row: {
           audience_size: number | null
           canonical_url: string | null
+          country: string | null
           covers_accommodation: boolean | null
           covers_travel: boolean | null
           created_at: string
@@ -1126,6 +1127,7 @@ export type Database = {
         Insert: {
           audience_size?: number | null
           canonical_url?: string | null
+          country?: string | null
           covers_accommodation?: boolean | null
           covers_travel?: boolean | null
           created_at?: string
@@ -1163,6 +1165,7 @@ export type Database = {
         Update: {
           audience_size?: number | null
           canonical_url?: string | null
+          country?: string | null
           covers_accommodation?: boolean | null
           covers_travel?: boolean | null
           created_at?: string
@@ -3635,6 +3638,10 @@ export type Database = {
       }
     }
     Functions: {
+      derive_opportunity_country: {
+        Args: { p_event_url: string; p_location: string; p_raw: Json }
+        Returns: string
+      }
       get_feedback_by_token: {
         Args: { p_token: string }
         Returns: {
