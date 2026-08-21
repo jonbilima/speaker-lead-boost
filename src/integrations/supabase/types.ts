@@ -1544,6 +1544,24 @@ export type Database = {
         }
         Relationships: []
       }
+      opportunities_organizer_email_backup_20260821: {
+        Row: {
+          event_url: string | null
+          id: string | null
+          organizer_email: string | null
+        }
+        Insert: {
+          event_url?: string | null
+          id?: string | null
+          organizer_email?: string | null
+        }
+        Update: {
+          event_url?: string | null
+          id?: string | null
+          organizer_email?: string | null
+        }
+        Relationships: []
+      }
       opportunities_source_backup_20260820: {
         Row: {
           id: string | null
