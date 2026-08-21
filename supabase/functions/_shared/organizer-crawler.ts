@@ -10,6 +10,8 @@ export const BLOCKED_HOST_PATTERNS = [
   "cvent.com",
   "formstack.com",
   "forms.office.com",
+  "forms.cloud.microsoft",
+  "office.com",
   "forms.gle",
   "docs.google.com",
   "pheedloop.com",
@@ -227,6 +229,20 @@ function contactLinks(html: string, base: string): string[] {
   return [...new Set(urls)].slice(0, 6);
 }
 
+function decodeCfEmails(html: string): string[] {
+  const out: string[] = [];
+  for (const m of html.matchAll(/data-cfemail=["']([0-9a-f]+)["']/gi)) {
+    const hex = m[1];
+    const key = parseInt(hex.slice(0, 2), 16);
+    let email = "";
+    for (let i = 2; i < hex.length; i += 2) {
+      email += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16) ^ key);
+    }
+    if (email.includes("@")) out.push(email.toLowerCase());
+  }
+  return out;
+}
+
 function harvest(
   page: FetchOut,
   domain: string,
@@ -237,6 +253,7 @@ function harvest(
   const mailtos = [...page.html.matchAll(/mailto:([^"'?>\s]+)/gi)].map((m) => m[1]);
   const text = stripTags(page.html);
   const emails = new Set<string>([
+    ...decodeCfEmails(page.html).filter((e) => !JUNK_EMAIL_RE.test(e)),
     ...extractEmails(mailtos.join(" "), domain),
     ...extractEmails(text, domain),
   ]);
@@ -262,7 +279,7 @@ export async function crawlDomain(
   startUrl: string,
   opts: { maxPages?: number } = {},
 ): Promise<CrawlResult> {
-  const maxPages = opts.maxPages ?? 14;
+  const maxPages = opts.maxPages ?? 20;
   const host = hostOf(startUrl);
   const result: CrawlResult = {
     domain: host ?? "",
@@ -284,6 +301,7 @@ export async function crawlDomain(
   }
 
   const seen = new Set<string>();
+  const fetchedPages: { html: string; url: string }[] = [];
   const push = (s: string) => {
     if (!result.strategies_tried.includes(s)) result.strategies_tried.push(s);
   };
@@ -298,6 +316,7 @@ export async function crawlDomain(
     push(strategy);
     if (!page) return null;
     if (page.retried403) push("retry_403");
+    fetchedPages.push({ html: page.html, url: page.url });
     const { hits, jsonHits, text } = harvest(page, domain, strategy);
     if (hits.length) result.hits.push(...hits);
     if (jsonHits.length) {
@@ -323,16 +342,15 @@ export async function crawlDomain(
     }
     if (result.hits.length) return;
 
-    // one-hop follow of contact-ish links found on the entry page
-    if (first) {
-      const links = contactLinks(first.page.html, first.page.url);
-      if (links.length) result.contact_page_only = links[0];
-      for (const l of links) {
-        if (result.hits.length) return;
-        if (hostOf(l) !== h) continue;
-        await visit(l, "contact_link_hop", h);
-      }
+    // one-hop follow of contact-ish links found on any page fetched so far
+    const links = [...new Set(fetchedPages.flatMap((p) => contactLinks(p.html, p.url)))]
+      .filter((l) => hostOf(l) === h);
+    if (links.length) result.contact_page_only = links[0];
+    for (const l of links) {
+      if (result.hits.length) return;
+      await visit(l, "contact_link_hop", h);
     }
+    void first;
   };
 
   await runHost(host, startUrl, "event_url");
