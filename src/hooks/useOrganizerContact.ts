@@ -11,11 +11,18 @@ let cache: Promise<OrganizerContactRow[]> | null = null;
 
 function loadContacts(): Promise<OrganizerContactRow[]> {
   if (!cache) {
-    cache = supabase
-      .from("organizer_contacts")
-      .select("domain, confidence_tier, email, contact_form_url, linkedin_url, phone, socials, physical_address")
-      .then(({ data }) => (data ?? []) as OrganizerContactRow[])
-      .catch(() => [] as OrganizerContactRow[]);
+    cache = (async () => {
+      try {
+        const { data } = await supabase
+          .from("organizer_contacts")
+          .select(
+            "domain, confidence_tier, email, contact_form_url, linkedin_url, phone, socials, physical_address",
+          );
+        return (data ?? []) as OrganizerContactRow[];
+      } catch {
+        return [] as OrganizerContactRow[];
+      }
+    })();
   }
   return cache;
 }
