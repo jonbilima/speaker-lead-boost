@@ -2002,6 +2002,87 @@ export type Database = {
         }
         Relationships: []
       }
+      organizer_contacts: {
+        Row: {
+          all_emails: string[]
+          confidence_tier: string
+          contact_form_fields: string[]
+          contact_form_url: string | null
+          contact_type: string | null
+          crawl_ms: number | null
+          created_at: string
+          domain: string
+          email: string | null
+          error: string | null
+          last_attempt_at: string
+          linkedin_url: string | null
+          named_staff: Json
+          pages_fetched: number
+          paths_found: string[]
+          phone: string | null
+          physical_address: string | null
+          render_used: boolean
+          socials: Json
+          source_page: string | null
+          status: string
+          strategies_tried: string[]
+          strategy: string | null
+          updated_at: string
+        }
+        Insert: {
+          all_emails?: string[]
+          confidence_tier?: string
+          contact_form_fields?: string[]
+          contact_form_url?: string | null
+          contact_type?: string | null
+          crawl_ms?: number | null
+          created_at?: string
+          domain: string
+          email?: string | null
+          error?: string | null
+          last_attempt_at?: string
+          linkedin_url?: string | null
+          named_staff?: Json
+          pages_fetched?: number
+          paths_found?: string[]
+          phone?: string | null
+          physical_address?: string | null
+          render_used?: boolean
+          socials?: Json
+          source_page?: string | null
+          status?: string
+          strategies_tried?: string[]
+          strategy?: string | null
+          updated_at?: string
+        }
+        Update: {
+          all_emails?: string[]
+          confidence_tier?: string
+          contact_form_fields?: string[]
+          contact_form_url?: string | null
+          contact_type?: string | null
+          crawl_ms?: number | null
+          created_at?: string
+          domain?: string
+          email?: string | null
+          error?: string | null
+          last_attempt_at?: string
+          linkedin_url?: string | null
+          named_staff?: Json
+          pages_fetched?: number
+          paths_found?: string[]
+          phone?: string | null
+          physical_address?: string | null
+          render_used?: boolean
+          socials?: Json
+          source_page?: string | null
+          status?: string
+          strategies_tried?: string[]
+          strategy?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       organizers: {
         Row: {
           created_at: string

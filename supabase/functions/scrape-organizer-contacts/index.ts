@@ -1,9 +1,10 @@
-// Organizer contact discovery — domain-cached, multi-strategy crawler.
+// Organizer contact discovery — domain-cached, multi-path crawler.
 // Modes:
 //   { "url": "https://example.com/cfp" }            -> crawl one domain (cache aware)
 //   { "urls": [...] }                                -> crawl many
 //   { "backfill": true, "limit": 50 }                -> crawl all organizer-owned domains in inventory
 //   add "dry_run": true to skip all writes
+//   add "no_render": true to disable the browser-render fallback (cheap mode)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import {
   crawlDomain,
@@ -32,6 +33,9 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const dryRun = body.dry_run === true;
     const limit = Math.min(Number(body.limit ?? 50), 300);
+    const firecrawlKey = body.no_render === true
+      ? undefined
+      : Deno.env.get("FIRECRAWL_API_KEY") ?? undefined;
 
     let targets: string[] = [];
     if (body.url) targets = [body.url];
@@ -63,7 +67,8 @@ Deno.serve(async (req) => {
 
     const fresh = (c: { last_attempt_at: string; status: string }) => {
       const age = (Date.now() - new Date(c.last_attempt_at).getTime()) / 86400000;
-      return age < (c.status === "found" ? CACHE_DAYS_HIT : CACHE_DAYS_MISS);
+      const hit = c.status === "found_email" || c.status === "found_alt_path";
+      return age < (hit ? CACHE_DAYS_HIT : CACHE_DAYS_MISS);
     };
 
     const toCrawl = targets.filter((u) => {
@@ -74,29 +79,41 @@ Deno.serve(async (req) => {
     }).slice(0, limit);
 
     const results = [];
-    const CONCURRENCY = 6;
+    const CONCURRENCY = 5;
     for (let i = 0; i < toCrawl.length; i += CONCURRENCY) {
       const batch = toCrawl.slice(i, i + CONCURRENCY);
-      const out = await Promise.all(batch.map((u) => crawlDomain(u)));
+      const out = await Promise.all(batch.map((u) => crawlDomain(u, { firecrawlKey })));
       results.push(...out);
     }
 
     const rows = results.map((r) => ({
       domain: r.domain,
+      confidence_tier: r.confidence_tier,
+      status: r.status,
       email: r.best?.email ?? null,
       contact_type: r.best?.contact_type ?? null,
       source_page: r.best?.source_page ?? null,
       strategy: r.best?.strategy ?? null,
       all_emails: r.hits.map((h) => h.email),
+      named_staff: r.named_staff,
+      contact_form_url: r.form?.url ?? null,
+      contact_form_fields: r.form?.fields ?? [],
+      linkedin_url: r.linkedin_url,
+      phone: r.phone,
+      socials: r.socials,
+      physical_address: r.physical_address,
+      paths_found: r.paths_found,
       strategies_tried: r.strategies_tried,
+      render_used: r.render_used,
       pages_fetched: r.pages_fetched,
-      status: r.best ? "found" : (r.error ?? "not_found"),
+      crawl_ms: r.crawl_ms,
+      error: r.error,
       last_attempt_at: new Date().toISOString(),
     }));
 
     if (!dryRun && rows.length) {
       await supabase.from("organizer_contacts").upsert(rows, { onConflict: "domain" });
-      // Backfill organizer_email on opportunities that have none (never overwrite)
+      // Fill organizer_email only where it is currently empty (never overwrite).
       for (const row of rows.filter((r) => r.email)) {
         await supabase
           .from("opportunities")
@@ -107,9 +124,22 @@ Deno.serve(async (req) => {
       }
     }
 
-    const hits = rows.filter((r) => r.email).length;
+    const count = (key: keyof typeof rows[number]) => {
+      const out: Record<string, number> = {};
+      for (const r of rows) {
+        const v = String(r[key] ?? "null");
+        out[v] = (out[v] ?? 0) + 1;
+      }
+      return out;
+    };
+    const emailHits = rows.filter((r) => r.email).length;
+    const anyPath = rows.filter((r) => r.paths_found.length > 0).length;
     const byStrategy: Record<string, number> = {};
     for (const r of rows) if (r.strategy) byStrategy[r.strategy] = (byStrategy[r.strategy] ?? 0) + 1;
+    const pathCounts: Record<string, number> = {};
+    for (const r of rows) {
+      for (const p of r.paths_found) pathCounts[p] = (pathCounts[p] ?? 0) + 1;
+    }
 
     return new Response(
       JSON.stringify({
@@ -118,9 +148,19 @@ Deno.serve(async (req) => {
         targets: targets.length,
         crawled: rows.length,
         skipped_cached: targets.length - toCrawl.length,
-        hits,
-        hit_rate: rows.length ? Math.round((hits / rows.length) * 100) : 0,
+        email_hits: emailHits,
+        email_rate: rows.length ? Math.round((emailHits / rows.length) * 100) : 0,
+        any_path_hits: anyPath,
+        any_path_rate: rows.length ? Math.round((anyPath / rows.length) * 100) : 0,
+        by_confidence_tier: count("confidence_tier"),
+        by_status: count("status"),
         by_strategy: byStrategy,
+        by_path: pathCounts,
+        render_used_count: rows.filter((r) => r.render_used).length,
+        total_pages_fetched: rows.reduce((a, r) => a + r.pages_fetched, 0),
+        avg_crawl_ms: rows.length
+          ? Math.round(rows.reduce((a, r) => a + (r.crawl_ms ?? 0), 0) / rows.length)
+          : 0,
         results: rows,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
