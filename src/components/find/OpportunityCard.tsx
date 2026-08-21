@@ -203,6 +203,9 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
                     {deadlineInfo.text}
                   </span>
                 </div>
+                <div className="mt-1">
+                  <ContactPathPanel info={contactInfo} compact />
+                </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <Button variant="outline" size="sm" onClick={handleSave}>
@@ -350,6 +353,14 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
               )}
             </div>
           )}
+
+          {/* How to reach the organizer */}
+          <div className="space-y-1 rounded-md bg-muted/40 p-2">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              How to reach the organizer
+            </p>
+            <ContactPathPanel info={contactInfo} />
+          </div>
 
           {/* Actions */}
           <div className="flex items-center gap-2 pt-2 border-t">
