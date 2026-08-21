@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
 import { describeReasonCodes, isMissingDataScore } from "@/lib/reasonCodes";
+import { useOrganizerContact } from "@/hooks/useOrganizerContact";
+import { ContactPathPanel } from "@/components/find/ContactPathPanel";
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
@@ -30,6 +32,7 @@ interface OpportunityCardProps {
 
 export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh }: OpportunityCardProps) {
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const contactInfo = useOrganizerContact(opportunity.event_url, opportunity.organizer_email);
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
@@ -200,6 +203,9 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
                     {deadlineInfo.text}
                   </span>
                 </div>
+                <div className="mt-1">
+                  <ContactPathPanel info={contactInfo} compact />
+                </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <Button variant="outline" size="sm" onClick={handleSave}>
@@ -347,6 +353,14 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
               )}
             </div>
           )}
+
+          {/* How to reach the organizer */}
+          <div className="space-y-1 rounded-md bg-muted/40 p-2">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              How to reach the organizer
+            </p>
+            <ContactPathPanel info={contactInfo} />
+          </div>
 
           {/* Actions */}
           <div className="flex items-center gap-2 pt-2 border-t">

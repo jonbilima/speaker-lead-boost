@@ -2101,6 +2101,27 @@ export type Database = {
         }
         Relationships: []
       }
+      organizer_email_fill_log_20260821: {
+        Row: {
+          domain: string
+          filled_at: string
+          filled_email: string
+          opportunity_id: string
+        }
+        Insert: {
+          domain: string
+          filled_at?: string
+          filled_email: string
+          opportunity_id: string
+        }
+        Update: {
+          domain?: string
+          filled_at?: string
+          filled_email?: string
+          opportunity_id?: string
+        }
+        Relationships: []
+      }
       organizers: {
         Row: {
           created_at: string
