@@ -9,9 +9,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Sparkles, Send, RefreshCw, MapPin, Calendar, DollarSign, AlertTriangle } from "lucide-react";
+import { Sparkles, Send, RefreshCw, MapPin, Calendar, DollarSign, AlertTriangle, Copy, ExternalLink } from "lucide-react";
 import { Opportunity } from "@/pages/Find";
 import { useEmailSender } from "@/hooks/useEmailSender";
+import { useOrganizerContact } from "@/hooks/useOrganizerContact";
+import { ContactPathPanel } from "@/components/find/ContactPathPanel";
 
 interface QuickApplyModalProps {
   open: boolean;
