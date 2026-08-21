@@ -481,6 +481,18 @@ const Find = () => {
         {/* Quick Filter Chips */}
         <ScrollArea className="w-full whitespace-nowrap">
           <div className="flex gap-2 pb-2">
+            {LOCATION_OPTIONS.map(option => (
+              <Button
+                key={option}
+                variant={filters.locations?.includes(option) ? "default" : "outline"}
+                size="sm"
+                className="shrink-0"
+                onClick={() => toggleFilter("locations", option)}
+              >
+                <MapPin className="h-3 w-3 mr-1" />
+                {option}
+              </Button>
+            ))}
             {FEE_RANGES.map(range => (
               <Button
                 key={range}
