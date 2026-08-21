@@ -71,6 +71,3 @@ verify_jwt = false
 # (service-role token in practice). Never callable by anon.
 [functions.scrape-organizer-contacts]
 verify_jwt = true
-
-[functions.tmp-verify-pitch]
-verify_jwt = false
