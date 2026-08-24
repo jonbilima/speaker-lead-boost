@@ -291,7 +291,7 @@ export async function fetchPage(url: string, timeoutMs = 25000): Promise<FetchOu
         try { await res.body?.cancel(); } catch { /* ignore */ }
         return { html: "", status: res.status, url: res.url, retried403: false };
       }
-      const html = await readCapped(res, MAX_PAGE_BYTES);
+      const html = await readWindowed(res);
       return { html, status: res.status, url: res.url, retried403: false };
     } catch {
       return null;
