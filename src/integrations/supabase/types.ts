@@ -2149,6 +2149,87 @@ export type Database = {
         }
         Relationships: []
       }
+      organizer_contacts_backup_20260824: {
+        Row: {
+          all_emails: string[] | null
+          confidence_tier: string | null
+          contact_form_fields: string[] | null
+          contact_form_url: string | null
+          contact_type: string | null
+          crawl_ms: number | null
+          created_at: string | null
+          domain: string | null
+          email: string | null
+          error: string | null
+          last_attempt_at: string | null
+          linkedin_url: string | null
+          named_staff: Json | null
+          pages_fetched: number | null
+          paths_found: string[] | null
+          phone: string | null
+          physical_address: string | null
+          render_used: boolean | null
+          socials: Json | null
+          source_page: string | null
+          status: string | null
+          strategies_tried: string[] | null
+          strategy: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          all_emails?: string[] | null
+          confidence_tier?: string | null
+          contact_form_fields?: string[] | null
+          contact_form_url?: string | null
+          contact_type?: string | null
+          crawl_ms?: number | null
+          created_at?: string | null
+          domain?: string | null
+          email?: string | null
+          error?: string | null
+          last_attempt_at?: string | null
+          linkedin_url?: string | null
+          named_staff?: Json | null
+          pages_fetched?: number | null
+          paths_found?: string[] | null
+          phone?: string | null
+          physical_address?: string | null
+          render_used?: boolean | null
+          socials?: Json | null
+          source_page?: string | null
+          status?: string | null
+          strategies_tried?: string[] | null
+          strategy?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          all_emails?: string[] | null
+          confidence_tier?: string | null
+          contact_form_fields?: string[] | null
+          contact_form_url?: string | null
+          contact_type?: string | null
+          crawl_ms?: number | null
+          created_at?: string | null
+          domain?: string | null
+          email?: string | null
+          error?: string | null
+          last_attempt_at?: string | null
+          linkedin_url?: string | null
+          named_staff?: Json | null
+          pages_fetched?: number | null
+          paths_found?: string[] | null
+          phone?: string | null
+          physical_address?: string | null
+          render_used?: boolean | null
+          socials?: Json | null
+          source_page?: string | null
+          status?: string | null
+          strategies_tried?: string[] | null
+          strategy?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       organizer_email_fill_log_20260821: {
         Row: {
           domain: string
@@ -2207,6 +2288,27 @@ export type Database = {
         Update: {
           domain?: string | null
           email?: string | null
+          filled_at?: string
+          opportunity_id?: string
+        }
+        Relationships: []
+      }
+      organizer_email_fill_log_20260824: {
+        Row: {
+          domain: string
+          email: string
+          filled_at: string
+          opportunity_id: string
+        }
+        Insert: {
+          domain: string
+          email: string
+          filled_at?: string
+          opportunity_id: string
+        }
+        Update: {
+          domain?: string
+          email?: string
           filled_at?: string
           opportunity_id?: string
         }
