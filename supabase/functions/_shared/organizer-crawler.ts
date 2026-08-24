@@ -319,6 +319,37 @@ export async function renderPage(
   }
 }
 
+/**
+ * A client-rendered shell: almost no server-side text relative to markup size,
+ * or an empty SPA mount point. These pages look "non-empty" (nav/footer
+ * boilerplate) but carry zero contact data until JS runs.
+ */
+export function isJsShell(html: string): boolean {
+  const text = stripTags(html).replace(/\s+/g, " ").trim();
+  const hasMount = /<div[^>]+id=["'](root|app|__next|__nuxt)["'][^>]*>\s*<\/div>/i.test(html);
+  if (hasMount && text.length < 2000) return true;
+  if (text.length < 400) return true;
+  // Heavy markup, tiny prose, no mailto/tel anywhere => almost certainly rendered client-side.
+  return html.length > 20000 && text.length / html.length < 0.02 &&
+    !/mailto:|href=["']tel:/i.test(html);
+}
+
+/** Same-origin JS bundles referenced by a shell page (SPA contact data often lives here). */
+export function bundleUrls(html: string, base: string, max = 3): string[] {
+  const out: string[] = [];
+  for (const m of html.matchAll(/<script[^>]+src=["']([^"']+\.js[^"']*)["']/gi)) {
+    try {
+      const u = new URL(m[1], base);
+      if (u.origin !== new URL(base).origin) continue;
+      if (/analytics|gtag|gtm|polyfill|jquery|hotjar|pixel|tccl|traffic-assets/i.test(u.pathname)) {
+        continue;
+      }
+      out.push(u.toString());
+    } catch { /* ignore */ }
+  }
+  return [...new Set(out)].slice(0, max);
+}
+
 function contactLinks(html: string, base: string): string[] {
   const urls: string[] = [];
   for (const m of html.matchAll(/<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]{0,120}?)<\/a>/gi)) {
