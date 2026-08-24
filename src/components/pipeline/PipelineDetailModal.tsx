@@ -49,6 +49,7 @@ interface PipelineDetailModalProps {
 
 const activityTypeLabels: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   email_sent: { label: "Email Sent", icon: <Send className="h-4 w-4" />, color: "bg-blue-100 text-blue-700" },
+  pitch_drafted: { label: "Pitch Drafted (not sent)", icon: <PenLine className="h-4 w-4" />, color: "bg-amber-100 text-amber-800" },
   email_received: { label: "Email Received", icon: <Mail className="h-4 w-4" />, color: "bg-green-100 text-green-700" },
   call: { label: "Call", icon: <Phone className="h-4 w-4" />, color: "bg-purple-100 text-purple-700" },
   meeting: { label: "Meeting", icon: <Calendar className="h-4 w-4" />, color: "bg-orange-100 text-orange-700" },
