@@ -376,6 +376,23 @@ export function PipelineDetailModal({
                             {activity.subject && (
                               <p className="text-sm text-muted-foreground">{activity.subject}</p>
                             )}
+                            {activity.activity_type === "pitch_drafted" && (
+                              <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
+                                <p className="text-xs text-amber-700 dark:text-amber-500">
+                                  Drafted only — no email was sent to the organizer.
+                                </p>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs"
+                                  onClick={() => markDraftAsSent(activity.id)}
+                                  disabled={savingActivity}
+                                >
+                                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                                  Mark as sent
+                                </Button>
+                              </div>
+                            )}
                             {activity.notes && (
                               <p className="text-sm mt-1 whitespace-pre-wrap">{activity.notes}</p>
                             )}
