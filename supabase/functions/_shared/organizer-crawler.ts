@@ -727,8 +727,8 @@ export async function crawlDomain(
    * passes over megabyte-sized bodies is what tripped the worker CPU limit.
    */
   const trim = (page: FetchOut): FetchOut =>
-    page.html.length > 400_000
-      ? { ...page, html: page.html.slice(0, 300_000) + "\n" + page.html.slice(-100_000) }
+    page.html.length > 150_000
+      ? { ...page, html: page.html.slice(0, 100_000) + "\n" + page.html.slice(-50_000) }
       : page;
 
   const visit = async (url: string, strategy: Strategy, domain: string, isEntry = false) => {
