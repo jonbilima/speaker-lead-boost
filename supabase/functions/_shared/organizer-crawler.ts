@@ -69,6 +69,7 @@ export type Strategy =
   | "embedded_json"
   | "parent_domain"
   | "retry_403"
+  | "js_bundle"
   | "browser_render";
 
 export type ConfidenceTier = "verified" | "role_inbox" | "form" | "social" | "unreachable";
