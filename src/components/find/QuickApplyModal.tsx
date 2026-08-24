@@ -355,9 +355,24 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
 
         {/* Post-send info */}
         <div className="text-xs text-muted-foreground text-center space-y-1">
-          <p>After sending, this opportunity will be added to your Pipeline as "Applied"</p>
-          <p>A follow-up reminder will be set for 7 days from now</p>
+          {opportunity.organizer_email ? (
+            <>
+              <p>
+                This pitch will be emailed to{" "}
+                <span className="font-medium text-foreground">{opportunity.organizer_email}</span> and
+                added to your Pipeline as "Applied"
+              </p>
+              <p>A follow-up reminder will be set for 7 days from now</p>
+            </>
+          ) : (
+            <p>
+              No email is available for this organizer, so nothing will be sent. Your pitch will be
+              saved and added to your Pipeline as "Applied" — submit it yourself through the contact
+              path above.
+            </p>
+          )}
         </div>
+
       </DialogContent>
     </Dialog>
   );
