@@ -88,6 +88,7 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
       if (!session) throw new Error("Not authenticated");
 
       // If organizer email exists, send actual email
+      let emailWasSent = false;
       if (opportunity.organizer_email) {
         const emailResult = await sendEmail({
           to: opportunity.organizer_email,
@@ -97,10 +98,18 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
           relatedId: opportunity.id,
         });
 
+        if (emailResult.limitReached) {
+          // Informative, not an error: nothing is logged as sent.
+          setSending(false);
+          return;
+        }
+
         if (!emailResult.success) {
           throw new Error(emailResult.error || "Failed to send email");
         }
+        emailWasSent = true;
       }
+
 
       // Check if score exists
       const { data: existing } = await supabase
