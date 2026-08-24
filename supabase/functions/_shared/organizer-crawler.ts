@@ -434,15 +434,18 @@ export function detectForm(page: FetchOut): ContactForm | null {
   return null;
 }
 
+const PLACEHOLDER_PHONE_RE = /^\+?1?-?\(?555\)?[-. ]?\d{3}[-. ]?\d{4}$|5551234567/;
+
 export function detectPhone(page: FetchOut): string | null {
   const tel = page.html.match(/href=["']tel:([^"']+)["']/i)?.[1];
   if (tel) {
     const digits = tel.replace(/[^\d+]/g, "");
-    if (digits.replace(/\D/g, "").length >= 7) return digits;
+    if (digits.replace(/\D/g, "").length >= 7 && !PLACEHOLDER_PHONE_RE.test(digits)) return digits;
   }
   const text = stripTags(page.html);
   const m = text.match(/(?:\+1[\s.-]?)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}\b/);
-  return m ? m[0].trim() : null;
+  if (!m) return null;
+  return PLACEHOLDER_PHONE_RE.test(m[0].replace(/[^\d+]/g, "")) ? null : m[0].trim();
 }
 
 export function detectSocials(html: string): Record<string, string> {
