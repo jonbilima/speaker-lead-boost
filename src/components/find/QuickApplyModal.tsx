@@ -162,11 +162,11 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
           activity_type: "email_sent",
           subject: subjectLine,
           body: emailBody,
-          email_sent_at: now,
+          email_sent_at: emailWasSent ? now : null,
         });
 
-      // Create follow-up reminder for 7 days
-      if (scoreId) {
+      // Create follow-up reminder for 7 days — only when something was actually sent
+      if (scoreId && emailWasSent) {
         await supabase
           .from("follow_up_reminders")
           .insert({
@@ -178,10 +178,11 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
       }
 
       toast.success(
-        opportunity.organizer_email 
-          ? "Application sent! Added to pipeline with follow-up scheduled." 
-          : "Application logged! No email sent (organizer email not available)."
+        emailWasSent
+          ? `Pitch emailed to ${opportunity.organizer_email}. Added to your pipeline with a 7-day follow-up.`
+          : "Pitch saved and logged. Send it yourself through the contact path shown above."
       );
+
       onSuccess();
       onOpenChange(false);
     } catch (error) {
