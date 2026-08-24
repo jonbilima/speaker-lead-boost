@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Mail, Phone, MessageSquare, Calendar, FileText } from "lucide-react";
+import { Activity, Mail, Phone, MessageSquare, Calendar, FileText, PenLine } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface ActivityItem {
