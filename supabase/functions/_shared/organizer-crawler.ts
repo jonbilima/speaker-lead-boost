@@ -46,7 +46,7 @@ const UA =
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
 
 const JUNK_EMAIL_RE =
-  /(sentry|wixpress|example\.|domain\.com|yourdomain|email\.com|@2x|\.png|\.jpe?g|\.gif|\.webp|\.svg|godaddy|squarespace|wordpress\.com|sentry\.io|core\.js|@sentry)/i;
+  /(sentry|wixpress|example\.|example@|mysite\.com|domain\.com|yourdomain|email\.com|@2x|\.png|\.jpe?g|\.gif|\.webp|\.svg|godaddy|squarespace|wordpress\.com|sentry\.io|core\.js|@sentry)/i;
 
 const ROLE_PREFIXES = [
   "info", "hello", "contact", "admin", "office", "events", "event", "support",
@@ -69,6 +69,7 @@ export type Strategy =
   | "embedded_json"
   | "parent_domain"
   | "retry_403"
+  | "js_bundle"
   | "browser_render";
 
 export type ConfidenceTier = "verified" | "role_inbox" | "form" | "social" | "unreachable";
@@ -217,7 +218,60 @@ interface FetchOut {
   rendered?: boolean;
 }
 
-export async function fetchPage(url: string, timeoutMs = 15000): Promise<FetchOut | null> {
+/**
+ * Bytes kept from the start and from the end of a page. Contact data lives in
+ * the head/nav or the footer; the bloated middle (inline data, base64 images)
+ * is what blew the worker memory limit on multi-MB pages such as txgifted.org.
+ * Huge pages are now WINDOWED, never abandoned.
+ */
+export const HEAD_BYTES = 700_000;
+export const TAIL_BYTES = 700_000;
+
+/** Read a body keeping only the head and a rolling tail window. Bounded memory. */
+async function readWindowed(res: Response): Promise<string> {
+  if (!res.body) return await res.text();
+  const reader = res.body.getReader();
+  const head: Uint8Array[] = [];
+  const tail: Uint8Array[] = [];
+  let headLen = 0;
+  let tailLen = 0;
+  let truncated = false;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (headLen < HEAD_BYTES) {
+        head.push(value);
+        headLen += value.byteLength;
+        continue;
+      }
+      tail.push(value);
+      tailLen += value.byteLength;
+      while (tailLen - (tail[0]?.byteLength ?? 0) >= TAIL_BYTES) {
+        tailLen -= tail.shift()!.byteLength;
+        truncated = true;
+      }
+    }
+  } catch { /* partial content is still usable */ } finally {
+    try { await reader.cancel(); } catch { /* ignore */ }
+  }
+  const dec = new TextDecoder("utf-8", { fatal: false });
+  const join = (parts: Uint8Array[], len: number) => {
+    const buf = new Uint8Array(len);
+    let off = 0;
+    for (const c of parts) {
+      buf.set(c, off);
+      off += c.byteLength;
+    }
+    return dec.decode(buf);
+  };
+  const headStr = join(head, headLen);
+  if (!tail.length) return headStr;
+  return headStr + (truncated ? "\n<!-- truncated -->\n" : "") + join(tail, tailLen);
+}
+
+
+export async function fetchPage(url: string, timeoutMs = 25000): Promise<FetchOut | null> {
   const attempt = async (extra: Record<string, string>) => {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -232,7 +286,12 @@ export async function fetchPage(url: string, timeoutMs = 15000): Promise<FetchOu
           ...extra,
         },
       });
-      const html = await res.text();
+      const ct = (res.headers.get("content-type") ?? "").toLowerCase();
+      if (ct && !/text\/|html|json|xml|javascript/.test(ct)) {
+        try { await res.body?.cancel(); } catch { /* ignore */ }
+        return { html: "", status: res.status, url: res.url, retried403: false };
+      }
+      const html = await readWindowed(res);
       return { html, status: res.status, url: res.url, retried403: false };
     } catch {
       return null;
@@ -284,6 +343,37 @@ export async function renderPage(
   } catch {
     return null;
   }
+}
+
+/**
+ * A client-rendered shell: almost no server-side text relative to markup size,
+ * or an empty SPA mount point. These pages look "non-empty" (nav/footer
+ * boilerplate) but carry zero contact data until JS runs.
+ */
+export function isJsShell(html: string): boolean {
+  const text = stripTags(html).replace(/\s+/g, " ").trim();
+  const hasMount = /<div[^>]+id=["'](root|app|__next|__nuxt)["'][^>]*>\s*<\/div>/i.test(html);
+  if (hasMount && text.length < 2000) return true;
+  if (text.length < 400) return true;
+  // Heavy markup, tiny prose, no mailto/tel anywhere => almost certainly rendered client-side.
+  return html.length > 20000 && text.length / html.length < 0.02 &&
+    !/mailto:|href=["']tel:/i.test(html);
+}
+
+/** Same-origin JS bundles referenced by a shell page (SPA contact data often lives here). */
+export function bundleUrls(html: string, base: string, max = 3): string[] {
+  const out: string[] = [];
+  for (const m of html.matchAll(/<script[^>]+src=["']([^"']+\.js[^"']*)["']/gi)) {
+    try {
+      const u = new URL(m[1], base);
+      if (u.origin !== new URL(base).origin) continue;
+      if (/analytics|gtag|gtm|polyfill|jquery|hotjar|pixel|tccl|traffic-assets/i.test(u.pathname)) {
+        continue;
+      }
+      out.push(u.toString());
+    } catch { /* ignore */ }
+  }
+  return [...new Set(out)].slice(0, max);
 }
 
 function contactLinks(html: string, base: string): string[] {
@@ -370,15 +460,18 @@ export function detectForm(page: FetchOut): ContactForm | null {
   return null;
 }
 
+const PLACEHOLDER_PHONE_RE = /^\+?1?-?\(?555\)?[-. ]?\d{3}[-. ]?\d{4}$|5551234567/;
+
 export function detectPhone(page: FetchOut): string | null {
   const tel = page.html.match(/href=["']tel:([^"']+)["']/i)?.[1];
   if (tel) {
     const digits = tel.replace(/[^\d+]/g, "");
-    if (digits.replace(/\D/g, "").length >= 7) return digits;
+    if (digits.replace(/\D/g, "").length >= 7 && !PLACEHOLDER_PHONE_RE.test(digits)) return digits;
   }
   const text = stripTags(page.html);
   const m = text.match(/(?:\+1[\s.-]?)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}\b/);
-  return m ? m[0].trim() : null;
+  if (!m) return null;
+  return PLACEHOLDER_PHONE_RE.test(m[0].replace(/[^\d+]/g, "")) ? null : m[0].trim();
 }
 
 export function detectSocials(html: string): Record<string, string> {
@@ -562,7 +655,11 @@ export async function crawlDomain(
 
   const absorb = (page: FetchOut, domain: string, strategy: Strategy) => {
     if (isNotFoundPage(page)) return { gotEmail: false };
-    if (fetchedPages.length < 6) fetchedPages.push({ html: page.html, url: page.url });
+    // Keep only a bounded slice for later link extraction — full HTML of a
+    // multi-MB page held across 6 pages is what tripped the worker memory cap.
+    if (fetchedPages.length < 6) {
+      fetchedPages.push({ html: page.html.slice(0, 300_000), url: page.url });
+    }
     const { hits, jsonHits, text } = harvestEmails(page, domain, strategy);
     if (hits.length) result.hits.push(...hits);
     if (jsonHits.length) {
@@ -590,16 +687,59 @@ export async function crawlDomain(
         });
       }
     }
-    const empty = text.replace(/\s+/g, "").length < 200;
-    return { gotEmail: hits.length > 0 || jsonHits.length > 0, empty };
+    const shell = isJsShell(page.html);
+    return { gotEmail: hits.length > 0 || jsonHits.length > 0, empty: shell, shell };
   };
+
+  /** SPA fallback: harvest contact data out of the page's own JS bundles. */
+  const scanBundles = async (page: FetchOut, domain: string) => {
+    for (const b of bundleUrls(page.html, page.url)) {
+      if (result.hits.length && result.phone) break;
+      const js = await fetchPage(b);
+      result.pages_fetched++;
+      if (!js || !js.html) continue;
+      push("js_bundle");
+      // Bundles are noisy: only trust addresses on the organizer's own domain.
+      const bundleEmails = extractEmails(js.html, domain).filter((e) =>
+        e.endsWith("@" + domain) || e.endsWith("." + domain)
+      );
+      for (const e of bundleEmails) {
+        if (!result.hits.some((h) => h.email === e)) {
+          result.hits.push({
+            email: e,
+            contact_type: classify(e),
+            source_page: page.url,
+            strategy: "js_bundle",
+          });
+        }
+      }
+      const socials = detectSocials(js.html);
+      for (const [k, v] of Object.entries(socials)) if (!result.socials[k]) result.socials[k] = v;
+      if (!result.linkedin_url && socials.linkedin) result.linkedin_url = socials.linkedin;
+      if (!result.phone) {
+        result.phone = detectPhone({ ...js, html: js.html.slice(0, 400_000) });
+      }
+    }
+  };
+
+  /**
+   * Extraction only needs the head/nav and the footer. Running a dozen regex
+   * passes over megabyte-sized bodies is what tripped the worker CPU limit.
+   */
+  const trim = (page: FetchOut): FetchOut =>
+    page.html.length > 150_000
+      ? { ...page, html: page.html.slice(0, 100_000) + "\n" + page.html.slice(-50_000) }
+      : page;
 
   const visit = async (url: string, strategy: Strategy, domain: string, isEntry = false) => {
     if (result.pages_fetched >= maxPages) return null;
+    // Hard wall-clock budget per domain; return what we already have.
+    if (!isEntry && Date.now() - started > 60_000) return null;
     const key = url.replace(/\/$/, "");
     if (seen.has(key)) return null;
     seen.add(key);
-    let page = await fetchPage(url);
+    const fetched = await fetchPage(url);
+    let page = fetched ? trim(fetched) : null;
     result.pages_fetched++;
     push(strategy);
     if (page?.retried403) push("retry_403");
@@ -612,10 +752,14 @@ export async function crawlDomain(
       const notFound = isNotFoundPage(page);
       const r = absorb(page, domain, strategy);
       if (!notFound) sawAnyPage = true;
-      // Render only when the page is bot-blocked, or when an entry page came
-      // back effectively empty (JS-rendered). Never for 404s or probe misses.
-      needRender = !r.gotEmail &&
-        ((page.status === 403 && !r.gotEmail) || (isEntry && !notFound && r.empty === true));
+      // Client-rendered shell: try its own JS bundles before paying for a render.
+      if (isEntry && !notFound && r.shell && !r.gotEmail) {
+        await scanBundles(page, domain);
+      }
+      // Render when bot-blocked, or when an entry page is a client-rendered
+      // shell that still yielded nothing. Never for 404s or probe misses.
+      needRender = !result.hits.length &&
+        ((page.status === 403) || (isEntry && !notFound && r.shell === true));
     }
     // Browser render fallback (expensive): capped per domain.
     if (needRender && opts.firecrawlKey && renders < maxRenders) {
