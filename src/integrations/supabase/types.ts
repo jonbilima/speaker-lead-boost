@@ -2314,6 +2314,36 @@ export type Database = {
         }
         Relationships: []
       }
+      organizer_name_resolution_20260824: {
+        Row: {
+          confidence: number
+          crawled: boolean
+          created_at: string
+          id: string
+          opportunity_id: string
+          resolved_domain: string | null
+          search_term: string
+        }
+        Insert: {
+          confidence?: number
+          crawled?: boolean
+          created_at?: string
+          id?: string
+          opportunity_id: string
+          resolved_domain?: string | null
+          search_term: string
+        }
+        Update: {
+          confidence?: number
+          crawled?: boolean
+          created_at?: string
+          id?: string
+          opportunity_id?: string
+          resolved_domain?: string | null
+          search_term?: string
+        }
+        Relationships: []
+      }
       organizers: {
         Row: {
           created_at: string
