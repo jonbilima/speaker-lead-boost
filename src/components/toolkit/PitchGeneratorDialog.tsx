@@ -200,7 +200,7 @@ export function PitchGeneratorDialog({
               activity_type: "pitch_drafted",
               subject: subject,
               body: generatedPitch,
-              email_sent_at: new Date().toISOString(),
+              email_sent_at: null,
             });
 
             // Schedule first follow-up
