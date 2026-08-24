@@ -306,6 +306,15 @@ export function PipelineDetailModal({
                 <Button
                   size="sm"
                   variant="outline"
+                  onClick={() => logActivity("pitch_drafted", "Outreach pitch")}
+                  disabled={savingActivity}
+                >
+                  <PenLine className="h-4 w-4 mr-1" />
+                  Log Drafted Pitch
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
                   onClick={() => logActivity("email_sent", "Outreach email")}
                   disabled={savingActivity}
                 >
