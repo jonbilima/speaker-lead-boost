@@ -5,14 +5,14 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronUp, Activity, Eye, UserPlus, Mail, Check } from "lucide-react";
+import { ChevronDown, ChevronUp, Activity, Eye, UserPlus, Mail, Check, PenLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
 interface ActivityEvent {
   id: string;
-  type: "package_view" | "lead" | "email_opened" | "email_sent" | "application";
+  type: "package_view" | "lead" | "email_opened" | "email_sent" | "pitch_drafted" | "application";
   title: string;
   subtitle: string;
   timestamp: string;
@@ -135,13 +135,23 @@ export function RecentActivityFeed({ userId }: RecentActivityFeedProps) {
               timestamp: activity.email_opened_at,
             });
           }
-          if (activity.activity_type === "email") {
+          if (activity.activity_type === "email_sent") {
             activityItems.push({
               id: `sent-${activity.id}`,
               type: "email_sent",
               title: "Email sent",
               subtitle: activity.subject || "Outreach email",
               timestamp: activity.created_at,
+            });
+          }
+          if (activity.activity_type === "pitch_drafted") {
+            activityItems.push({
+              id: `draft-${activity.id}`,
+              type: "pitch_drafted",
+              title: "Pitch drafted (not sent)",
+              subtitle: activity.subject || "Draft saved — send it yourself",
+              timestamp: activity.created_at,
+              link: "/pipeline",
             });
           }
           if (activity.activity_type === "application") {
@@ -176,6 +186,8 @@ export function RecentActivityFeed({ userId }: RecentActivityFeedProps) {
         return <Mail className="h-4 w-4 text-primary" />;
       case "email_sent":
         return <Mail className="h-4 w-4 text-muted-foreground" />;
+      case "pitch_drafted":
+        return <PenLine className="h-4 w-4 text-amber-600 dark:text-amber-500" />;
       case "application":
         return <Check className="h-4 w-4 text-green-500" />;
       default:
