@@ -674,7 +674,11 @@ export async function crawlDomain(
       result.pages_fetched++;
       if (!js || !js.html) continue;
       push("js_bundle");
-      for (const e of extractEmails(js.html, domain)) {
+      // Bundles are noisy: only trust addresses on the organizer's own domain.
+      const bundleEmails = extractEmails(js.html, domain).filter((e) =>
+        e.endsWith("@" + domain) || e.endsWith("." + domain)
+      );
+      for (const e of bundleEmails) {
         if (!result.hits.some((h) => h.email === e)) {
           result.hits.push({
             email: e,
