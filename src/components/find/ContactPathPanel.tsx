@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { Mail, FileText, Phone, Linkedin, Globe, MapPin } from "lucide-react";
+import { Mail, FileText, Phone, Linkedin, Globe, MapPin, Send } from "lucide-react";
 import { ContactPath, OrganizerContactInfo, tierToneClass } from "@/lib/organizerContact";
 
 const ICONS: Record<ContactPath["kind"], typeof Mail> = {
@@ -9,7 +9,9 @@ const ICONS: Record<ContactPath["kind"], typeof Mail> = {
   linkedin: Linkedin,
   social: Globe,
   address: MapPin,
+  listing: Send,
 };
+
 
 interface Props {
   info: OrganizerContactInfo;

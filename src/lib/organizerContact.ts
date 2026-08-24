@@ -16,14 +16,16 @@ export type ContactTierLabel =
   | "Verified contact"
   | "Role inbox"
   | "Contact form only"
+  | "Submit through the listing"
   | "No contact path found";
 
 export interface ContactPath {
-  kind: "email" | "form" | "phone" | "linkedin" | "social" | "address";
+  kind: "email" | "form" | "phone" | "linkedin" | "social" | "address" | "listing";
   label: string;
   value: string;
   href?: string;
 }
+
 
 export interface OrganizerContactInfo {
   tier: ContactTierLabel;
@@ -86,9 +88,46 @@ export function findContactForUrl(
   return best;
 }
 
+/**
+ * Aggregator listings (Sessionize, Eventbrite, Meetup) expose a working
+ * submit / message-organizer function. That is the intended way to reach these
+ * organizers, so it counts as a real contact path.
+ * PaperCall is excluded: it is login-walled and shutting down 2026-08-31.
+ */
+export function listingPath(eventUrl: string | null | undefined): ContactPath | null {
+  const host = hostOf(eventUrl);
+  if (!host || !eventUrl) return null;
+  if (host.endsWith("sessionize.com")) {
+    return {
+      kind: "listing",
+      label: "Submit through Sessionize",
+      value: eventUrl,
+      href: eventUrl,
+    };
+  }
+  if (host.endsWith("eventbrite.com") || host.endsWith("eventbrite.co.uk")) {
+    return {
+      kind: "listing",
+      label: "Message organizer on Eventbrite",
+      value: eventUrl,
+      href: eventUrl,
+    };
+  }
+  if (host.endsWith("meetup.com")) {
+    return {
+      kind: "listing",
+      label: "Message organizer on Meetup",
+      value: eventUrl,
+      href: eventUrl,
+    };
+  }
+  return null;
+}
+
 export function buildContactInfo(
   organizerEmail: string | null,
   contact: OrganizerContactRow | null,
+  eventUrl?: string | null,
 ): OrganizerContactInfo {
   const paths: ContactPath[] = [];
   const email = organizerEmail ?? contact?.email ?? null;
@@ -127,17 +166,23 @@ export function buildContactInfo(
     paths.push({ kind: "address", label: "Mailing address", value: contact.physical_address });
   }
 
+  const listing = listingPath(eventUrl);
+  if (listing) paths.push(listing);
+
   let tier: ContactTierLabel;
   if (email) {
     tier = contact?.confidence_tier === "role_inbox" ? "Role inbox" : "Verified contact";
-  } else if (paths.length > 0) {
+  } else if (paths.some((p) => p.kind !== "listing")) {
     tier = "Contact form only";
+  } else if (listing) {
+    tier = "Submit through the listing";
   } else {
     tier = "No contact path found";
   }
 
   return { tier, paths, primaryEmail: email, hasAnyPath: paths.length > 0 };
 }
+
 
 export function tierToneClass(tier: ContactTierLabel): string {
   switch (tier) {
@@ -147,7 +192,10 @@ export function tierToneClass(tier: ContactTierLabel): string {
       return "border-primary/30 text-foreground";
     case "Contact form only":
       return "border-accent/40 text-accent-foreground";
+    case "Submit through the listing":
+      return "border-accent/40 text-accent-foreground";
     default:
       return "border-muted-foreground/30 text-muted-foreground";
   }
 }
+
