@@ -32,22 +32,35 @@ function loadContacts(): Promise<OrganizerContactRow[]> {
 function loadResolvedDomains(): Promise<Map<string, string>> {
   if (!resolvedCache) {
     resolvedCache = (async () => {
-      try {
-        const { data } = await supabase
-          .from("aggregator_domain_resolution_20260821")
-          .select("opportunity_id, resolved_domain");
-        const map = new Map<string, string>();
-        for (const r of (data ?? []) as { opportunity_id: string; resolved_domain: string | null }[]) {
-          if (r.resolved_domain) map.set(r.opportunity_id, r.resolved_domain);
+      const map = new Map<string, string>();
+      type Row = { opportunity_id: string; resolved_domain: string | null };
+      const absorb = (rows: Row[] | null) => {
+        for (const r of rows ?? []) {
+          if (r.resolved_domain && !map.has(r.opportunity_id)) {
+            map.set(r.opportunity_id, r.resolved_domain);
+          }
         }
-        return map;
+      };
+      try {
+        const [byLink, byName] = await Promise.all([
+          supabase
+            .from("aggregator_domain_resolution_20260821")
+            .select("opportunity_id, resolved_domain"),
+          supabase
+            .from("organizer_name_resolution_20260824")
+            .select("opportunity_id, resolved_domain"),
+        ]);
+        absorb(byLink.data as Row[] | null);
+        absorb(byName.data as Row[] | null);
       } catch {
-        return new Map<string, string>();
+        /* fall through with whatever resolved */
       }
+      return map;
     })();
   }
   return resolvedCache;
 }
+
 
 /** Resolves the speaker-facing contact paths for one opportunity. */
 export function useOrganizerContact(
