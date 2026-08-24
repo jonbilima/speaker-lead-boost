@@ -6,6 +6,34 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Identical for every request so xAI prompt caching can reuse the prefix.
+const SYSTEM_PROMPT = `You are an expert cold-email copywriter for professional speakers.
+
+You write pitches that event organizers actually reply to: specific, humble, confident, and free of filler or generic speaker-marketing language. You never invent credentials, clients, metrics, or talks that were not provided.
+
+You always return ONLY a valid JSON array. No markdown fences, no commentary, no preamble.
+
+The array always contains exactly three objects, in this order and shape:
+[
+  { "variant": "concise",  "subject": "<subject line>", "body": "<email body>" },
+  { "variant": "balanced", "subject": "<subject line>", "body": "<email body>" },
+  { "variant": "detailed", "subject": "<subject line>", "body": "<email body>" }
+]
+
+Rules that apply to every pitch you write:
+- Each body is at most 150 words.
+- The first sentence leads with the strongest fit reason supplied in the match analysis.
+- Reference the speaker's real, supplied expertise and past talks only.
+- End with one clear, low-friction call to action about the speaking opportunity.
+- Subject lines are short, concrete, and not clickbait.
+- Never mention fee unless the match analysis explicitly says the fee fits.
+- No placeholder brackets such as [notable clients]. If a detail is unknown, write around it.
+- Always write in the first person as the speaker ("I", never "Duane Huff's expertise..."), and sign off with the speaker's name.
+- Do not restate the match analysis itself (never write phrases like "this is an open call with no listed deadline"); use it only to decide what to say.`;
+
+const DAILY_PITCH_LIMIT = 20;
+const XAI_MODEL = 'grok-4.6';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -14,7 +42,15 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
+    const xaiApiKey = Deno.env.get('XAI_API_KEY');
+
+    if (!xaiApiKey) {
+      console.error('XAI_API_KEY is not configured');
+      return new Response(JSON.stringify({ error: 'Pitch generation is not configured.' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -38,7 +74,6 @@ serve(async (req) => {
       });
     }
 
-
     const { opportunity_id, tone = 'professional' } = await req.json();
 
     if (!opportunity_id) {
@@ -48,7 +83,28 @@ serve(async (req) => {
       });
     }
 
-    console.log('Generating pitch for opportunity:', opportunity_id);
+    // ---- Per-user daily rate limit -------------------------------------
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: usedToday, error: rateError } = await supabase
+      .from('pitch_generation_log')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', since);
+
+    if (rateError) {
+      console.error('Rate limit lookup failed:', rateError);
+    } else if ((usedToday ?? 0) >= DAILY_PITCH_LIMIT) {
+      return new Response(JSON.stringify({
+        error: `You've reached your daily limit of ${DAILY_PITCH_LIMIT} pitch generations. Your limit resets 24 hours after your first generation today.`,
+        limit: DAILY_PITCH_LIMIT,
+        used: usedToday,
+      }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log('Generating pitch for opportunity:', opportunity_id, 'used today:', usedToday ?? 0);
 
     // Fetch user profile
     const { data: profile, error: profileError } = await supabase
@@ -111,8 +167,8 @@ serve(async (req) => {
       .map((h) => `- ${h}`)
       .join('\n') || '- no scored match data available';
 
-    const userTopics = profile.user_topics?.map((ut: any) => ut.topics.name).join(', ') || 'Not specified';
-    const oppTopics = opportunity.opportunity_topics?.map((ot: any) => ot.topics.name).join(', ') || 'Not specified';
+    const userTopics = profile.user_topics?.map((ut: { topics: { name: string } }) => ut.topics.name).join(', ') || 'Not specified';
+    const oppTopics = opportunity.opportunity_topics?.map((ot: { topics: { name: string } }) => ot.topics.name).join(', ') || 'Not specified';
     const pastTalks = profile.past_talks?.join(', ') || 'None listed';
 
     const prompt = `Generate 3 cold email pitches for a speaking opportunity.
@@ -135,66 +191,42 @@ Opportunity:
 Match analysis (deterministic, use this to frame the pitch):
 ${fitReasons}
 
-Tone: ${tone}
+Tone: ${tone}`;
 
-Requirements:
-- 3 different variants (concise, balanced, detailed)
-- Each max 150 words
-- Include subject line
-- Open the first sentence with the strongest fit reason from the match analysis above
-- Reference relevant expertise
-- Clear CTA to discuss speaking opportunity
-- Professional, humble, confident
-- No generic templates
-
-Return ONLY valid JSON (no markdown, no explanations):
-[
-  {
-    "variant": "concise",
-    "subject": "<subject line>",
-    "body": "<email body>"
-  },
-  {
-    "variant": "balanced",
-    "subject": "<subject line>",
-    "body": "<email body>"
-  },
-  {
-    "variant": "detailed",
-    "subject": "<subject line>",
-    "body": "<email body>"
-  }
-]`;
-
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const aiResponse = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
+        'Authorization': `Bearer ${xaiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: XAI_MODEL,
+        // System prompt is byte-identical on every call, so xAI's automatic
+        // prompt caching reuses the cached prefix (see cached_prompt_text_tokens).
         messages: [
-          { role: 'system', content: 'You are a JSON-only assistant. Return only valid JSON arrays without markdown formatting.' },
-          { role: 'user', content: prompt }
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: prompt },
         ],
+        temperature: 0.7,
       }),
     });
 
     if (aiResponse.status === 429) {
-      return new Response(JSON.stringify({ 
-        error: 'Rate limit exceeded, please try again later.' 
+      const detail = await aiResponse.text().catch(() => '');
+      console.error('xAI rate limited:', detail.slice(0, 300));
+      return new Response(JSON.stringify({
+        error: 'Pitch generation is busy right now. Please try again in a moment.',
       }), {
         status: 429,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    if (aiResponse.status === 402 || aiResponse.status === 403) {
+    if (aiResponse.status === 401 || aiResponse.status === 403) {
       const detail = await aiResponse.text().catch(() => '');
-      console.error('AI credit/permission error:', aiResponse.status, detail.slice(0, 300));
+      console.error('xAI auth/credit error:', aiResponse.status, detail.slice(0, 300));
       return new Response(JSON.stringify({
-        error: 'AI pitch generation is temporarily unavailable (workspace AI credit limit reached). Please try again shortly.',
+        error: 'AI pitch generation is temporarily unavailable. Please try again shortly.',
       }), {
         status: 402,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -203,31 +235,50 @@ Return ONLY valid JSON (no markdown, no explanations):
 
     if (!aiResponse.ok) {
       const detail = await aiResponse.text().catch(() => '');
-      console.error('AI request failed:', aiResponse.status, detail.slice(0, 300));
+      console.error('xAI request failed:', aiResponse.status, detail.slice(0, 300));
       return new Response(JSON.stringify({ error: 'Failed to generate pitch' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-
     const aiData = await aiResponse.json();
+    console.log('xAI usage:', JSON.stringify(aiData.usage ?? {}));
+
     let pitches;
-    
+    const rawContent: string = aiData.choices?.[0]?.message?.content ?? '';
+
     try {
-      const content = aiData.choices[0].message.content.trim();
-      // Remove markdown code blocks if present
-      const jsonContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-      pitches = JSON.parse(jsonContent);
+      const jsonContent = rawContent
+        .trim()
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+      const start = jsonContent.indexOf('[');
+      const end = jsonContent.lastIndexOf(']');
+      pitches = JSON.parse(start >= 0 && end > start ? jsonContent.slice(start, end + 1) : jsonContent);
     } catch (parseError) {
-      console.error('Failed to parse AI response:', aiData.choices[0].message.content);
+      console.error('Failed to parse AI response:', rawContent.slice(0, 500), parseError);
       return new Response(JSON.stringify({ error: 'Invalid AI response format' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Save all 3 pitches to database
+    if (!Array.isArray(pitches) || pitches.length === 0) {
+      return new Response(JSON.stringify({ error: 'Invalid AI response format' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Count this generation against the user's daily allowance.
+    const { error: logError } = await supabase
+      .from('pitch_generation_log')
+      .insert({ user_id: user.id, opportunity_id });
+    if (logError) console.error('Rate limit log insert failed:', logError);
+
+    // Save all pitches to database
     const savedPitches = [];
     for (const pitch of pitches) {
       const { data: savedPitch, error: pitchError } = await supabase
@@ -252,17 +303,21 @@ Return ONLY valid JSON (no markdown, no explanations):
 
     console.log(`Generated and saved ${savedPitches.length} pitches`);
 
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       success: true,
-      pitches: savedPitches
+      pitches: savedPitches,
+      usage: {
+        used_today: (usedToday ?? 0) + 1,
+        daily_limit: DAILY_PITCH_LIMIT,
+      },
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
     console.error('Function error:', error);
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    return new Response(JSON.stringify({
+      error: error instanceof Error ? error.message : 'Unknown error',
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

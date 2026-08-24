@@ -2684,6 +2684,27 @@ export type Database = {
           },
         ]
       }
+      pitch_generation_log: {
+        Row: {
+          created_at: string
+          id: string
+          opportunity_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          opportunity_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          opportunity_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       pitches: {
         Row: {
           edited: boolean | null
