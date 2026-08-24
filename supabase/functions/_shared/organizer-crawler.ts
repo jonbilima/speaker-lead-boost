@@ -722,8 +722,19 @@ export async function crawlDomain(
     }
   };
 
+  /**
+   * Extraction only needs the head/nav and the footer. Running a dozen regex
+   * passes over megabyte-sized bodies is what tripped the worker CPU limit.
+   */
+  const trim = (page: FetchOut): FetchOut =>
+    page.html.length > 400_000
+      ? { ...page, html: page.html.slice(0, 300_000) + "\n" + page.html.slice(-100_000) }
+      : page;
+
   const visit = async (url: string, strategy: Strategy, domain: string, isEntry = false) => {
     if (result.pages_fetched >= maxPages) return null;
+    // Hard wall-clock budget per domain; return what we already have.
+    if (!isEntry && Date.now() - started > 60_000) return null;
     const key = url.replace(/\/$/, "");
     if (seen.has(key)) return null;
     seen.add(key);
