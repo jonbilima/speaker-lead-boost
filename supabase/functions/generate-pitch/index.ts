@@ -32,7 +32,7 @@ Rules that apply to every pitch you write:
 - Do not restate the match analysis itself (never write phrases like "this is an open call with no listed deadline"); use it only to decide what to say.
 - Each object must contain each key exactly once. Never repeat a key inside the same object (for example, do not emit "subject" twice). Output strictly: variant, subject, body — once each.`;
 
-const DAILY_PITCH_LIMIT = 20;
+// Pitch generation is unlimited. The daily cap lives on sending (send-email).
 const XAI_MODEL = 'grok-4.20-non-reasoning';
 
 serve(async (req) => {
@@ -298,8 +298,9 @@ Tone: ${tone}`;
       pitches: savedPitches,
       usage: {
         used_today: (usedToday ?? 0) + 1,
-        daily_limit: DAILY_PITCH_LIMIT,
+        daily_limit: null,
       },
+
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
