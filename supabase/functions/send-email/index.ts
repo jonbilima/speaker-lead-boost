@@ -63,6 +63,37 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
+    // ---- Per-user daily send limit -------------------------------------
+    const DAILY_SEND_LIMIT = 50;
+    const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: recentSends } = await supabaseClient
+      .from("email_logs")
+      .select("sent_at")
+      .eq("speaker_id", user.id)
+      .eq("status", "sent")
+      .gte("sent_at", windowStart)
+      .order("sent_at", { ascending: true });
+
+    const usedToday = recentSends?.length ?? 0;
+    if (usedToday >= DAILY_SEND_LIMIT) {
+      const first = recentSends?.[0]?.sent_at;
+      const resetAt = first ? new Date(new Date(first).getTime() + 24 * 60 * 60 * 1000).toISOString() : null;
+      return new Response(
+        JSON.stringify({
+          success: false,
+          limitReached: true,
+          limit: DAILY_SEND_LIMIT,
+          used: usedToday,
+          resetAt,
+          error: `Daily send limit reached: ${DAILY_SEND_LIMIT} applications per day. Your limit resets ${
+            resetAt ? new Date(resetAt).toUTCString() : "24 hours after your first send today"
+          }. Your pitch is saved and you can send it after the reset.`,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
+    }
+
+
     // Get user profile for email settings
     const { data: profile } = await supabaseClient
       .from("profiles")

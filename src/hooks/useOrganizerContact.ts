@@ -42,17 +42,22 @@ function loadResolvedDomains(): Promise<Map<string, string>> {
         }
       };
       try {
-        const [byLink, byName] = await Promise.all([
+        const [byLink, byName, byDomain] = await Promise.all([
           supabase
             .from("aggregator_domain_resolution_20260821")
             .select("opportunity_id, resolved_domain"),
           supabase
             .from("organizer_name_resolution_20260824")
             .select("opportunity_id, resolved_domain"),
+          supabase
+            .from("organizer_domain_match_20260824")
+            .select("opportunity_id, resolved_domain"),
         ]);
         absorb(byLink.data as Row[] | null);
         absorb(byName.data as Row[] | null);
+        absorb(byDomain.data as Row[] | null);
       } catch {
+
         /* fall through with whatever resolved */
       }
       return map;
