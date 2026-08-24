@@ -18,6 +18,7 @@ interface RecentActivityProps {
 
 const activityIcons: Record<string, typeof Mail> = {
   email_sent: Mail,
+  pitch_drafted: PenLine,
   email_opened: Mail,
   email_replied: MessageSquare,
   phone_call: Phone,
