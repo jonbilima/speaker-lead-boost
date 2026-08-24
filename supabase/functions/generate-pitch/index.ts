@@ -84,26 +84,15 @@ serve(async (req) => {
       });
     }
 
-    // ---- Per-user daily rate limit -------------------------------------
+    // No cap on pitch generation. Usage is still logged (pitch_generation_log)
+    // for analytics; the enforced limit lives on sending, not drafting.
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { count: usedToday, error: rateError } = await supabase
+    const { count: usedToday } = await supabase
       .from('pitch_generation_log')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .gte('created_at', since);
 
-    if (rateError) {
-      console.error('Rate limit lookup failed:', rateError);
-    } else if ((usedToday ?? 0) >= DAILY_PITCH_LIMIT) {
-      return new Response(JSON.stringify({
-        error: `You've reached your daily limit of ${DAILY_PITCH_LIMIT} pitch generations. Your limit resets 24 hours after your first generation today.`,
-        limit: DAILY_PITCH_LIMIT,
-        used: usedToday,
-      }), {
-        status: 429,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
 
     console.log('Generating pitch for opportunity:', opportunity_id, 'used today:', usedToday ?? 0);
 
