@@ -46,7 +46,7 @@ const UA =
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
 
 const JUNK_EMAIL_RE =
-  /(sentry|wixpress|example\.|domain\.com|yourdomain|email\.com|@2x|\.png|\.jpe?g|\.gif|\.webp|\.svg|godaddy|squarespace|wordpress\.com|sentry\.io|core\.js|@sentry)/i;
+  /(sentry|wixpress|example\.|example@|mysite\.com|domain\.com|yourdomain|email\.com|@2x|\.png|\.jpe?g|\.gif|\.webp|\.svg|godaddy|squarespace|wordpress\.com|sentry\.io|core\.js|@sentry)/i;
 
 const ROLE_PREFIXES = [
   "info", "hello", "contact", "admin", "office", "events", "event", "support",
