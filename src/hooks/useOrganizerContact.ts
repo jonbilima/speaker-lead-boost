@@ -56,7 +56,7 @@ export function useOrganizerContact(
   opportunityId?: string | null,
 ): OrganizerContactInfo {
   const [info, setInfo] = useState<OrganizerContactInfo>(() =>
-    buildContactInfo(organizerEmail, null),
+    buildContactInfo(organizerEmail, null, eventUrl),
   );
 
   useEffect(() => {
@@ -68,8 +68,9 @@ export function useOrganizerContact(
         const domain = resolved.get(opportunityId);
         if (domain) match = findContactForUrl(`https://${domain}`, rows);
       }
-      setInfo(buildContactInfo(organizerEmail, match));
+      setInfo(buildContactInfo(organizerEmail, match, eventUrl));
     });
+
     return () => {
       active = false;
     };
