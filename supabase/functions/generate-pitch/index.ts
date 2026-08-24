@@ -29,7 +29,8 @@ Rules that apply to every pitch you write:
 - Never mention fee unless the match analysis explicitly says the fee fits.
 - No placeholder brackets such as [notable clients]. If a detail is unknown, write around it.
 - Always write in the first person as the speaker ("I", never "Duane Huff's expertise..."), and sign off with the speaker's name.
-- Do not restate the match analysis itself (never write phrases like "this is an open call with no listed deadline"); use it only to decide what to say.`;
+- Do not restate the match analysis itself (never write phrases like "this is an open call with no listed deadline"); use it only to decide what to say.
+- Each object must contain each key exactly once. Never repeat a key inside the same object (for example, do not emit "subject" twice). Output strictly: variant, subject, body — once each.`;
 
 const DAILY_PITCH_LIMIT = 20;
 const XAI_MODEL = 'grok-4.20-non-reasoning';
