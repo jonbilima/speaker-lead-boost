@@ -29,6 +29,7 @@ const activityIcons: Record<string, typeof Mail> = {
 
 const activityLabels: Record<string, string> = {
   email_sent: "Email Sent",
+  pitch_drafted: "Drafted — Not Sent",
   email_opened: "Email Opened",
   email_replied: "Reply Received",
   phone_call: "Phone Call",
