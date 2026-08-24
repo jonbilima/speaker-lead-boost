@@ -20,7 +20,7 @@ interface Props {
 
 export function ContactPathPanel({ info, compact = false }: Props) {
   return (
-    <div className="space-y-1.5">
+    <div className={compact ? "flex flex-wrap items-center gap-x-2 gap-y-1" : "space-y-1.5"}>
       <div className="flex items-center gap-2">
         <Badge variant="outline" className={`text-[11px] font-normal ${tierToneClass(info.tier)}`}>
           {info.tier}
@@ -31,6 +31,7 @@ export function ContactPathPanel({ info, compact = false }: Props) {
           </span>
         )}
       </div>
+
 
       {info.paths.length > 0 && (
         <div className={compact ? "flex flex-wrap gap-2" : "space-y-1"}>
