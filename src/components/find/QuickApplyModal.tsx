@@ -159,7 +159,7 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
         .insert({
           speaker_id: session.user.id,
           match_id: scoreId,
-          activity_type: "email_sent",
+          activity_type: emailWasSent ? "email_sent" : "pitch_drafted",
           subject: subjectLine,
           body: emailBody,
           email_sent_at: emailWasSent ? now : null,
