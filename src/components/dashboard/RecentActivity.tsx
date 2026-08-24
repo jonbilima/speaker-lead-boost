@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Mail, Phone, MessageSquare, Calendar, FileText } from "lucide-react";
+import { Activity, Mail, Phone, MessageSquare, Calendar, FileText, PenLine } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface ActivityItem {
@@ -18,6 +18,7 @@ interface RecentActivityProps {
 
 const activityIcons: Record<string, typeof Mail> = {
   email_sent: Mail,
+  pitch_drafted: PenLine,
   email_opened: Mail,
   email_replied: MessageSquare,
   phone_call: Phone,
@@ -28,6 +29,7 @@ const activityIcons: Record<string, typeof Mail> = {
 
 const activityLabels: Record<string, string> = {
   email_sent: "Email Sent",
+  pitch_drafted: "Drafted — Not Sent",
   email_opened: "Email Opened",
   email_replied: "Reply Received",
   phone_call: "Phone Call",
@@ -68,18 +70,22 @@ export const RecentActivity = ({ activities, loading }: RecentActivityProps) => 
           {activities.map((item) => {
             const Icon = activityIcons[item.activity_type] || Activity;
             const label = activityLabels[item.activity_type] || item.activity_type;
-            
+            const isDraft = item.activity_type === "pitch_drafted";
+
             return (
               <div 
                 key={item.id} 
                 className="flex items-start gap-3 p-3 rounded-lg border bg-card"
               >
-                <div className="p-2 rounded-full bg-primary/10">
-                  <Icon className="h-4 w-4 text-primary" />
+                <div className={`p-2 rounded-full ${isDraft ? "bg-amber-500/10" : "bg-primary/10"}`}>
+                  <Icon className={`h-4 w-4 ${isDraft ? "text-amber-600 dark:text-amber-500" : "text-primary"}`} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">
+                    <Badge
+                      variant={isDraft ? "secondary" : "outline"}
+                      className={`text-xs ${isDraft ? "border-amber-500/40 text-amber-700 dark:text-amber-400" : ""}`}
+                    >
                       {label}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
@@ -88,6 +94,11 @@ export const RecentActivity = ({ activities, loading }: RecentActivityProps) => 
                   </div>
                   {item.subject && (
                     <p className="text-sm mt-1 truncate">{item.subject}</p>
+                  )}
+                  {isDraft && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Drafted only — not emailed to the organizer
+                    </p>
                   )}
                 </div>
               </div>

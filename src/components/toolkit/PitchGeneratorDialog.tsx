@@ -197,10 +197,10 @@ export function PitchGeneratorDialog({
             await supabase.from("outreach_activities").insert({
               match_id: existingScore.id,
               speaker_id: session.user.id,
-              activity_type: "email_sent",
+              activity_type: "pitch_drafted",
               subject: subject,
               body: generatedPitch,
-              email_sent_at: new Date().toISOString(),
+              email_sent_at: null,
             });
 
             // Schedule first follow-up

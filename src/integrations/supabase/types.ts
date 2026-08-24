@@ -3953,6 +3953,7 @@ export type Database = {
         | "note"
         | "follow_up"
         | "social_interaction"
+        | "pitch_drafted"
       app_role: "admin" | "user"
       application_status:
         | "applied"
@@ -4145,6 +4146,7 @@ export const Constants = {
         "note",
         "follow_up",
         "social_interaction",
+        "pitch_drafted",
       ],
       app_role: ["admin", "user"],
       application_status: [

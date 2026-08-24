@@ -23,6 +23,8 @@ import {
   Send,
   MessageSquare,
   Package,
+  PenLine,
+  CheckCircle2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -49,6 +51,7 @@ interface PipelineDetailModalProps {
 
 const activityTypeLabels: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   email_sent: { label: "Email Sent", icon: <Send className="h-4 w-4" />, color: "bg-blue-100 text-blue-700" },
+  pitch_drafted: { label: "Pitch Drafted (not sent)", icon: <PenLine className="h-4 w-4" />, color: "bg-amber-100 text-amber-800" },
   email_received: { label: "Email Received", icon: <Mail className="h-4 w-4" />, color: "bg-green-100 text-green-700" },
   call: { label: "Call", icon: <Phone className="h-4 w-4" />, color: "bg-purple-100 text-purple-700" },
   meeting: { label: "Meeting", icon: <Calendar className="h-4 w-4" />, color: "bg-orange-100 text-orange-700" },
@@ -113,7 +116,25 @@ export function PipelineDetailModal({
     setLoading(false);
   };
 
-  const logActivity = async (activityType: "email_sent" | "email_received" | "call" | "meeting" | "note" | "follow_up" | "social_interaction", subject?: string, body?: string, notes?: string) => {
+  const markDraftAsSent = async (activityId: string) => {
+    setSavingActivity(true);
+    const { error } = await supabase
+      .from("outreach_activities")
+      .update({ activity_type: "email_sent", email_sent_at: new Date().toISOString() })
+      .eq("id", activityId);
+
+    if (error) {
+      console.error("Error marking draft as sent:", error);
+      toast.error("Could not mark this pitch as sent");
+    } else {
+      toast.success("Marked as sent");
+      await loadActivities();
+      onActivityLogged();
+    }
+    setSavingActivity(false);
+  };
+
+  const logActivity = async (activityType: "email_sent" | "pitch_drafted" | "email_received" | "call" | "meeting" | "note" | "follow_up" | "social_interaction", subject?: string, body?: string, notes?: string) => {
     if (!opportunity) return;
     setSavingActivity(true);
 
@@ -285,6 +306,15 @@ export function PipelineDetailModal({
                 <Button
                   size="sm"
                   variant="outline"
+                  onClick={() => logActivity("pitch_drafted", "Outreach pitch")}
+                  disabled={savingActivity}
+                >
+                  <PenLine className="h-4 w-4 mr-1" />
+                  Log Drafted Pitch
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
                   onClick={() => logActivity("email_sent", "Outreach email")}
                   disabled={savingActivity}
                 >
@@ -345,6 +375,23 @@ export function PipelineDetailModal({
                             </div>
                             {activity.subject && (
                               <p className="text-sm text-muted-foreground">{activity.subject}</p>
+                            )}
+                            {activity.activity_type === "pitch_drafted" && (
+                              <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
+                                <p className="text-xs text-amber-700 dark:text-amber-500">
+                                  Drafted only — no email was sent to the organizer.
+                                </p>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs"
+                                  onClick={() => markDraftAsSent(activity.id)}
+                                  disabled={savingActivity}
+                                >
+                                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                                  Mark as sent
+                                </Button>
+                              </div>
                             )}
                             {activity.notes && (
                               <p className="text-sm mt-1 whitespace-pre-wrap">{activity.notes}</p>
