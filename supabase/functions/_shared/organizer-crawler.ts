@@ -217,7 +217,35 @@ interface FetchOut {
   rendered?: boolean;
 }
 
-export async function fetchPage(url: string, timeoutMs = 15000): Promise<FetchOut | null> {
+/** Hard ceiling on bytes we keep per page. Large pages are TRUNCATED, never abandoned. */
+export const MAX_PAGE_BYTES = 4_000_000;
+
+/** Read a response body up to `cap` bytes, then stop. Prevents worker OOM on huge pages. */
+async function readCapped(res: Response, cap: number): Promise<string> {
+  if (!res.body) return await res.text();
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (total < cap) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      total += value.byteLength;
+    }
+  } catch { /* partial content is still usable */ } finally {
+    try { await reader.cancel(); } catch { /* ignore */ }
+  }
+  const buf = new Uint8Array(total);
+  let off = 0;
+  for (const c of chunks) {
+    buf.set(c, off);
+    off += c.byteLength;
+  }
+  return new TextDecoder("utf-8", { fatal: false }).decode(buf);
+}
+
+export async function fetchPage(url: string, timeoutMs = 25000): Promise<FetchOut | null> {
   const attempt = async (extra: Record<string, string>) => {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -232,7 +260,12 @@ export async function fetchPage(url: string, timeoutMs = 15000): Promise<FetchOu
           ...extra,
         },
       });
-      const html = await res.text();
+      const ct = (res.headers.get("content-type") ?? "").toLowerCase();
+      if (ct && !/text\/|html|json|xml|javascript/.test(ct)) {
+        try { await res.body?.cancel(); } catch { /* ignore */ }
+        return { html: "", status: res.status, url: res.url, retried403: false };
+      }
+      const html = await readCapped(res, MAX_PAGE_BYTES);
       return { html, status: res.status, url: res.url, retried403: false };
     } catch {
       return null;
