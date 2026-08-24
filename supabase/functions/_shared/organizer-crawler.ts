@@ -661,8 +661,35 @@ export async function crawlDomain(
         });
       }
     }
-    const empty = text.replace(/\s+/g, "").length < 200;
-    return { gotEmail: hits.length > 0 || jsonHits.length > 0, empty };
+    const shell = isJsShell(page.html);
+    return { gotEmail: hits.length > 0 || jsonHits.length > 0, empty: shell, shell };
+  };
+
+  /** SPA fallback: harvest contact data out of the page's own JS bundles. */
+  const scanBundles = async (page: FetchOut, domain: string) => {
+    for (const b of bundleUrls(page.html, page.url)) {
+      if (result.hits.length && result.phone) break;
+      const js = await fetchPage(b);
+      result.pages_fetched++;
+      if (!js || !js.html) continue;
+      push("js_bundle");
+      for (const e of extractEmails(js.html, domain)) {
+        if (!result.hits.some((h) => h.email === e)) {
+          result.hits.push({
+            email: e,
+            contact_type: classify(e),
+            source_page: page.url,
+            strategy: "js_bundle",
+          });
+        }
+      }
+      const socials = detectSocials(js.html);
+      for (const [k, v] of Object.entries(socials)) if (!result.socials[k]) result.socials[k] = v;
+      if (!result.linkedin_url && socials.linkedin) result.linkedin_url = socials.linkedin;
+      if (!result.phone) {
+        result.phone = detectPhone({ ...js, html: js.html.slice(0, 400_000) });
+      }
+    }
   };
 
   const visit = async (url: string, strategy: Strategy, domain: string, isEntry = false) => {
@@ -683,10 +710,14 @@ export async function crawlDomain(
       const notFound = isNotFoundPage(page);
       const r = absorb(page, domain, strategy);
       if (!notFound) sawAnyPage = true;
-      // Render only when the page is bot-blocked, or when an entry page came
-      // back effectively empty (JS-rendered). Never for 404s or probe misses.
-      needRender = !r.gotEmail &&
-        ((page.status === 403 && !r.gotEmail) || (isEntry && !notFound && r.empty === true));
+      // Client-rendered shell: try its own JS bundles before paying for a render.
+      if (isEntry && !notFound && r.shell && !r.gotEmail) {
+        await scanBundles(page, domain);
+      }
+      // Render when bot-blocked, or when an entry page is a client-rendered
+      // shell that still yielded nothing. Never for 404s or probe misses.
+      needRender = !result.hits.length &&
+        ((page.status === 403) || (isEntry && !notFound && r.shell === true));
     }
     // Browser render fallback (expensive): capped per domain.
     if (needRender && opts.firecrawlKey && renders < maxRenders) {
