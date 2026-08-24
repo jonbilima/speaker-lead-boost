@@ -629,7 +629,11 @@ export async function crawlDomain(
 
   const absorb = (page: FetchOut, domain: string, strategy: Strategy) => {
     if (isNotFoundPage(page)) return { gotEmail: false };
-    if (fetchedPages.length < 6) fetchedPages.push({ html: page.html, url: page.url });
+    // Keep only a bounded slice for later link extraction — full HTML of a
+    // multi-MB page held across 6 pages is what tripped the worker memory cap.
+    if (fetchedPages.length < 6) {
+      fetchedPages.push({ html: page.html.slice(0, 300_000), url: page.url });
+    }
     const { hits, jsonHits, text } = harvestEmails(page, domain, strategy);
     if (hits.length) result.hits.push(...hits);
     if (jsonHits.length) {
