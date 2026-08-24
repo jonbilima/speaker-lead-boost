@@ -23,6 +23,10 @@ interface SendEmailResult {
   id?: string;
   error?: string;
   testMode?: boolean;
+  limitReached?: boolean;
+  limit?: number;
+  used?: number;
+  resetAt?: string | null;
 }
 
 export function useEmailSender() {
@@ -30,7 +34,7 @@ export function useEmailSender() {
 
   const sendEmail = async (options: SendEmailOptions): Promise<SendEmailResult> => {
     setIsSending(true);
-    
+
     try {
       const { data, error } = await supabase.functions.invoke("send-email", {
         body: options,
@@ -43,6 +47,17 @@ export function useEmailSender() {
           variant: "destructive",
         });
         return { success: false, error: error.message };
+      }
+
+      if (data?.limitReached) {
+        const reset = data.resetAt
+          ? new Date(data.resetAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
+          : "24 hours after your first send today";
+        toast({
+          title: `Daily send limit reached (${data.limit} per day)`,
+          description: `You've sent ${data.used} applications in the last 24 hours. Sending resets ${reset}. Your pitch is saved and nothing was lost.`,
+        });
+        return data;
       }
 
       if (data.testMode) {
@@ -58,6 +73,7 @@ export function useEmailSender() {
       }
 
       return data;
+
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
       toast({

@@ -88,6 +88,7 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
       if (!session) throw new Error("Not authenticated");
 
       // If organizer email exists, send actual email
+      let emailWasSent = false;
       if (opportunity.organizer_email) {
         const emailResult = await sendEmail({
           to: opportunity.organizer_email,
@@ -97,10 +98,18 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
           relatedId: opportunity.id,
         });
 
+        if (emailResult.limitReached) {
+          // Informative, not an error: nothing is logged as sent.
+          setSending(false);
+          return;
+        }
+
         if (!emailResult.success) {
           throw new Error(emailResult.error || "Failed to send email");
         }
+        emailWasSent = true;
       }
+
 
       // Check if score exists
       const { data: existing } = await supabase
@@ -153,11 +162,11 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
           activity_type: "email_sent",
           subject: subjectLine,
           body: emailBody,
-          email_sent_at: now,
+          email_sent_at: emailWasSent ? now : null,
         });
 
-      // Create follow-up reminder for 7 days
-      if (scoreId) {
+      // Create follow-up reminder for 7 days — only when something was actually sent
+      if (scoreId && emailWasSent) {
         await supabase
           .from("follow_up_reminders")
           .insert({
@@ -169,10 +178,11 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
       }
 
       toast.success(
-        opportunity.organizer_email 
-          ? "Application sent! Added to pipeline with follow-up scheduled." 
-          : "Application logged! No email sent (organizer email not available)."
+        emailWasSent
+          ? `Pitch emailed to ${opportunity.organizer_email}. Added to your pipeline with a 7-day follow-up.`
+          : "Pitch saved and logged. Send it yourself through the contact path shown above."
       );
+
       onSuccess();
       onOpenChange(false);
     } catch (error) {
@@ -345,9 +355,24 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
 
         {/* Post-send info */}
         <div className="text-xs text-muted-foreground text-center space-y-1">
-          <p>After sending, this opportunity will be added to your Pipeline as "Applied"</p>
-          <p>A follow-up reminder will be set for 7 days from now</p>
+          {opportunity.organizer_email ? (
+            <>
+              <p>
+                This pitch will be emailed to{" "}
+                <span className="font-medium text-foreground">{opportunity.organizer_email}</span> and
+                added to your Pipeline as "Applied"
+              </p>
+              <p>A follow-up reminder will be set for 7 days from now</p>
+            </>
+          ) : (
+            <p>
+              No email is available for this organizer, so nothing will be sent. Your pitch will be
+              saved and added to your Pipeline as "Applied" — submit it yourself through the contact
+              path above.
+            </p>
+          )}
         </div>
+
       </DialogContent>
     </Dialog>
   );

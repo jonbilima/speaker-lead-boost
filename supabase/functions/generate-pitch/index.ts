@@ -32,7 +32,7 @@ Rules that apply to every pitch you write:
 - Do not restate the match analysis itself (never write phrases like "this is an open call with no listed deadline"); use it only to decide what to say.
 - Each object must contain each key exactly once. Never repeat a key inside the same object (for example, do not emit "subject" twice). Output strictly: variant, subject, body — once each.`;
 
-const DAILY_PITCH_LIMIT = 20;
+// Pitch generation is unlimited. The daily cap lives on sending (send-email).
 const XAI_MODEL = 'grok-4.20-non-reasoning';
 
 serve(async (req) => {
@@ -84,26 +84,15 @@ serve(async (req) => {
       });
     }
 
-    // ---- Per-user daily rate limit -------------------------------------
+    // No cap on pitch generation. Usage is still logged (pitch_generation_log)
+    // for analytics; the enforced limit lives on sending, not drafting.
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { count: usedToday, error: rateError } = await supabase
+    const { count: usedToday } = await supabase
       .from('pitch_generation_log')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .gte('created_at', since);
 
-    if (rateError) {
-      console.error('Rate limit lookup failed:', rateError);
-    } else if ((usedToday ?? 0) >= DAILY_PITCH_LIMIT) {
-      return new Response(JSON.stringify({
-        error: `You've reached your daily limit of ${DAILY_PITCH_LIMIT} pitch generations. Your limit resets 24 hours after your first generation today.`,
-        limit: DAILY_PITCH_LIMIT,
-        used: usedToday,
-      }), {
-        status: 429,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
 
     console.log('Generating pitch for opportunity:', opportunity_id, 'used today:', usedToday ?? 0);
 
@@ -309,8 +298,9 @@ Tone: ${tone}`;
       pitches: savedPitches,
       usage: {
         used_today: (usedToday ?? 0) + 1,
-        daily_limit: DAILY_PITCH_LIMIT,
+        daily_limit: null,
       },
+
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

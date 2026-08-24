@@ -2230,6 +2230,30 @@ export type Database = {
         }
         Relationships: []
       }
+      organizer_domain_match_20260824: {
+        Row: {
+          created_at: string
+          id: string
+          method: string
+          opportunity_id: string
+          resolved_domain: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          method: string
+          opportunity_id: string
+          resolved_domain: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          method?: string
+          opportunity_id?: string
+          resolved_domain?: string
+        }
+        Relationships: []
+      }
       organizer_email_fill_log_20260821: {
         Row: {
           domain: string
@@ -2332,6 +2356,33 @@ export type Database = {
           new_email?: string | null
           old_email?: string | null
           opportunity_id?: string | null
+        }
+        Relationships: []
+      }
+      organizer_email_fill_log_20260824c: {
+        Row: {
+          filled_at: string
+          id: string
+          method: string
+          new_email: string
+          old_email: string | null
+          opportunity_id: string
+        }
+        Insert: {
+          filled_at?: string
+          id?: string
+          method: string
+          new_email: string
+          old_email?: string | null
+          opportunity_id: string
+        }
+        Update: {
+          filled_at?: string
+          id?: string
+          method?: string
+          new_email?: string
+          old_email?: string | null
+          opportunity_id?: string
         }
         Relationships: []
       }

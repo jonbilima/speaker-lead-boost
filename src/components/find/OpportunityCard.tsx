@@ -355,12 +355,10 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
           )}
 
           {/* How to reach the organizer */}
-          <div className="space-y-1 rounded-md bg-muted/40 p-2">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              How to reach the organizer
-            </p>
-            <ContactPathPanel info={contactInfo} />
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <ContactPathPanel info={contactInfo} compact />
           </div>
+
 
           {/* Actions */}
           <div className="flex items-center gap-2 pt-2 border-t">
