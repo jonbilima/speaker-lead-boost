@@ -218,33 +218,58 @@ interface FetchOut {
   rendered?: boolean;
 }
 
-/** Hard ceiling on bytes we keep per page. Large pages are TRUNCATED, never abandoned. */
-export const MAX_PAGE_BYTES = 4_000_000;
+/**
+ * Bytes kept from the start and from the end of a page. Contact data lives in
+ * the head/nav or the footer; the bloated middle (inline data, base64 images)
+ * is what blew the worker memory limit on multi-MB pages such as txgifted.org.
+ * Huge pages are now WINDOWED, never abandoned.
+ */
+export const HEAD_BYTES = 700_000;
+export const TAIL_BYTES = 700_000;
 
-/** Read a response body up to `cap` bytes, then stop. Prevents worker OOM on huge pages. */
-async function readCapped(res: Response, cap: number): Promise<string> {
+/** Read a body keeping only the head and a rolling tail window. Bounded memory. */
+async function readWindowed(res: Response): Promise<string> {
   if (!res.body) return await res.text();
   const reader = res.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
+  const head: Uint8Array[] = [];
+  const tail: Uint8Array[] = [];
+  let headLen = 0;
+  let tailLen = 0;
+  let truncated = false;
   try {
-    while (total < cap) {
+    while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      chunks.push(value);
-      total += value.byteLength;
+      if (headLen < HEAD_BYTES) {
+        head.push(value);
+        headLen += value.byteLength;
+        continue;
+      }
+      tail.push(value);
+      tailLen += value.byteLength;
+      while (tailLen - (tail[0]?.byteLength ?? 0) >= TAIL_BYTES) {
+        tailLen -= tail.shift()!.byteLength;
+        truncated = true;
+      }
     }
   } catch { /* partial content is still usable */ } finally {
     try { await reader.cancel(); } catch { /* ignore */ }
   }
-  const buf = new Uint8Array(total);
-  let off = 0;
-  for (const c of chunks) {
-    buf.set(c, off);
-    off += c.byteLength;
-  }
-  return new TextDecoder("utf-8", { fatal: false }).decode(buf);
+  const dec = new TextDecoder("utf-8", { fatal: false });
+  const join = (parts: Uint8Array[], len: number) => {
+    const buf = new Uint8Array(len);
+    let off = 0;
+    for (const c of parts) {
+      buf.set(c, off);
+      off += c.byteLength;
+    }
+    return dec.decode(buf);
+  };
+  const headStr = join(head, headLen);
+  if (!tail.length) return headStr;
+  return headStr + (truncated ? "\n<!-- truncated -->\n" : "") + join(tail, tailLen);
 }
+
 
 export async function fetchPage(url: string, timeoutMs = 25000): Promise<FetchOut | null> {
   const attempt = async (extra: Record<string, string>) => {
