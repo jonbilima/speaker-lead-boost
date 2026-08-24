@@ -32,7 +32,7 @@ Rules that apply to every pitch you write:
 - Do not restate the match analysis itself (never write phrases like "this is an open call with no listed deadline"); use it only to decide what to say.`;
 
 const DAILY_PITCH_LIMIT = 20;
-const XAI_MODEL = 'grok-4.6';
+const XAI_MODEL = 'grok-4.20-non-reasoning';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
