@@ -116,7 +116,25 @@ export function PipelineDetailModal({
     setLoading(false);
   };
 
-  const logActivity = async (activityType: "email_sent" | "email_received" | "call" | "meeting" | "note" | "follow_up" | "social_interaction", subject?: string, body?: string, notes?: string) => {
+  const markDraftAsSent = async (activityId: string) => {
+    setSavingActivity(true);
+    const { error } = await supabase
+      .from("outreach_activities")
+      .update({ activity_type: "email_sent", email_sent_at: new Date().toISOString() })
+      .eq("id", activityId);
+
+    if (error) {
+      console.error("Error marking draft as sent:", error);
+      toast.error("Could not mark this pitch as sent");
+    } else {
+      toast.success("Marked as sent");
+      await loadActivities();
+      onActivityLogged();
+    }
+    setSavingActivity(false);
+  };
+
+  const logActivity = async (activityType: "email_sent" | "pitch_drafted" | "email_received" | "call" | "meeting" | "note" | "follow_up" | "social_interaction", subject?: string, body?: string, notes?: string) => {
     if (!opportunity) return;
     setSavingActivity(true);
 
