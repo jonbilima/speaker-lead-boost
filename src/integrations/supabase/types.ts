@@ -2314,6 +2314,27 @@ export type Database = {
         }
         Relationships: []
       }
+      organizer_email_fill_log_20260824b: {
+        Row: {
+          filled_at: string | null
+          new_email: string | null
+          old_email: string | null
+          opportunity_id: string | null
+        }
+        Insert: {
+          filled_at?: string | null
+          new_email?: string | null
+          old_email?: string | null
+          opportunity_id?: string | null
+        }
+        Update: {
+          filled_at?: string | null
+          new_email?: string | null
+          old_email?: string | null
+          opportunity_id?: string | null
+        }
+        Relationships: []
+      }
       organizer_name_resolution_20260824: {
         Row: {
           confidence: number
