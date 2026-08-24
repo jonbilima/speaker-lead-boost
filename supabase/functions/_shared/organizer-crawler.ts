@@ -738,7 +738,8 @@ export async function crawlDomain(
     const key = url.replace(/\/$/, "");
     if (seen.has(key)) return null;
     seen.add(key);
-    let page = await fetchPage(url);
+    const fetched = await fetchPage(url);
+    let page = fetched ? trim(fetched) : null;
     result.pages_fetched++;
     push(strategy);
     if (page?.retried403) push("retry_403");
