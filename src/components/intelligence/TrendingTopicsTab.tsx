@@ -1,25 +1,20 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { TrendingUp, TrendingDown, Minus, Hash } from "lucide-react";
+import { Hash } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { cn } from "@/lib/utils";
 
-interface TopicTrend {
+interface TopicCount {
   name: string;
   count: number;
-  trend: "up" | "down" | "stable";
-  change: number;
 }
 
 export function TrendingTopicsTab() {
-  const [topics, setTopics] = useState<TopicTrend[]>([]);
+  const [topics, setTopics] = useState<TopicCount[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadTopics = async () => {
-      // Get topics from opportunity_topics with counts
       const { data: topicData, error } = await supabase
         .from("opportunity_topics")
         .select(`
@@ -35,34 +30,23 @@ export function TrendingTopicsTab() {
         return;
       }
 
-      // Count occurrences of each topic
-      const topicCounts: Record<string, { name: string; count: number }> = {};
-      
+      const topicCounts: Record<string, number> = {};
+
       interface TopicDataRow {
         topics: { name: string } | null;
       }
       (topicData as TopicDataRow[] || []).forEach((item) => {
         const topicName = item.topics?.name;
         if (topicName) {
-          if (!topicCounts[topicName]) {
-            topicCounts[topicName] = { name: topicName, count: 0 };
-          }
-          topicCounts[topicName].count++;
+          topicCounts[topicName] = (topicCounts[topicName] ?? 0) + 1;
         }
       });
 
-      // Convert to array and add mock trend data
-      const topicsArray: TopicTrend[] = Object.values(topicCounts)
-        .map((topic) => ({
-          name: topic.name,
-          count: topic.count,
-          // Simulate trend data (in real app, would compare with historical data)
-          trend: (Math.random() > 0.6 ? "up" : Math.random() > 0.3 ? "stable" : "down") as "up" | "down" | "stable",
-          change: Math.floor(Math.random() * 30),
-        }))
-        .sort((a, b) => b.count - a.count);
-
-      setTopics(topicsArray);
+      setTopics(
+        Object.entries(topicCounts)
+          .map(([name, count]) => ({ name, count }))
+          .sort((a, b) => b.count - a.count),
+      );
       setLoading(false);
     };
 
@@ -83,15 +67,21 @@ export function TrendingTopicsTab() {
         <Hash className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-30" />
         <h3 className="font-semibold text-lg mb-2">Building Topic Trends</h3>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          We're analyzing event data to identify trending speaking topics. 
-          Check back soon for insights on what topics are in demand.
+          We're analyzing event data to identify in-demand speaking topics.
+          Check back soon for insights.
         </p>
       </Card>
     );
   }
 
+  const maxCount = topics[0]?.count || 1;
+
   return (
     <ScrollArea className="h-[600px]">
+      <p className="text-xs text-muted-foreground mb-3">
+        Ranked by how many current opportunities request each topic. Movement over time
+        will appear once enough history is collected.
+      </p>
       <div className="space-y-2">
         {topics.map((topic, index) => (
           <Card key={topic.name} className="p-4">
@@ -99,7 +89,7 @@ export function TrendingTopicsTab() {
               <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-semibold">
                 {index + 1}
               </div>
-              
+
               <div className="flex-1">
                 <h4 className="font-medium">{topic.name}</h4>
                 <p className="text-sm text-muted-foreground">
@@ -107,38 +97,10 @@ export function TrendingTopicsTab() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
-                {topic.trend === "up" && (
-                  <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
-                    <TrendingUp className="h-3 w-3 mr-1" />
-                    +{topic.change}%
-                  </Badge>
-                )}
-                {topic.trend === "down" && (
-                  <Badge className="bg-red-100 text-red-700 hover:bg-red-100">
-                    <TrendingDown className="h-3 w-3 mr-1" />
-                    -{topic.change}%
-                  </Badge>
-                )}
-                {topic.trend === "stable" && (
-                  <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-100">
-                    <Minus className="h-3 w-3 mr-1" />
-                    Stable
-                  </Badge>
-                )}
-              </div>
-
-              {/* Visual bar */}
               <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
                 <div
-                  className={cn(
-                    "h-full rounded-full",
-                    topic.trend === "up" ? "bg-green-500" : 
-                    topic.trend === "down" ? "bg-red-400" : "bg-gray-400"
-                  )}
-                  style={{
-                    width: `${Math.min((topic.count / (topics[0]?.count || 1)) * 100, 100)}%`,
-                  }}
+                  className="h-full rounded-full bg-primary"
+                  style={{ width: `${Math.min((topic.count / maxCount) * 100, 100)}%` }}
                 />
               </div>
             </div>
