@@ -522,6 +522,38 @@ export function detectAddress(page: FetchOut): string | null {
   return m ? m[0].trim().slice(0, 200) : null;
 }
 
+/** Words that never appear in a real person's name — headings, roles, event nouns, places. */
+const NON_NAME_TOKENS = new Set(
+  `conference conferences summit summits expo event events day days week weeks
+team teams staff people board committee chair chairs cochair organizer organizers organizing
+keynote keynotes speaker speakers session sessions talk talks track tracks workshop workshops
+community group meetup chapter society association institute foundation council network
+registration register tickets sponsor sponsors sponsorship partner partners exhibitor
+about contact home news blog press media faq schedule agenda program programs venue location
+where when what who how why join learn more read view all our your their the this that
+annual national international global regional local virtual online hybrid
+university college school academy center centre health medical nursing legal finance
+technology digital data cloud security devops ops leadership management marketing sales
+director manager coordinator advocate founder cofounder president vice chief officer head
+volunteer volunteers member members attendee attendees guest guests host hosts panel panelists
+inclusion equity diversity history apply submit proposals abstract call papers
+ambassador ambassadors fellows mentor mentors judges jury advisor advisors advisory alumni
+crew squad emcee meet meeting meetings platform visionary speak speaking new top best`
+    .split(/\s+/).filter(Boolean),
+);
+
+/** True only when the string looks like an actual person's name. */
+export function isPersonName(raw: string): boolean {
+  const name = (raw ?? "").replace(/&amp;/g, " ").replace(/\s+/g, " ").trim();
+  const parts = name.split(" ");
+  if (parts.length < 2 || parts.length > 3) return false;
+  for (const p of parts) {
+    if (!/^[A-Z][a-zA-Z'’\-.]{1,20}$/.test(p)) return false;
+    if (NON_NAME_TOKENS.has(p.toLowerCase().replace(/[.'’-]/g, ""))) return false;
+  }
+  return true;
+}
+
 /** Named staff extraction, restricted to team/staff/board/leadership pages. */
 export function detectNamedStaff(page: FetchOut, domain: string): NamedStaff[] {
   if (!STAFF_PAGE_RE.test(page.url)) return [];
@@ -537,6 +569,8 @@ export function detectNamedStaff(page: FetchOut, domain: string): NamedStaff[] {
     const nameMatch = lines[i].match(/^([A-Z][a-z'’-]+(?:\s+[A-Z]\.)?\s+[A-Z][a-zA-Z'’-]+)\b/);
     if (!nameMatch) continue;
     const name = nameMatch[1];
+    if (!isPersonName(name)) continue;
+
     const window = [lines[i], lines[i + 1] ?? "", lines[i + 2] ?? ""].join(" ").slice(0, 240);
     if (!STAFF_TITLE_RE.test(window)) continue;
     const title = (window.match(

@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS public.organizer_contacts_staging_20260825;
