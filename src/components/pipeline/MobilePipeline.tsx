@@ -244,6 +244,11 @@ function MobileOpportunityCard({
             {/* Content */}
             <div className="flex-1 min-w-0">
               <h4 className="font-semibold text-sm line-clamp-2">{opportunity.event_name}</h4>
+              {opportunity.outreach_state === "drafted" && (
+                <span className="mt-1 inline-flex items-center rounded-full border border-amber-500/60 bg-amber-500/10 px-2 py-0.5 text-[10px] text-foreground">
+                  Pitch drafted — not sent
+                </span>
+              )}
               
               {opportunity.organizer_name && (
                 <div className="flex items-center gap-2 mt-1">

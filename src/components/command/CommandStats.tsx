@@ -8,8 +8,6 @@ interface CommandStatsProps {
   newMatches: number;
   matchesTrend: "up" | "down" | "flat";
   activePipeline: number;
-  responseRate: number;
-  responseRateTrend: "up" | "down" | "flat";
 }
 
 export function CommandStats({
@@ -18,8 +16,6 @@ export function CommandStats({
   newMatches,
   matchesTrend,
   activePipeline,
-  responseRate,
-  responseRateTrend,
 }: CommandStatsProps) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -38,7 +34,7 @@ export function CommandStats({
   };
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
       {/* Revenue */}
       <Card className="border-primary/10">
         <CardContent className="p-4">
@@ -74,16 +70,6 @@ export function CommandStats({
         </CardContent>
       </Card>
 
-      {/* Response Rate */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="text-xs font-medium text-muted-foreground mb-1">Response Rate</div>
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-bold">{responseRate}%</span>
-            <TrendIcon trend={responseRateTrend} />
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

@@ -246,7 +246,7 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
   return (
     <>
       <Card className="hover:shadow-md transition-shadow overflow-hidden">
-        <CardContent className="p-4 space-y-3">
+        <CardContent className="p-3 space-y-2">
           {/* Header */}
           <div className="flex items-start justify-between gap-2">
             {opportunity.ai_score !== null ? (
@@ -267,7 +267,7 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
           {/* Title */}
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-foreground line-clamp-1">{opportunity.event_name}</h3>
+              <h3 className="font-semibold text-sm text-foreground line-clamp-1">{opportunity.event_name}</h3>
               {opportunity.event_url && (
                 <a href={opportunity.event_url} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-3 w-3 text-muted-foreground hover:text-primary shrink-0" />
@@ -275,12 +275,12 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
               )}
             </div>
             {opportunity.organizer_name && (
-              <p className="text-sm text-muted-foreground">{opportunity.organizer_name}</p>
+              <p className="text-xs text-muted-foreground line-clamp-1">{opportunity.organizer_name}</p>
             )}
           </div>
 
           {/* Details Row */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
             {opportunity.location && (
               <span className="flex items-center gap-1">
                 <MapPin className="h-3 w-3" />
@@ -307,7 +307,7 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
 
           {/* Deadline (non-urgent) */}
           {!deadlineInfo.urgent && opportunity.deadline && (
-            <p className="text-sm text-muted-foreground flex items-center gap-1">
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
               <Clock className="h-3 w-3" />
               {deadlineInfo.text}
             </p>
@@ -331,12 +331,9 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
 
           {/* Why this score */}
           {reasons.length > 0 && (
-            <div className="space-y-1 rounded-md bg-muted/40 p-2">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Why this score
-              </p>
+            <div className="space-y-1 rounded-md bg-muted/40 px-2 py-1.5">
               <div className="flex flex-wrap gap-1">
-                {reasons.map((r, i) => (
+                {reasons.slice(0, 3).map((r, i) => (
                   <Badge
                     key={i}
                     variant="outline"

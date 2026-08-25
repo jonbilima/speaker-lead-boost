@@ -23,6 +23,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/Logo";
@@ -97,7 +98,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-3">
+        <div className={`flex items-center gap-3 ${collapsed ? "flex-col" : "justify-between"}`}>
           {collapsed ? (
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-sm">N</span>
@@ -105,6 +106,7 @@ export function AppSidebar() {
           ) : (
             <Logo size="sm" />
           )}
+          <SidebarTrigger className="text-muted-foreground hover:text-foreground shrink-0" />
         </div>
       </SidebarHeader>
 

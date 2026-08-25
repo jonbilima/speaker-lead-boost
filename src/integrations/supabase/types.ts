@@ -2548,6 +2548,60 @@ export type Database = {
           },
         ]
       }
+      outreach_activities_drafted_backup_20260824: {
+        Row: {
+          activity_type: Database["public"]["Enums"]["activity_type"] | null
+          body: string | null
+          created_at: string | null
+          email_clicked_at: string | null
+          email_message_id: string | null
+          email_opened_at: string | null
+          email_replied_at: string | null
+          email_sent_at: string | null
+          follow_up_completed: boolean | null
+          follow_up_date: string | null
+          id: string | null
+          match_id: string | null
+          notes: string | null
+          speaker_id: string | null
+          subject: string | null
+        }
+        Insert: {
+          activity_type?: Database["public"]["Enums"]["activity_type"] | null
+          body?: string | null
+          created_at?: string | null
+          email_clicked_at?: string | null
+          email_message_id?: string | null
+          email_opened_at?: string | null
+          email_replied_at?: string | null
+          email_sent_at?: string | null
+          follow_up_completed?: boolean | null
+          follow_up_date?: string | null
+          id?: string | null
+          match_id?: string | null
+          notes?: string | null
+          speaker_id?: string | null
+          subject?: string | null
+        }
+        Update: {
+          activity_type?: Database["public"]["Enums"]["activity_type"] | null
+          body?: string | null
+          created_at?: string | null
+          email_clicked_at?: string | null
+          email_message_id?: string | null
+          email_opened_at?: string | null
+          email_replied_at?: string | null
+          email_sent_at?: string | null
+          follow_up_completed?: boolean | null
+          follow_up_date?: string | null
+          id?: string | null
+          match_id?: string | null
+          notes?: string | null
+          speaker_id?: string | null
+          subject?: string | null
+        }
+        Relationships: []
+      }
       package_views: {
         Row: {
           event_type: string

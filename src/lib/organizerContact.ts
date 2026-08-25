@@ -187,15 +187,15 @@ export function buildContactInfo(
 export function tierToneClass(tier: ContactTierLabel): string {
   switch (tier) {
     case "Verified contact":
-      return "border-primary/40 text-primary";
+      return "border-primary bg-primary/15 text-primary font-medium";
     case "Role inbox":
-      return "border-primary/30 text-foreground";
+      return "border-primary/40 bg-primary/5 text-foreground";
     case "Contact form only":
-      return "border-accent/40 text-accent-foreground";
+      return "border-accent/60 bg-accent/10 text-foreground";
     case "Submit through the listing":
-      return "border-accent/40 text-accent-foreground";
+      return "border-accent/60 bg-accent/10 text-foreground";
     default:
-      return "border-muted-foreground/30 text-muted-foreground";
+      return "border-border bg-muted text-foreground/80";
   }
 }
 

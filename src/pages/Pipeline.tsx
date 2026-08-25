@@ -81,6 +81,19 @@ const Pipeline = () => {
       console.error("Error loading pipeline:", error);
       toast.error("Failed to load pipeline");
     } else {
+      const { data: activities } = await supabase
+        .from("outreach_activities")
+        .select("match_id, activity_type")
+        .eq("speaker_id", session.user.id)
+        .in("activity_type", ["email_sent", "pitch_drafted"]);
+
+      const outreachByMatch = new Map<string, "sent" | "drafted">();
+      (activities || []).forEach((a) => {
+        if (!a.match_id) return;
+        if (a.activity_type === "email_sent") outreachByMatch.set(a.match_id, "sent");
+        else if (!outreachByMatch.has(a.match_id)) outreachByMatch.set(a.match_id, "drafted");
+      });
+
       const formatted: PipelineOpportunity[] = (data || [])
         .filter((score) => score.opportunities !== null)
         .map((score) => ({
@@ -100,6 +113,7 @@ const Pipeline = () => {
           pipeline_stage: (score.pipeline_stage as PipelineOpportunity['pipeline_stage']) || "new",
           calculated_at: score.calculated_at,
           tags: (score.tags as string[]) || [],
+          outreach_state: outreachByMatch.get(score.id) ?? null,
         }));
       setOpportunities(formatted);
     }
