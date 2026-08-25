@@ -248,3 +248,23 @@ Then re-add `{ name: 'meetup', function: 'scrape-meetup' }` to `scrape-all-sourc
 - `scrape-organizer-contacts` updated: `fill_opportunities` flag (default false — opportunities untouched), `offset` param.
 - Ran chunked backfill (20/10/5 per invocation) → 132 rows in `organizer_contacts`. No writes to `opportunities`.
 - Revert: `DELETE FROM public.organizer_contacts;` (or `DROP TABLE`); restore emails from the snapshot table if ever filled.
+
+## 2026-08-25 — Organizer email discovery (methods 2 + 3)
+- Backups: `public.organizer_contacts_backup_20260825`, `public.opportunities_email_backup_20260825b`.
+- Crawled 29 previously uncrawled organizer domains (`crawl_v3`) and 115 crawled-but-emailless domains with deep staff-profile follow-through (`deep_staff_v3`).
+- Merged results into `organizer_contacts`; filled `opportunities.organizer_email` for matching active rows.
+- RDAP sweep (`rdap_v1`) over 36 remaining unreachable domains: 1 non-proxy registrant email stored (`cphrbc.ca`, status `found_whois`, tier `role_inbox`).
+- Cleaned `named_staff`: 670 entries -> 345 real people (40 domains rewritten). Crawler now validates names via `isPersonName` in `_shared/organizer-crawler.ts`.
+- Pattern inference: dropped, no verified samples.
+### Revert
+```sql
+UPDATE public.opportunities o SET organizer_email = b.organizer_email
+FROM public.opportunities_email_backup_20260825b b WHERE b.id = o.id;
+DELETE FROM public.organizer_contacts oc
+WHERE NOT EXISTS (SELECT 1 FROM public.organizer_contacts_backup_20260825 b WHERE b.domain = oc.domain);
+UPDATE public.organizer_contacts oc SET email=b.email, confidence_tier=b.confidence_tier, status=b.status,
+  all_emails=b.all_emails, named_staff=b.named_staff, contact_form_url=b.contact_form_url, phone=b.phone,
+  socials=b.socials, paths_found=b.paths_found, strategies_tried=b.strategies_tried, source_page=b.source_page
+FROM public.organizer_contacts_backup_20260825 b WHERE b.domain = oc.domain;
+```
+Code revert: `git revert` the `isPersonName` change in `supabase/functions/_shared/organizer-crawler.ts` and redeploy `scrape-organizer-contacts`.
