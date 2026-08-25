@@ -21,6 +21,7 @@ import { DataFreshnessIndicator } from "@/components/find/DataFreshnessIndicator
 import { SmartSubmitDialog } from "@/components/find/SmartSubmitDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SavedSearch } from "@/hooks/useSavedSearches";
+import { useOrganizerContactLookup } from "@/hooks/useOrganizerContact";
 
 export interface Opportunity {
   id: string;
@@ -95,6 +96,7 @@ const Find = () => {
   const [activeSmartList, setActiveSmartList] = useState<string | null>(null);
   const [activeSavedSearchId, setActiveSavedSearchId] = useState<string | null>(null);
   const isMobile = useIsMobile();
+  const contactLookup = useOrganizerContactLookup();
 
   const loadOpportunities = useCallback(async () => {
     setLoading(true);
