@@ -113,7 +113,7 @@ const Find = () => {
           ai_reason,
           reason_codes,
           pipeline_stage,
-          opportunities (
+          opportunities!inner (
             id,
             event_name,
             organizer_name,
@@ -127,10 +127,14 @@ const Find = () => {
             audience_size,
             event_url,
             created_at,
-            country
+            country,
+            is_active
           )
         `)
         .eq("user_id", session.user.id)
+        // Only surface live inventory: deactivated rows (dead links, expired
+        // events, purged sources, test data) must never reach the feed.
+        .eq("opportunities.is_active", true)
         .order("ai_score", { ascending: false });
 
       if (scoresError) throw scoresError;

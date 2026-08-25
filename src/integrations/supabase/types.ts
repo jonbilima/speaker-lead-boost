@@ -1357,6 +1357,21 @@ export type Database = {
         }
         Relationships: []
       }
+      opportunities_country_backfill_20260825: {
+        Row: {
+          country: string | null
+          id: string | null
+        }
+        Insert: {
+          country?: string | null
+          id?: string | null
+        }
+        Update: {
+          country?: string | null
+          id?: string | null
+        }
+        Relationships: []
+      }
       opportunities_deadlink_backup_20260825: {
         Row: {
           event_url: string | null
