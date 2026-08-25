@@ -1037,6 +1037,47 @@ export type Database = {
           },
         ]
       }
+      link_check_results: {
+        Row: {
+          consecutive_failures: number
+          created_at: string
+          deactivated_at: string | null
+          last_checked_at: string
+          last_status: string | null
+          opportunity_id: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          consecutive_failures?: number
+          created_at?: string
+          deactivated_at?: string | null
+          last_checked_at?: string
+          last_status?: string | null
+          opportunity_id: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          consecutive_failures?: number
+          created_at?: string
+          deactivated_at?: string | null
+          last_checked_at?: string
+          last_status?: string | null
+          opportunity_id?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "link_check_results_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meetup_purge_retained_20260820: {
         Row: {
           opportunity_id: string | null
@@ -1316,6 +1357,27 @@ export type Database = {
         }
         Relationships: []
       }
+      opportunities_deadlink_backup_20260825: {
+        Row: {
+          event_url: string | null
+          id: string | null
+          is_active: boolean | null
+          source: string | null
+        }
+        Insert: {
+          event_url?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          source?: string | null
+        }
+        Update: {
+          event_url?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          source?: string | null
+        }
+        Relationships: []
+      }
       opportunities_dedupe_backup_20260819: {
         Row: {
           audience_size: number | null
@@ -1454,6 +1516,27 @@ export type Database = {
           event_date?: string | null
           id?: string | null
           is_active?: boolean | null
+        }
+        Relationships: []
+      }
+      opportunities_mailto_backup_20260825: {
+        Row: {
+          event_url: string | null
+          id: string | null
+          is_active: boolean | null
+          organizer_email: string | null
+        }
+        Insert: {
+          event_url?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          organizer_email?: string | null
+        }
+        Update: {
+          event_url?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          organizer_email?: string | null
         }
         Relationships: []
       }
