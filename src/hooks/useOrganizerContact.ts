@@ -97,3 +97,39 @@ export function useOrganizerContact(
   return info;
 }
 
+
+export type ContactLookup = (
+  eventUrl: string | null | undefined,
+  organizerEmail: string | null,
+  opportunityId?: string | null,
+) => OrganizerContactInfo;
+
+/**
+ * Page-level lookup so lists can rank opportunities by contactability
+ * without mounting a hook per row.
+ */
+export function useOrganizerContactLookup(): ContactLookup {
+  const [rows, setRows] = useState<OrganizerContactRow[]>([]);
+  const [resolved, setResolved] = useState<Map<string, string>>(() => new Map());
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([loadContacts(), loadResolvedDomains()]).then(([r, m]) => {
+      if (!active) return;
+      setRows(r);
+      setResolved(m);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return (eventUrl, organizerEmail, opportunityId) => {
+    let match = findContactForUrl(eventUrl, rows);
+    if (!match && opportunityId) {
+      const domain = resolved.get(opportunityId);
+      if (domain) match = findContactForUrl(`https://${domain}`, rows);
+    }
+    return buildContactInfo(organizerEmail, match, eventUrl);
+  };
+}

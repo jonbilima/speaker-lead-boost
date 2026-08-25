@@ -204,7 +204,7 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
                   </span>
                 </div>
                 <div className="mt-1">
-                  <ContactPathPanel info={contactInfo} compact />
+                  <ContactPathPanel info={contactInfo} compact sourceUrl={opportunity.event_url} />
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
@@ -353,7 +353,7 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
 
           {/* How to reach the organizer */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <ContactPathPanel info={contactInfo} compact />
+            <ContactPathPanel info={contactInfo} compact sourceUrl={opportunity.event_url} />
           </div>
 
 

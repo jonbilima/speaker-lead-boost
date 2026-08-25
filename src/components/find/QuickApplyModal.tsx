@@ -254,7 +254,7 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             How to reach the organizer
           </p>
-          <ContactPathPanel info={contactInfo} />
+          <ContactPathPanel info={contactInfo} sourceUrl={opportunity?.event_url} />
           {noEmailWarning && contactInfo.hasAnyPath && (
             <div className="flex items-start gap-2 pt-1">
               <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
@@ -267,7 +267,7 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
             <div className="flex items-start gap-2 pt-1">
               <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
               <p className="text-sm text-muted-foreground">
-                No contact path found yet. Your pitch will be saved so you can send it once you find one.
+                No contact path found yet. Use the source listing above to find one — your pitch is saved either way.
               </p>
             </div>
           )}

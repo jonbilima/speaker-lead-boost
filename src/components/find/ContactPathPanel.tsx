@@ -16,21 +16,51 @@ const ICONS: Record<ContactPath["kind"], typeof Mail> = {
 interface Props {
   info: OrganizerContactInfo;
   compact?: boolean;
+  /** Where the listing was found. Always shown when no contact path exists. */
+  sourceUrl?: string | null;
 }
 
-export function ContactPathPanel({ info, compact = false }: Props) {
+function hostLabel(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+export function ContactPathPanel({ info, compact = false, sourceUrl }: Props) {
+  const usableSource = sourceUrl && /^https?:\/\//i.test(sourceUrl) ? sourceUrl : null;
+
   return (
     <div className={compact ? "flex flex-wrap items-center gap-x-2 gap-y-1" : "space-y-1.5"}>
       <div className="flex items-center gap-2">
         <Badge variant="outline" className={`text-[11px] font-normal ${tierToneClass(info.tier)}`}>
           {info.tier}
         </Badge>
-        {!info.hasAnyPath && !compact && (
-          <span className="text-[11px] text-muted-foreground">
-            Try the event website directly.
-          </span>
-        )}
       </div>
+
+      {!info.hasAnyPath && (
+        usableSource ? (
+          <a
+            href={usableSource}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary"
+          >
+            <Globe className="h-3 w-3 shrink-0" />
+            <span className="truncate max-w-[240px]">
+              {compact ? hostLabel(usableSource) : `Found on: ${hostLabel(usableSource)}`}
+            </span>
+          </a>
+        ) : (
+          !compact && (
+            <span className="text-[11px] text-muted-foreground">
+              No source link recorded for this listing.
+            </span>
+          )
+        )
+      )}
+
 
 
       {info.paths.length > 0 && (
