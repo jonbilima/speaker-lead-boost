@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar, MapPin, DollarSign, Clock, Building2 } from "lucide-react";
+import { Calendar, MapPin, DollarSign, Clock, Building2, FileEdit, Send } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { FollowUpIndicator } from "./FollowUpIndicator";
 
@@ -25,6 +25,7 @@ export interface PipelineOpportunity {
   pipeline_stage: string;
   calculated_at: string;
   tags?: string[];
+  outreach_state?: "sent" | "drafted" | null;
 }
 
 interface PipelineCardProps {
@@ -141,6 +142,25 @@ export function PipelineCard({
                 </Button>
               )}
             </div>
+          )}
+
+          {opportunity.outreach_state === "drafted" && (
+            <Badge
+              variant="outline"
+              className="mb-2 text-[10px] font-normal border-amber-500/60 bg-amber-500/10 text-foreground"
+            >
+              <FileEdit className="h-3 w-3 mr-1" />
+              Pitch drafted &mdash; not sent
+            </Badge>
+          )}
+          {opportunity.outreach_state === "sent" && (
+            <Badge
+              variant="outline"
+              className="mb-2 text-[10px] font-normal border-primary/60 bg-primary/10 text-foreground"
+            >
+              <Send className="h-3 w-3 mr-1" />
+              Pitch emailed
+            </Badge>
           )}
 
           {/* Follow-up Indicator for Applied stage */}
