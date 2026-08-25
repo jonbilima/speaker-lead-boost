@@ -18,8 +18,6 @@ const Dashboard = () => {
     newMatches: 0,
     matchesTrend: "flat" as "up" | "down" | "flat",
     activePipeline: 0,
-    responseRate: 0,
-    responseRateTrend: "flat" as "up" | "down" | "flat",
   });
   const navigate = useNavigate();
 
@@ -43,8 +41,6 @@ const Dashboard = () => {
         newMatches,
         matchesTrend: newMatches > 5 ? "up" : "flat",
         activePipeline,
-        responseRate: 24,
-        responseRateTrend: "up",
       });
     } catch (error) {
       console.error("Error loading stats:", error);
