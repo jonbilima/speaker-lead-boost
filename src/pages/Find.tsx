@@ -377,7 +377,22 @@ const Find = () => {
     return true;
   });
 
-  const sortedOpportunities = [...filteredOpportunities].sort((a, b) => {
+  // Group ordering: reachable organizers and US events first, then the chosen sort.
+  const contactRank = (opp: Opportunity) => {
+    const info = contactLookup(opp.event_url, opp.organizer_email, opp.id);
+    if (info.primaryEmail) return 0;
+    if (info.paths.some(p => p.kind !== "listing")) return 1;
+    if (info.paths.length > 0) return 2;
+    return 3;
+  };
+  const locationRank = (opp: Opportunity) => {
+    const bucket = locationBucket(opp.country);
+    if (bucket === "United States") return 0;
+    if (bucket === "Location unknown") return 1;
+    return 2;
+  };
+
+  const withinGroup = (a: Opportunity, b: Opportunity) => {
     switch (sortBy) {
       case "match":
         return (b.ai_score ?? -1) - (a.ai_score ?? -1);
@@ -394,7 +409,13 @@ const Find = () => {
       default:
         return 0;
     }
-  });
+  };
+
+  const sortedOpportunities = [...filteredOpportunities]
+    .map(opp => ({ opp, c: contactRank(opp), l: locationRank(opp) }))
+    .sort((a, b) => (a.c - b.c) || (a.l - b.l) || withinGroup(a.opp, b.opp))
+    .map(x => x.opp);
+
 
   const handleQuickApply = (opp: Opportunity) => {
     setSelectedOpportunity(opp);
