@@ -2409,54 +2409,6 @@ export type Database = {
         }
         Relationships: []
       }
-      organizer_contacts_staging_20260825: {
-        Row: {
-          all_emails: string[]
-          confidence_tier: string | null
-          contact_form_url: string | null
-          domain: string
-          email: string | null
-          named_staff: Json
-          pages_fetched: number
-          paths_found: string[]
-          phone: string | null
-          socials: Json
-          source_page: string | null
-          status: string | null
-          strategy: string | null
-        }
-        Insert: {
-          all_emails?: string[]
-          confidence_tier?: string | null
-          contact_form_url?: string | null
-          domain: string
-          email?: string | null
-          named_staff?: Json
-          pages_fetched?: number
-          paths_found?: string[]
-          phone?: string | null
-          socials?: Json
-          source_page?: string | null
-          status?: string | null
-          strategy?: string | null
-        }
-        Update: {
-          all_emails?: string[]
-          confidence_tier?: string | null
-          contact_form_url?: string | null
-          domain?: string
-          email?: string | null
-          named_staff?: Json
-          pages_fetched?: number
-          paths_found?: string[]
-          phone?: string | null
-          socials?: Json
-          source_page?: string | null
-          status?: string | null
-          strategy?: string | null
-        }
-        Relationships: []
-      }
       organizer_domain_match_20260824: {
         Row: {
           created_at: string
