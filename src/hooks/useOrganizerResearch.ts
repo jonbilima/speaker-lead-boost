@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import type { 
   OrganizerResearchData, 
   EventHistoryItem, 
@@ -9,6 +10,15 @@ import type {
 
 // Simple in-memory cache
 const researchCache = new Map<string, OrganizerResearchData>();
+
+function hostFromUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url.startsWith("http") ? url : `https://${url}`).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+}
 
 export function useOrganizerResearch(organizerName: string | null) {
   const [data, setData] = useState<OrganizerResearchData | null>(null);
