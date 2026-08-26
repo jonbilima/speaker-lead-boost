@@ -56,7 +56,6 @@ export function useOrganizerResearch(organizerName: string | null) {
           fee_estimate_min,
           fee_estimate_max,
           organizer_email,
-          organizer_website,
           event_url,
           opportunity_topics (
             topics (name)
@@ -87,7 +86,7 @@ export function useOrganizerResearch(organizerName: string | null) {
 
       // Fall back to crawled contact data when there is no organizers row
       const opportunityEmail = (events || []).map((e: any) => e.organizer_email).find(Boolean) || null;
-      const opportunityWebsite = (events || []).map((e: any) => e.organizer_website).find(Boolean) || null;
+      const opportunityWebsite: string | null = null;
       const domain =
         hostFromUrl(organizerData?.organization_website) ||
         hostFromUrl(opportunityWebsite) ||
