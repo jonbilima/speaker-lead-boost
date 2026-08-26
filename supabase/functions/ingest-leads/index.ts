@@ -231,6 +231,98 @@ function toVerticalSlug(v: unknown): string | null {
 }
 
 // ---------------------------------------------------------------------------
+// Location: country / city / state / confidence
+// ---------------------------------------------------------------------------
+
+/**
+ * "Virtual" and "Global" are a location *type*, not a country. When the payload
+ * sends one of these as the country we drop it and fall back to organization
+ * signals (state, city, US-shaped host) to decide the real country.
+ */
+const VIRTUAL_TOKENS =
+  /^(virtual|online|remote|global|worldwide|international|hybrid|anywhere|tbd|tba|n\/?a|unknown|-)$/i;
+
+const US_ALIASES = new Set([
+  "us",
+  "usa",
+  "u.s.",
+  "u.s.a.",
+  "united states",
+  "united states of america",
+  "america",
+]);
+
+const US_STATES = new Set([
+  "al","ak","az","ar","ca","co","ct","de","fl","ga","hi","id","il","in","ia","ks","ky","la","me","md",
+  "ma","mi","mn","ms","mo","mt","ne","nv","nh","nj","nm","ny","nc","nd","oh","ok","or","pa","ri","sc",
+  "sd","tn","tx","ut","vt","va","wa","wv","wi","wy","dc",
+  "alabama","alaska","arizona","arkansas","california","colorado","connecticut","delaware","florida",
+  "georgia","hawaii","idaho","illinois","indiana","iowa","kansas","kentucky","louisiana","maine",
+  "maryland","massachusetts","michigan","minnesota","mississippi","missouri","montana","nebraska",
+  "nevada","new hampshire","new jersey","new mexico","new york","north carolina","north dakota","ohio",
+  "oklahoma","oregon","pennsylvania","rhode island","south carolina","south dakota","tennessee","texas",
+  "utah","vermont","virginia","washington","west virginia","wisconsin","wyoming",
+  "district of columbia","washington dc","washington d.c.",
+]);
+
+function isVirtualToken(s: string | null): boolean {
+  return !!s && VIRTUAL_TOKENS.test(s.trim());
+}
+
+/** Canonicalize a country string. Returns null for virtual/global/unknown tokens. */
+function normalizeCountry(v: unknown): string | null {
+  const s = str(v);
+  if (!s || isVirtualToken(s)) return null;
+  const key = s.toLowerCase().replace(/\s+/g, " ").trim();
+  if (US_ALIASES.has(key)) return "United States";
+  return s.trim();
+}
+
+/** True when the value looks like a US state name or postal abbreviation. */
+function isUsState(v: string | null): boolean {
+  if (!v) return false;
+  return US_STATES.has(v.toLowerCase().replace(/\./g, "").replace(/\s+/g, " ").trim());
+}
+
+function hasUsHostSignal(url: string | null): boolean {
+  if (!url) return false;
+  try {
+    const host = new URL(url).host.toLowerCase();
+    return /\.(us|edu|gov|mil)$/.test(host);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Resolve the country for an incoming record.
+ * Precedence: explicit non-virtual payload country -> US signals (state, host)
+ * -> null (let the database trigger derive it from the location text).
+ * The returned `explicit` flag marks values we trust enough to overwrite a
+ * previously derived country on a duplicate.
+ */
+function resolveCountry(
+  rec: IncomingRecord,
+  state: string | null,
+  location: string | null,
+): { country: string | null; explicit: boolean; locationType: string | null } {
+  const rawCountry = str(rec.country);
+  const virtual = isVirtualToken(rawCountry) || isVirtualToken(location);
+  const locationType = virtual ? (str(rec.country) ?? location)!.trim().toLowerCase() : null;
+
+  const normalized = normalizeCountry(rawCountry);
+  if (normalized) return { country: normalized, explicit: true, locationType };
+
+  // Virtual / global / missing country: infer from the hosting organization.
+  if (isUsState(state) || hasUsHostSignal(str(rec.application_link))) {
+    return { country: "United States", explicit: true, locationType };
+  }
+
+  return { country: null, explicit: false, locationType };
+}
+
+
+// ---------------------------------------------------------------------------
 // Deduplication
 // ---------------------------------------------------------------------------
 
