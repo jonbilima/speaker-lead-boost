@@ -55,6 +55,9 @@ export function useOrganizerResearch(organizerName: string | null) {
           location,
           fee_estimate_min,
           fee_estimate_max,
+          organizer_email,
+          organizer_website,
+          event_url,
           opportunity_topics (
             topics (name)
           )
@@ -82,6 +85,25 @@ export function useOrganizerResearch(organizerName: string | null) {
         topics: (e.opportunity_topics as any[])?.map((ot: any) => ot.topics?.name).filter(Boolean) || []
       }));
 
+      // Fall back to crawled contact data when there is no organizers row
+      const opportunityEmail = (events || []).map((e: any) => e.organizer_email).find(Boolean) || null;
+      const opportunityWebsite = (events || []).map((e: any) => e.organizer_website).find(Boolean) || null;
+      const domain =
+        hostFromUrl(organizerData?.organization_website) ||
+        hostFromUrl(opportunityWebsite) ||
+        (opportunityEmail ? opportunityEmail.split("@")[1] : null) ||
+        hostFromUrl((events || []).map((e: any) => e.event_url).find(Boolean));
+
+      let contactRow: any = null;
+      if (domain) {
+        const { data: contact } = await supabase
+          .from("organizer_contacts")
+          .select("domain, email, phone, linkedin_url, contact_form_url, all_emails")
+          .eq("domain", domain)
+          .maybeSingle();
+        contactRow = contact;
+      }
+
       // Process speakers booked
       const speakersBooked: SpeakerBookedItem[] = (speakerBookings || []).map(s => ({
         id: s.id,
@@ -100,11 +122,14 @@ export function useOrganizerResearch(organizerName: string | null) {
       const researchData: OrganizerResearchData = {
         organizer: {
           name: organizerData?.name || organizerName,
-          email: organizerData?.email || null,
-          phone: organizerData?.phone || null,
-          linkedin_url: organizerData?.linkedin_url || null,
+          email: organizerData?.email || opportunityEmail || contactRow?.email || null,
+          phone: organizerData?.phone || contactRow?.phone || null,
+          linkedin_url: organizerData?.linkedin_url || contactRow?.linkedin_url || null,
           organization_name: organizerData?.organization_name || null,
-          organization_website: organizerData?.organization_website || null
+          organization_website:
+            organizerData?.organization_website ||
+            opportunityWebsite ||
+            (domain ? `https://${domain}` : null)
         },
         eventHistory,
         speakersBooked,
@@ -119,6 +144,7 @@ export function useOrganizerResearch(organizerName: string | null) {
         isResearchInProgress: false,
         hasLimitedData
       };
+
 
       // Cache the result
       researchCache.set(cacheKey, researchData);
