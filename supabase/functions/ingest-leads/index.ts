@@ -610,7 +610,8 @@ Deno.serve(async (req) => {
     const fps = deduped.map((r) => r.event_fingerprint as string | null).filter((v): v is string => !!v);
 
     const selectCols =
-      "id, event_name, event_url, canonical_url, event_fingerprint, source, organizer_name, organizer_email, description, location, deadline, event_date, fee_estimate_min, fee_estimate_max, audience_size, vertical_slug, merged_into";
+      "id, event_name, event_url, canonical_url, event_fingerprint, source, organizer_name, organizer_email, description, location, country, city, state, location_confidence, organization_website, deadline, event_date, fee_estimate_min, fee_estimate_max, audience_size, vertical_slug, merged_into";
+
 
     const orParts = [`event_url.in.(${urls.map(quoteIn).join(",")})`];
     if (canon.length > 0) orParts.push(`canonical_url.in.(${canon.map(quoteIn).join(",")})`);
