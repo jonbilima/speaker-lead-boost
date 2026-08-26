@@ -711,10 +711,10 @@ Deno.serve(async (req) => {
   let topicLinksCreated = 0;
   const unmatchedTopicValues: string[] = [];
   if (toInsert.length > 0) {
-    const payload = toInsert.map((r) => {
-      const { __topic_raw: _omit, ...rest } = r as Record<string, unknown>;
-      return rest;
-    });
+    const payload = toInsert.map((r) =>
+      Object.fromEntries(Object.entries(r).filter(([k]) => !k.startsWith("__"))),
+    );
+
     const { data, error } = await supabase
       .from("opportunities")
       .insert(payload)
