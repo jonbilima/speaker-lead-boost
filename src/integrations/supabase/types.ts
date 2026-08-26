@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -1130,6 +1130,7 @@ export type Database = {
         Row: {
           audience_size: number | null
           canonical_url: string | null
+          city: string | null
           country: string | null
           covers_accommodation: boolean | null
           covers_travel: boolean | null
@@ -1150,6 +1151,7 @@ export type Database = {
           is_verified: boolean | null
           karma_awarded: boolean | null
           location: string | null
+          location_confidence: string | null
           location_venue: string | null
           merged_into: string | null
           organization_website: string | null
@@ -1161,6 +1163,7 @@ export type Database = {
           scraped_at: string
           seniority_level: string | null
           source: string | null
+          state: string | null
           submitted_by: string | null
           timezone: string | null
           vertical_slug: string | null
@@ -1168,6 +1171,7 @@ export type Database = {
         Insert: {
           audience_size?: number | null
           canonical_url?: string | null
+          city?: string | null
           country?: string | null
           covers_accommodation?: boolean | null
           covers_travel?: boolean | null
@@ -1188,6 +1192,7 @@ export type Database = {
           is_verified?: boolean | null
           karma_awarded?: boolean | null
           location?: string | null
+          location_confidence?: string | null
           location_venue?: string | null
           merged_into?: string | null
           organization_website?: string | null
@@ -1199,6 +1204,7 @@ export type Database = {
           scraped_at?: string
           seniority_level?: string | null
           source?: string | null
+          state?: string | null
           submitted_by?: string | null
           timezone?: string | null
           vertical_slug?: string | null
@@ -1206,6 +1212,7 @@ export type Database = {
         Update: {
           audience_size?: number | null
           canonical_url?: string | null
+          city?: string | null
           country?: string | null
           covers_accommodation?: boolean | null
           covers_travel?: boolean | null
@@ -1226,6 +1233,7 @@ export type Database = {
           is_verified?: boolean | null
           karma_awarded?: boolean | null
           location?: string | null
+          location_confidence?: string | null
           location_venue?: string | null
           merged_into?: string | null
           organization_website?: string | null
@@ -1237,6 +1245,7 @@ export type Database = {
           scraped_at?: string
           seniority_level?: string | null
           source?: string | null
+          state?: string | null
           submitted_by?: string | null
           timezone?: string | null
           vertical_slug?: string | null
@@ -1738,6 +1747,132 @@ export type Database = {
           id?: string | null
           ingest_source?: string | null
           source?: string | null
+        }
+        Relationships: []
+      }
+      opportunities_twin_merge_backup_20260826: {
+        Row: {
+          audience_size: number | null
+          canonical_url: string | null
+          city: string | null
+          country: string | null
+          covers_accommodation: boolean | null
+          covers_travel: boolean | null
+          created_at: string | null
+          deadline: string | null
+          description: string | null
+          event_date: string | null
+          event_end_date: string | null
+          event_fingerprint: string | null
+          event_name: string | null
+          event_url: string | null
+          fee_estimate_max: number | null
+          fee_estimate_min: number | null
+          id: string | null
+          ingest_source: string | null
+          is_active: boolean | null
+          is_featured: boolean | null
+          is_verified: boolean | null
+          karma_awarded: boolean | null
+          location: string | null
+          location_confidence: string | null
+          location_venue: string | null
+          merged_into: string | null
+          organization_website: string | null
+          organizer_email: string | null
+          organizer_linkedin: string | null
+          organizer_name: string | null
+          organizer_phone: string | null
+          raw_data: Json | null
+          scraped_at: string | null
+          seniority_level: string | null
+          source: string | null
+          state: string | null
+          submitted_by: string | null
+          timezone: string | null
+          vertical_slug: string | null
+        }
+        Insert: {
+          audience_size?: number | null
+          canonical_url?: string | null
+          city?: string | null
+          country?: string | null
+          covers_accommodation?: boolean | null
+          covers_travel?: boolean | null
+          created_at?: string | null
+          deadline?: string | null
+          description?: string | null
+          event_date?: string | null
+          event_end_date?: string | null
+          event_fingerprint?: string | null
+          event_name?: string | null
+          event_url?: string | null
+          fee_estimate_max?: number | null
+          fee_estimate_min?: number | null
+          id?: string | null
+          ingest_source?: string | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          is_verified?: boolean | null
+          karma_awarded?: boolean | null
+          location?: string | null
+          location_confidence?: string | null
+          location_venue?: string | null
+          merged_into?: string | null
+          organization_website?: string | null
+          organizer_email?: string | null
+          organizer_linkedin?: string | null
+          organizer_name?: string | null
+          organizer_phone?: string | null
+          raw_data?: Json | null
+          scraped_at?: string | null
+          seniority_level?: string | null
+          source?: string | null
+          state?: string | null
+          submitted_by?: string | null
+          timezone?: string | null
+          vertical_slug?: string | null
+        }
+        Update: {
+          audience_size?: number | null
+          canonical_url?: string | null
+          city?: string | null
+          country?: string | null
+          covers_accommodation?: boolean | null
+          covers_travel?: boolean | null
+          created_at?: string | null
+          deadline?: string | null
+          description?: string | null
+          event_date?: string | null
+          event_end_date?: string | null
+          event_fingerprint?: string | null
+          event_name?: string | null
+          event_url?: string | null
+          fee_estimate_max?: number | null
+          fee_estimate_min?: number | null
+          id?: string | null
+          ingest_source?: string | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          is_verified?: boolean | null
+          karma_awarded?: boolean | null
+          location?: string | null
+          location_confidence?: string | null
+          location_venue?: string | null
+          merged_into?: string | null
+          organization_website?: string | null
+          organizer_email?: string | null
+          organizer_linkedin?: string | null
+          organizer_name?: string | null
+          organizer_phone?: string | null
+          raw_data?: Json | null
+          scraped_at?: string | null
+          seniority_level?: string | null
+          source?: string | null
+          state?: string | null
+          submitted_by?: string | null
+          timezone?: string | null
+          vertical_slug?: string | null
         }
         Relationships: []
       }

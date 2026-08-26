@@ -23,7 +23,12 @@ interface IncomingRecord {
   audience_size?: unknown;
   fee_estimate_min?: unknown;
   fee_estimate_max?: unknown;
+  country?: unknown;
+  city?: unknown;
+  state?: unknown;
+  location_confidence?: unknown;
 }
+
 
 function str(v: unknown): string | null {
   if (typeof v !== "string") return null;
@@ -226,6 +231,98 @@ function toVerticalSlug(v: unknown): string | null {
 }
 
 // ---------------------------------------------------------------------------
+// Location: country / city / state / confidence
+// ---------------------------------------------------------------------------
+
+/**
+ * "Virtual" and "Global" are a location *type*, not a country. When the payload
+ * sends one of these as the country we drop it and fall back to organization
+ * signals (state, city, US-shaped host) to decide the real country.
+ */
+const VIRTUAL_TOKENS =
+  /^(virtual|online|remote|global|worldwide|international|hybrid|anywhere|tbd|tba|n\/?a|unknown|-)$/i;
+
+const US_ALIASES = new Set([
+  "us",
+  "usa",
+  "u.s.",
+  "u.s.a.",
+  "united states",
+  "united states of america",
+  "america",
+]);
+
+const US_STATES = new Set([
+  "al","ak","az","ar","ca","co","ct","de","fl","ga","hi","id","il","in","ia","ks","ky","la","me","md",
+  "ma","mi","mn","ms","mo","mt","ne","nv","nh","nj","nm","ny","nc","nd","oh","ok","or","pa","ri","sc",
+  "sd","tn","tx","ut","vt","va","wa","wv","wi","wy","dc",
+  "alabama","alaska","arizona","arkansas","california","colorado","connecticut","delaware","florida",
+  "georgia","hawaii","idaho","illinois","indiana","iowa","kansas","kentucky","louisiana","maine",
+  "maryland","massachusetts","michigan","minnesota","mississippi","missouri","montana","nebraska",
+  "nevada","new hampshire","new jersey","new mexico","new york","north carolina","north dakota","ohio",
+  "oklahoma","oregon","pennsylvania","rhode island","south carolina","south dakota","tennessee","texas",
+  "utah","vermont","virginia","washington","west virginia","wisconsin","wyoming",
+  "district of columbia","washington dc","washington d.c.",
+]);
+
+function isVirtualToken(s: string | null): boolean {
+  return !!s && VIRTUAL_TOKENS.test(s.trim());
+}
+
+/** Canonicalize a country string. Returns null for virtual/global/unknown tokens. */
+function normalizeCountry(v: unknown): string | null {
+  const s = str(v);
+  if (!s || isVirtualToken(s)) return null;
+  const key = s.toLowerCase().replace(/\s+/g, " ").trim();
+  if (US_ALIASES.has(key)) return "United States";
+  return s.trim();
+}
+
+/** True when the value looks like a US state name or postal abbreviation. */
+function isUsState(v: string | null): boolean {
+  if (!v) return false;
+  return US_STATES.has(v.toLowerCase().replace(/\./g, "").replace(/\s+/g, " ").trim());
+}
+
+function hasUsHostSignal(url: string | null): boolean {
+  if (!url) return false;
+  try {
+    const host = new URL(url).host.toLowerCase();
+    return /\.(us|edu|gov|mil)$/.test(host);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Resolve the country for an incoming record.
+ * Precedence: explicit non-virtual payload country -> US signals (state, host)
+ * -> null (let the database trigger derive it from the location text).
+ * The returned `explicit` flag marks values we trust enough to overwrite a
+ * previously derived country on a duplicate.
+ */
+function resolveCountry(
+  rec: IncomingRecord,
+  state: string | null,
+  location: string | null,
+): { country: string | null; explicit: boolean; locationType: string | null } {
+  const rawCountry = str(rec.country);
+  const virtual = isVirtualToken(rawCountry) || isVirtualToken(location);
+  const locationType = virtual ? (str(rec.country) ?? location)!.trim().toLowerCase() : null;
+
+  const normalized = normalizeCountry(rawCountry);
+  if (normalized) return { country: normalized, explicit: true, locationType };
+
+  // Virtual / global / missing country: infer from the hosting organization.
+  if (isUsState(state) || hasUsHostSignal(str(rec.application_link))) {
+    return { country: "United States", explicit: true, locationType };
+  }
+
+  return { country: null, explicit: false, locationType };
+}
+
+
+// ---------------------------------------------------------------------------
 // Deduplication
 // ---------------------------------------------------------------------------
 
@@ -314,7 +411,13 @@ const ENRICHABLE_FIELDS = [
   "vertical_slug",
   "canonical_url",
   "event_fingerprint",
+  "country",
+  "city",
+  "state",
+  "location_confidence",
+  "organization_website",
 ] as const;
+
 
 function isEmpty(v: unknown): boolean {
   return v === null || v === undefined || (typeof v === "string" && v.trim() === "");
@@ -347,8 +450,19 @@ function buildEnrichment(
       patch.source = incoming.source;
     }
   }
+  // An explicit payload country always beats a previously derived one, and the
+  // structured city/state/confidence that came with it travel together.
+  if (incoming.__explicit_country === true && incoming.country !== existing.country) {
+    patch.country = incoming.country;
+    if (!isEmpty(incoming.city)) patch.city = incoming.city;
+    if (!isEmpty(incoming.state)) patch.state = incoming.state;
+    if (!isEmpty(incoming.location_confidence)) {
+      patch.location_confidence = incoming.location_confidence;
+    }
+  }
   return patch;
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -421,6 +535,10 @@ Deno.serve(async (req) => {
     if (verticalRaw && !verticalSlug) unmappedVerticals.push(verticalRaw);
 
     const eventDateIso = toTimestamp(rec.event_date);
+    const city = str(rec.city);
+    const state = str(rec.state);
+    const locationText = str(rec.location);
+    const resolved = resolveCountry(rec, state, locationText);
     valid.push({
       event_name: eventName,
       event_url: link,
@@ -429,7 +547,11 @@ Deno.serve(async (req) => {
       organizer_name: str(rec.organizer_name) ?? str(rec.organization),
       organizer_email: str(rec.organizer_email),
       description: descriptionParts.length > 0 ? descriptionParts.join(" | ") : null,
-      location: str(rec.location),
+      location: locationText,
+      country: resolved.country,
+      city,
+      state,
+      location_confidence: str(rec.location_confidence) ?? (resolved.locationType ? "virtual" : null),
       deadline: toTimestamp(rec.application_deadline),
       event_date: eventDateIso,
       fee_estimate_min: num(rec.fee_estimate_min),
@@ -442,8 +564,10 @@ Deno.serve(async (req) => {
       scraped_at: new Date().toISOString(),
       raw_data: item as Record<string, unknown>,
       __topic_raw: str(rec.topic_or_industry),
+      __explicit_country: resolved.explicit,
     });
   }
+
 
   // De-duplicate within the payload itself: canonical URL first, then fingerprint.
   let skippedDuplicates = 0;
@@ -486,7 +610,8 @@ Deno.serve(async (req) => {
     const fps = deduped.map((r) => r.event_fingerprint as string | null).filter((v): v is string => !!v);
 
     const selectCols =
-      "id, event_name, event_url, canonical_url, event_fingerprint, source, organizer_name, organizer_email, description, location, deadline, event_date, fee_estimate_min, fee_estimate_max, audience_size, vertical_slug, merged_into";
+      "id, event_name, event_url, canonical_url, event_fingerprint, source, organizer_name, organizer_email, description, location, country, city, state, location_confidence, organization_website, deadline, event_date, fee_estimate_min, fee_estimate_max, audience_size, vertical_slug, merged_into";
+
 
     const orParts = [`event_url.in.(${urls.map(quoteIn).join(",")})`];
     if (canon.length > 0) orParts.push(`canonical_url.in.(${canon.map(quoteIn).join(",")})`);
@@ -586,10 +711,10 @@ Deno.serve(async (req) => {
   let topicLinksCreated = 0;
   const unmatchedTopicValues: string[] = [];
   if (toInsert.length > 0) {
-    const payload = toInsert.map((r) => {
-      const { __topic_raw: _omit, ...rest } = r as Record<string, unknown>;
-      return rest;
-    });
+    const payload = toInsert.map((r) =>
+      Object.fromEntries(Object.entries(r).filter(([k]) => !k.startsWith("__"))),
+    );
+
     const { data, error } = await supabase
       .from("opportunities")
       .insert(payload)

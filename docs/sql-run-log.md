@@ -268,3 +268,22 @@ UPDATE public.organizer_contacts oc SET email=b.email, confidence_tier=b.confide
 FROM public.organizer_contacts_backup_20260825 b WHERE b.domain = oc.domain;
 ```
 Code revert: `git revert` the `isPersonName` change in `supabase/functions/_shared/organizer-crawler.ts` and redeploy `scrape-organizer-contacts`.
+
+## 2026-08-26 — Structured location fields + Twin resend duplicate merge
+- Schema: added `opportunities.city`, `opportunities.state`, `opportunities.location_confidence` (additive only).
+- `ingest-leads`: maps `country`/`city`/`state`/`location_confidence` as real columns; `Virtual`/`Global`/`Online` treated as a location *type* (stored in `location_confidence`), not a country; virtual events with a US state/`.us|.edu|.gov` host classified `United States`; those four fields added to `ENRICHABLE_FIELDS`, and an explicit payload country overrides a previously derived one on the duplicate path.
+- Backup: `public.opportunities_twin_merge_backup_20260826` (full row copy of all 234 duplicates + their survivors).
+- Merged the 234 duplicates created by the 2026-08-25 resend into their pre-existing counterparts (survivor = oldest row, which carries all score/pipeline history; zero duplicates had pipeline history). Survivors enriched (country/city/state/confidence, blanks filled, organizer site moved to `organization_website`), topic links unioned, duplicates tombstoned via `merged_into` + `is_active=false`. Active: 801 -> 559.
+- Backfilled the four location columns from `raw_data` for all resend rows; reclassified 29 rows whose `country` was literally `Virtual`.
+### Revert
+```sql
+UPDATE public.opportunities o SET merged_into=b.merged_into, is_active=b.is_active, country=b.country,
+  city=b.city, state=b.state, location_confidence=b.location_confidence, organizer_email=b.organizer_email,
+  organizer_name=b.organizer_name, description=b.description, location=b.location, deadline=b.deadline,
+  event_date=b.event_date, fee_estimate_min=b.fee_estimate_min, fee_estimate_max=b.fee_estimate_max,
+  audience_size=b.audience_size, vertical_slug=b.vertical_slug, organization_website=b.organization_website,
+  raw_data=b.raw_data
+FROM public.opportunities_twin_merge_backup_20260826 b WHERE b.id = o.id;
+```
+(Backup predates the `city`/`state`/`location_confidence` columns only in value, not shape — they were NULL at snapshot time.)
+Code revert: `git revert` the `ingest-leads` change and redeploy.
