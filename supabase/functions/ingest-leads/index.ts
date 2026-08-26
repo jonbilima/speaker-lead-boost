@@ -411,7 +411,13 @@ const ENRICHABLE_FIELDS = [
   "vertical_slug",
   "canonical_url",
   "event_fingerprint",
+  "country",
+  "city",
+  "state",
+  "location_confidence",
+  "organization_website",
 ] as const;
+
 
 function isEmpty(v: unknown): boolean {
   return v === null || v === undefined || (typeof v === "string" && v.trim() === "");
