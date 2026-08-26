@@ -1130,6 +1130,7 @@ export type Database = {
         Row: {
           audience_size: number | null
           canonical_url: string | null
+          city: string | null
           country: string | null
           covers_accommodation: boolean | null
           covers_travel: boolean | null
@@ -1150,6 +1151,7 @@ export type Database = {
           is_verified: boolean | null
           karma_awarded: boolean | null
           location: string | null
+          location_confidence: string | null
           location_venue: string | null
           merged_into: string | null
           organization_website: string | null
@@ -1161,6 +1163,7 @@ export type Database = {
           scraped_at: string
           seniority_level: string | null
           source: string | null
+          state: string | null
           submitted_by: string | null
           timezone: string | null
           vertical_slug: string | null
@@ -1168,6 +1171,7 @@ export type Database = {
         Insert: {
           audience_size?: number | null
           canonical_url?: string | null
+          city?: string | null
           country?: string | null
           covers_accommodation?: boolean | null
           covers_travel?: boolean | null
@@ -1188,6 +1192,7 @@ export type Database = {
           is_verified?: boolean | null
           karma_awarded?: boolean | null
           location?: string | null
+          location_confidence?: string | null
           location_venue?: string | null
           merged_into?: string | null
           organization_website?: string | null
@@ -1199,6 +1204,7 @@ export type Database = {
           scraped_at?: string
           seniority_level?: string | null
           source?: string | null
+          state?: string | null
           submitted_by?: string | null
           timezone?: string | null
           vertical_slug?: string | null
@@ -1206,6 +1212,7 @@ export type Database = {
         Update: {
           audience_size?: number | null
           canonical_url?: string | null
+          city?: string | null
           country?: string | null
           covers_accommodation?: boolean | null
           covers_travel?: boolean | null
@@ -1226,6 +1233,7 @@ export type Database = {
           is_verified?: boolean | null
           karma_awarded?: boolean | null
           location?: string | null
+          location_confidence?: string | null
           location_venue?: string | null
           merged_into?: string | null
           organization_website?: string | null
@@ -1237,6 +1245,7 @@ export type Database = {
           scraped_at?: string
           seniority_level?: string | null
           source?: string | null
+          state?: string | null
           submitted_by?: string | null
           timezone?: string | null
           vertical_slug?: string | null
