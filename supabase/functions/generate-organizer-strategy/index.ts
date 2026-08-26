@@ -1,3 +1,5 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -37,6 +39,9 @@ interface RequestBody {
   speakerBio?: string | null;
 }
 
+// Same model and key as generate-pitch (do not diverge).
+const XAI_MODEL = "grok-4.20-non-reasoning";
+
 function fallback(relevantTopics: string[], reason: string) {
   return {
     fallback: true,
@@ -53,7 +58,7 @@ function fallback(relevantTopics: string[], reason: string) {
   };
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -145,40 +150,42 @@ Provide:
 Respond ONLY with JSON in this shape:
 {"suggestedAngle":"string","talkingPoints":["string"],"relevantTopics":["string"]}`;
 
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!lovableApiKey) {
+    const xaiApiKey = Deno.env.get("XAI_API_KEY");
+    if (!xaiApiKey) {
       return new Response(JSON.stringify(fallback(relevantTopics, "AI key not configured")), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Same fetch style + Authorization header pattern as generate-pitch.
+    const response = await fetch("https://api.x.ai/v1/chat/completions", {
       method: "POST",
       headers: {
+        "Authorization": `Bearer ${xaiApiKey}`,
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${lovableApiKey}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: XAI_MODEL,
         messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
+        temperature: 0.7,
       }),
     });
 
     if (!response.ok) {
-      const errText = await response.text();
-      console.error("AI gateway error:", response.status, errText);
+      const errText = await response.text().catch(() => "");
+      console.error("xAI error:", response.status, errText.slice(0, 300));
       const reason = response.status === 429
         ? "Rate limit reached, please try again shortly"
-        : response.status === 402 || response.status === 403
+        : response.status === 401 || response.status === 403
         ? "AI credits are exhausted for this workspace — top up AI credits for a personalized strategy"
-        : `AI gateway error ${response.status}`;
+        : `AI service error (${response.status})`;
       return new Response(JSON.stringify(fallback(relevantTopics, reason)), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const aiResult = await response.json();
+    console.log("xAI usage:", JSON.stringify(aiResult.usage ?? {}));
     const content: string | undefined = aiResult.choices?.[0]?.message?.content;
     if (!content) {
       return new Response(JSON.stringify(fallback(relevantTopics, "Empty AI response")), {
