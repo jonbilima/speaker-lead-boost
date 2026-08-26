@@ -181,8 +181,8 @@ export function AppSidebar() {
       <SidebarFooter className="p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Email support"
-              onClick={() => { window.location.href = "mailto:support@nextmic.ai"; }}>
+            <SidebarMenuButton tooltip="Contact support"
+              onClick={() => setSupportOpen(true)}>
               <LifeBuoy className="h-4 w-4" />
               <span>Support</span>
             </SidebarMenuButton>
