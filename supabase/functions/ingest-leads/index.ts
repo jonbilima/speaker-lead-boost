@@ -23,7 +23,12 @@ interface IncomingRecord {
   audience_size?: unknown;
   fee_estimate_min?: unknown;
   fee_estimate_max?: unknown;
+  country?: unknown;
+  city?: unknown;
+  state?: unknown;
+  location_confidence?: unknown;
 }
+
 
 function str(v: unknown): string | null {
   if (typeof v !== "string") return null;
