@@ -217,6 +217,8 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+
+      <SupportDialog open={supportOpen} onOpenChange={setSupportOpen} />
     </Sidebar>
   );
 }
