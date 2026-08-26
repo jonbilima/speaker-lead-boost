@@ -86,10 +86,8 @@ export function useOrganizerResearch(organizerName: string | null) {
 
       // Fall back to crawled contact data when there is no organizers row
       const opportunityEmail = (events || []).map((e: any) => e.organizer_email).find(Boolean) || null;
-      const opportunityWebsite: string | null = null;
       const domain =
         hostFromUrl(organizerData?.organization_website) ||
-        hostFromUrl(opportunityWebsite) ||
         (opportunityEmail ? opportunityEmail.split("@")[1] : null) ||
         hostFromUrl((events || []).map((e: any) => e.event_url).find(Boolean));
 
@@ -127,7 +125,6 @@ export function useOrganizerResearch(organizerName: string | null) {
           organization_name: organizerData?.organization_name || null,
           organization_website:
             organizerData?.organization_website ||
-            opportunityWebsite ||
             (domain ? `https://${domain}` : null)
         },
         eventHistory,
