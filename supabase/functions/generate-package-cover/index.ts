@@ -59,11 +59,25 @@ Create a warm, personalized message that introduces the speaker and invites the 
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
-      throw new Error(`AI gateway error: ${response.status}`);
+      const message = response.status === 429
+        ? "Too many requests right now — try again in a moment."
+        : response.status === 402
+        ? "AI credits are exhausted for this workspace."
+        : `AI service error (${response.status}).`;
+      return new Response(JSON.stringify({ error: message }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const data = await response.json();
     const coverMessage = data.choices?.[0]?.message?.content || "";
+    if (!coverMessage) {
+      return new Response(JSON.stringify({ error: "AI returned an empty message. Try again." }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     return new Response(JSON.stringify({ coverMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
