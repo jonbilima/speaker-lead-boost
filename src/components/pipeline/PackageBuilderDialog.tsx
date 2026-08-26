@@ -209,10 +209,23 @@ ${speaker}`;
       if (error) throw error;
 
       const packageUrl = `${window.location.origin}/p/${trackingCode}`;
+      try {
+        await navigator.clipboard.writeText(packageUrl);
+      } catch {
+        // clipboard may be blocked; the toast action below still works
+      }
       
       toast.success(
         <div className="flex flex-col gap-2">
-          <span>Package created!</span>
+          <span>Package created — link copied to your clipboard.</span>
+          <a
+            href={packageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs underline break-all"
+          >
+            {packageUrl}
+          </a>
           <Button
             size="sm"
             variant="outline"
@@ -378,9 +391,28 @@ ${speaker}`;
 
               <TabsContent value="preview" className="mt-0">
                 <Card className="p-6 space-y-6 bg-gradient-to-br from-violet-50 to-white dark:from-violet-950/20 dark:to-background">
+                  <div className="text-center space-y-1">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Application for
+                    </p>
+                    <p className="font-semibold">{opportunity.event_name}</p>
+                    {opportunity.organizer_name && (
+                      <p className="text-sm text-muted-foreground">{opportunity.organizer_name}</p>
+                    )}
+                  </div>
+
                   <div className="text-center space-y-4">
-                    <div className="w-24 h-24 mx-auto bg-muted rounded-full flex items-center justify-center">
-                      <User className="h-12 w-12 text-muted-foreground" />
+                    <div className="w-24 h-24 mx-auto bg-muted rounded-full flex items-center justify-center overflow-hidden">
+                      {includeHeadshot && headshotAsset?.file_url ? (
+                        <img
+                          src={headshotAsset.file_url}
+                          alt={`${profile?.name || "Speaker"} headshot`}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <User className="h-12 w-12 text-muted-foreground" />
+                      )}
                     </div>
                     <div>
                       <h2 className="text-2xl font-bold">{profile?.name || "Speaker Name"}</h2>
@@ -388,10 +420,17 @@ ${speaker}`;
                     </div>
                   </div>
 
-                  {coverMessage && (
-                    <Card className="p-4 bg-white/50 dark:bg-background/50">
-                      <p className="text-sm whitespace-pre-wrap">{coverMessage}</p>
-                    </Card>
+                  <Card className="p-4 bg-white/50 dark:bg-background/50">
+                    <p className="text-sm whitespace-pre-wrap">
+                      {coverMessage || "No cover message yet — write one or generate it with AI on the Build tab."}
+                    </p>
+                  </Card>
+
+                  {customNote && (
+                    <div>
+                      <h3 className="font-semibold mb-2">Note for the organizer</h3>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{customNote}</p>
+                    </div>
                   )}
 
                   {includeBio && profile?.bio && (
@@ -405,19 +444,30 @@ ${speaker}`;
 
                   <div className="flex flex-wrap gap-2 justify-center">
                     {includeHeadshot && headshotAsset && (
-                      <Button size="sm" variant="outline">
-                        <Image className="h-4 w-4 mr-1" /> View Headshot
+                      <Button size="sm" variant="outline" asChild>
+                        <a href={headshotAsset.file_url} target="_blank" rel="noopener noreferrer">
+                          <Image className="h-4 w-4 mr-1" /> View Headshot
+                        </a>
                       </Button>
                     )}
                     {includeOneSheet && oneSheetAsset && (
-                      <Button size="sm" variant="outline">
-                        <FileText className="h-4 w-4 mr-1" /> Download One-Sheet
+                      <Button size="sm" variant="outline" asChild>
+                        <a href={oneSheetAsset.file_url} target="_blank" rel="noopener noreferrer">
+                          <FileText className="h-4 w-4 mr-1" /> Download One-Sheet
+                        </a>
                       </Button>
                     )}
                     {includeVideo && videoAsset && (
-                      <Button size="sm" variant="outline">
-                        <Video className="h-4 w-4 mr-1" /> Watch Video
+                      <Button size="sm" variant="outline" asChild>
+                        <a href={videoAsset.file_url} target="_blank" rel="noopener noreferrer">
+                          <Video className="h-4 w-4 mr-1" /> Watch Video
+                        </a>
                       </Button>
+                    )}
+                    {!headshotAsset && !oneSheetAsset && !videoAsset && (
+                      <p className="text-xs text-muted-foreground">
+                        No media uploaded yet — add a headshot, one-sheet or reel from the Assets page to enrich this package.
+                      </p>
                     )}
                   </div>
 
