@@ -61,8 +61,8 @@ Create a warm, personalized message that introduces the speaker and invites the 
       console.error("AI gateway error:", response.status, errorText);
       const message = response.status === 429
         ? "Too many requests right now — try again in a moment."
-        : response.status === 402
-        ? "AI credits are exhausted for this workspace."
+        : response.status === 402 || response.status === 403
+        ? "AI credits are exhausted for this workspace — top up AI credits to use AI generation."
         : `AI service error (${response.status}).`;
       return new Response(JSON.stringify({ error: message }), {
         status: 200,

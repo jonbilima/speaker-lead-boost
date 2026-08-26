@@ -170,8 +170,8 @@ Respond ONLY with JSON in this shape:
       console.error("AI gateway error:", response.status, errText);
       const reason = response.status === 429
         ? "Rate limit reached, please try again shortly"
-        : response.status === 402
-        ? "AI credits exhausted"
+        : response.status === 402 || response.status === 403
+        ? "AI credits are exhausted for this workspace — top up AI credits for a personalized strategy"
         : `AI gateway error ${response.status}`;
       return new Response(JSON.stringify(fallback(relevantTopics, reason)), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
