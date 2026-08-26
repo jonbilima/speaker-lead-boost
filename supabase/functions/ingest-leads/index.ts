@@ -450,8 +450,19 @@ function buildEnrichment(
       patch.source = incoming.source;
     }
   }
+  // An explicit payload country always beats a previously derived one, and the
+  // structured city/state/confidence that came with it travel together.
+  if (incoming.__explicit_country === true && incoming.country !== existing.country) {
+    patch.country = incoming.country;
+    if (!isEmpty(incoming.city)) patch.city = incoming.city;
+    if (!isEmpty(incoming.state)) patch.state = incoming.state;
+    if (!isEmpty(incoming.location_confidence)) {
+      patch.location_confidence = incoming.location_confidence;
+    }
+  }
   return patch;
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
