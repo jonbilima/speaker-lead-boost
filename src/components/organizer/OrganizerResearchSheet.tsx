@@ -31,6 +31,7 @@ export function OrganizerResearchSheet({
 }: OrganizerResearchSheetProps) {
   const { data, isLoading, generateApproachStrategy, requestDeepResearch } = useOrganizerResearch(organizerName);
   const [userTopics, setUserTopics] = useState<string[]>([]);
+  const [speakerProfile, setSpeakerProfile] = useState<{ name?: string | null; headline?: string | null; bio?: string | null } | null>(null);
   const [activeTab, setActiveTab] = useState("profile");
 
   useEffect(() => {
@@ -47,6 +48,13 @@ export function OrganizerResearchSheet({
       if (topics) {
         setUserTopics(topics.map((t: any) => t.topics?.name).filter(Boolean));
       }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("name, headline, bio")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (profile) setSpeakerProfile(profile);
     };
 
     if (open) {
@@ -92,7 +100,7 @@ export function OrganizerResearchSheet({
   };
 
   const handleGenerateStrategy = () => {
-    generateApproachStrategy(userTopics);
+    generateApproachStrategy(userTopics, speakerProfile ?? undefined);
   };
 
   if (!open) return null;
@@ -179,31 +187,31 @@ export function OrganizerResearchSheet({
               </TabsContent>
             </Tabs>
 
-            {data?.hasLimitedData && (
-              <div className="p-4 border-t">
-                <Card className="p-4 bg-amber-50 dark:bg-amber-950/20 border-amber-200">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-amber-800 dark:text-amber-200">
-                        Limited Data Available
-                      </p>
-                      <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                        We have limited information about this organizer. Request deeper research to gather more data.
-                      </p>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="mt-3"
-                        onClick={requestDeepResearch}
-                      >
-                        Request Research
-                      </Button>
-                    </div>
+            <div className="p-4 border-t">
+              <Card className={`p-4 ${data?.hasLimitedData ? "bg-amber-50 dark:bg-amber-950/20 border-amber-200" : ""}`}>
+                <div className="flex items-start gap-3">
+                  <AlertCircle className={`h-5 w-5 shrink-0 mt-0.5 ${data?.hasLimitedData ? "text-amber-600" : "text-muted-foreground"}`} />
+                  <div>
+                    <p className="font-medium">
+                      {data?.hasLimitedData ? "Limited Data Available" : "Want more detail?"}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {data?.hasLimitedData
+                        ? "We have limited information about this organizer. Request deeper research to gather more data."
+                        : "Re-crawl this organizer to pull in fresh contact details and event history."}
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-3"
+                      onClick={requestDeepResearch}
+                    >
+                      Request Research
+                    </Button>
                   </div>
-                </Card>
-              </div>
-            )}
+                </div>
+              </Card>
+            </div>
           </ScrollArea>
         )}
       </SheetContent>
@@ -478,14 +486,13 @@ function ApproachStrategyTab({
           <Button 
             onClick={onGenerate} 
             className="bg-violet-600 hover:bg-violet-700"
-            disabled={userTopics.length === 0}
           >
             <Sparkles className="h-4 w-4 mr-2" />
             Generate Strategy
           </Button>
           {userTopics.length === 0 && (
             <p className="text-xs text-muted-foreground mt-2">
-              Add topics to your profile to generate strategies
+              Tip: add topics to your profile for a sharper, more targeted strategy.
             </p>
           )}
         </Card>

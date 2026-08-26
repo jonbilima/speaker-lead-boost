@@ -43,6 +43,7 @@ interface SpeakerAsset {
   asset_type: string;
   file_name: string;
   title: string | null;
+  file_url: string;
 }
 
 export function PackageBuilderDialog({
@@ -77,12 +78,16 @@ export function PackageBuilderDialog({
   const loadData = async () => {
     setLoading(true);
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!session) {
+      setLoading(false);
+      toast.error("Please sign in again to build a package");
+      return;
+    }
 
     // Load profile and assets in parallel
     const [profileRes, assetsRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", session.user.id).single(),
-      supabase.from("speaker_assets").select("id, asset_type, file_name, title").eq("speaker_id", session.user.id),
+      supabase.from("speaker_assets").select("id, asset_type, file_name, title, file_url").eq("speaker_id", session.user.id),
     ]);
 
     if (profileRes.data) setProfile(profileRes.data);
@@ -91,15 +96,40 @@ export function PackageBuilderDialog({
       // Auto-check if user has one-sheet or video
       const hasOneSheet = assetsRes.data.some(a => a.asset_type === "one_sheet");
       const hasVideo = assetsRes.data.some(a => a.asset_type === "speaker_reel" || a.asset_type === "video");
+      const hasHeadshot = assetsRes.data.some(a => a.asset_type === "headshot");
       setIncludeOneSheet(hasOneSheet);
       setIncludeVideo(hasVideo);
+      setIncludeHeadshot(hasHeadshot);
     }
 
     setLoading(false);
   };
 
+  const buildFallbackCover = () => {
+    const speaker = profile?.name || "your speaker";
+    const org = opportunity?.organizer_name ? ` at ${opportunity.organizer_name}` : "";
+    return `Hello${opportunity?.organizer_name ? ` ${opportunity.organizer_name}` : ""},
+
+I'd love to be considered as a speaker for ${opportunity?.event_name || "your event"}. ${
+      profile?.headline ? `I'm ${speaker}, ${profile.headline}.` : `I'm ${speaker}.`
+    }${profile?.bio ? `
+
+${String(profile.bio).slice(0, 600)}` : ""}
+
+I've put together a short application package with my bio, materials and references${org}. I'd welcome the chance to talk through how I can serve your audience.
+
+Thank you for your time,
+${speaker}`;
+  };
+
   const generateCoverMessage = async () => {
-    if (!opportunity || !profile) return;
+    if (!opportunity) return;
+    if (!profile) {
+      toast.error("Add your speaker profile first", {
+        description: "Your name, headline and bio power the AI cover message.",
+      });
+      return;
+    }
     setGenerating(true);
 
     try {
@@ -114,16 +144,26 @@ export function PackageBuilderDialog({
         },
       });
 
-      if (error) throw error;
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      if (!data?.coverMessage) throw new Error("Empty response from the AI service");
+
       setCoverMessage(data.coverMessage);
       toast.success("Cover message generated!");
     } catch (error) {
       console.error("Error generating cover:", error);
-      toast.error("Failed to generate cover message");
+      setCoverMessage((prev) => prev || buildFallbackCover());
+      toast.warning("Used a draft template instead", {
+        description: error instanceof Error ? error.message : "AI generation was unavailable.",
+      });
     } finally {
       setGenerating(false);
     }
   };
+
+  const headshotAsset = assets.find(a => a.asset_type === "headshot");
+  const oneSheetAsset = assets.find(a => a.asset_type === "one_sheet");
+  const videoAsset = assets.find(a => a.asset_type === "speaker_reel" || a.asset_type === "video");
 
   const generateTrackingCode = () => {
     const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -144,6 +184,13 @@ export function PackageBuilderDialog({
 
       const trackingCode = generateTrackingCode();
 
+      const includedAssetIds = [
+        includeHeadshot ? headshotAsset?.id : null,
+        includeOneSheet ? oneSheetAsset?.id : null,
+        includeVideo ? videoAsset?.id : null,
+        ...selectedAssets,
+      ].filter(Boolean) as string[];
+
       const { error } = await supabase.from("application_packages").insert({
         speaker_id: session.user.id,
         match_id: opportunity.score_id,
@@ -151,7 +198,7 @@ export function PackageBuilderDialog({
         tracking_code: trackingCode,
         package_title: packageTitle,
         cover_message: coverMessage,
-        included_assets: selectedAssets,
+        included_assets: Array.from(new Set(includedAssetIds)),
         include_bio: includeBio,
         include_headshot: includeHeadshot,
         include_one_sheet: includeOneSheet,
@@ -162,10 +209,23 @@ export function PackageBuilderDialog({
       if (error) throw error;
 
       const packageUrl = `${window.location.origin}/p/${trackingCode}`;
+      try {
+        await navigator.clipboard.writeText(packageUrl);
+      } catch {
+        // clipboard may be blocked; the toast action below still works
+      }
       
       toast.success(
         <div className="flex flex-col gap-2">
-          <span>Package created!</span>
+          <span>Package created — link copied to your clipboard.</span>
+          <a
+            href={packageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs underline break-all"
+          >
+            {packageUrl}
+          </a>
           <Button
             size="sm"
             variant="outline"
@@ -192,10 +252,6 @@ export function PackageBuilderDialog({
   };
 
   if (!opportunity) return null;
-
-  const headshotAsset = assets.find(a => a.asset_type === "headshot");
-  const oneSheetAsset = assets.find(a => a.asset_type === "one_sheet");
-  const videoAsset = assets.find(a => a.asset_type === "speaker_reel" || a.asset_type === "video");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -335,9 +391,28 @@ export function PackageBuilderDialog({
 
               <TabsContent value="preview" className="mt-0">
                 <Card className="p-6 space-y-6 bg-gradient-to-br from-violet-50 to-white dark:from-violet-950/20 dark:to-background">
+                  <div className="text-center space-y-1">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Application for
+                    </p>
+                    <p className="font-semibold">{opportunity.event_name}</p>
+                    {opportunity.organizer_name && (
+                      <p className="text-sm text-muted-foreground">{opportunity.organizer_name}</p>
+                    )}
+                  </div>
+
                   <div className="text-center space-y-4">
-                    <div className="w-24 h-24 mx-auto bg-muted rounded-full flex items-center justify-center">
-                      <User className="h-12 w-12 text-muted-foreground" />
+                    <div className="w-24 h-24 mx-auto bg-muted rounded-full flex items-center justify-center overflow-hidden">
+                      {includeHeadshot && headshotAsset?.file_url ? (
+                        <img
+                          src={headshotAsset.file_url}
+                          alt={`${profile?.name || "Speaker"} headshot`}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <User className="h-12 w-12 text-muted-foreground" />
+                      )}
                     </div>
                     <div>
                       <h2 className="text-2xl font-bold">{profile?.name || "Speaker Name"}</h2>
@@ -345,10 +420,17 @@ export function PackageBuilderDialog({
                     </div>
                   </div>
 
-                  {coverMessage && (
-                    <Card className="p-4 bg-white/50 dark:bg-background/50">
-                      <p className="text-sm whitespace-pre-wrap">{coverMessage}</p>
-                    </Card>
+                  <Card className="p-4 bg-white/50 dark:bg-background/50">
+                    <p className="text-sm whitespace-pre-wrap">
+                      {coverMessage || "No cover message yet — write one or generate it with AI on the Build tab."}
+                    </p>
+                  </Card>
+
+                  {customNote && (
+                    <div>
+                      <h3 className="font-semibold mb-2">Note for the organizer</h3>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{customNote}</p>
+                    </div>
                   )}
 
                   {includeBio && profile?.bio && (
@@ -362,19 +444,30 @@ export function PackageBuilderDialog({
 
                   <div className="flex flex-wrap gap-2 justify-center">
                     {includeHeadshot && headshotAsset && (
-                      <Button size="sm" variant="outline">
-                        <Image className="h-4 w-4 mr-1" /> View Headshot
+                      <Button size="sm" variant="outline" asChild>
+                        <a href={headshotAsset.file_url} target="_blank" rel="noopener noreferrer">
+                          <Image className="h-4 w-4 mr-1" /> View Headshot
+                        </a>
                       </Button>
                     )}
                     {includeOneSheet && oneSheetAsset && (
-                      <Button size="sm" variant="outline">
-                        <FileText className="h-4 w-4 mr-1" /> Download One-Sheet
+                      <Button size="sm" variant="outline" asChild>
+                        <a href={oneSheetAsset.file_url} target="_blank" rel="noopener noreferrer">
+                          <FileText className="h-4 w-4 mr-1" /> Download One-Sheet
+                        </a>
                       </Button>
                     )}
                     {includeVideo && videoAsset && (
-                      <Button size="sm" variant="outline">
-                        <Video className="h-4 w-4 mr-1" /> Watch Video
+                      <Button size="sm" variant="outline" asChild>
+                        <a href={videoAsset.file_url} target="_blank" rel="noopener noreferrer">
+                          <Video className="h-4 w-4 mr-1" /> Watch Video
+                        </a>
                       </Button>
+                    )}
+                    {!headshotAsset && !oneSheetAsset && !videoAsset && (
+                      <p className="text-xs text-muted-foreground">
+                        No media uploaded yet — add a headshot, one-sheet or reel from the Assets page to enrich this package.
+                      </p>
                     )}
                   </div>
 

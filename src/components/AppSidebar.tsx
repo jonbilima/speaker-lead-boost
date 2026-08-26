@@ -30,6 +30,7 @@ import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { SupportDialog } from "@/components/support/SupportDialog";
 
 const menuItems = [
   { title: "Home", url: "/dashboard", icon: Home },
@@ -47,6 +48,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const [actionCount, setActionCount] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -179,8 +181,8 @@ export function AppSidebar() {
       <SidebarFooter className="p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Email support"
-              onClick={() => { window.location.href = "mailto:support@nextmic.ai"; }}>
+            <SidebarMenuButton tooltip="Contact support"
+              onClick={() => setSupportOpen(true)}>
               <LifeBuoy className="h-4 w-4" />
               <span>Support</span>
             </SidebarMenuButton>
@@ -215,6 +217,8 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+
+      <SupportDialog open={supportOpen} onOpenChange={setSupportOpen} />
     </Sidebar>
   );
 }

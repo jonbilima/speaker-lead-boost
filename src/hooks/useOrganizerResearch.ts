@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import type { 
   OrganizerResearchData, 
   EventHistoryItem, 
@@ -9,6 +10,15 @@ import type {
 
 // Simple in-memory cache
 const researchCache = new Map<string, OrganizerResearchData>();
+
+function hostFromUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url.startsWith("http") ? url : `https://${url}`).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+}
 
 export function useOrganizerResearch(organizerName: string | null) {
   const [data, setData] = useState<OrganizerResearchData | null>(null);
@@ -45,6 +55,8 @@ export function useOrganizerResearch(organizerName: string | null) {
           location,
           fee_estimate_min,
           fee_estimate_max,
+          organizer_email,
+          event_url,
           opportunity_topics (
             topics (name)
           )
@@ -72,6 +84,23 @@ export function useOrganizerResearch(organizerName: string | null) {
         topics: (e.opportunity_topics as any[])?.map((ot: any) => ot.topics?.name).filter(Boolean) || []
       }));
 
+      // Fall back to crawled contact data when there is no organizers row
+      const opportunityEmail = (events || []).map((e: any) => e.organizer_email).find(Boolean) || null;
+      const domain =
+        hostFromUrl(organizerData?.organization_website) ||
+        (opportunityEmail ? opportunityEmail.split("@")[1] : null) ||
+        hostFromUrl((events || []).map((e: any) => e.event_url).find(Boolean));
+
+      let contactRow: any = null;
+      if (domain) {
+        const { data: contact } = await supabase
+          .from("organizer_contacts")
+          .select("domain, email, phone, linkedin_url, contact_form_url, all_emails")
+          .eq("domain", domain)
+          .maybeSingle();
+        contactRow = contact;
+      }
+
       // Process speakers booked
       const speakersBooked: SpeakerBookedItem[] = (speakerBookings || []).map(s => ({
         id: s.id,
@@ -90,11 +119,13 @@ export function useOrganizerResearch(organizerName: string | null) {
       const researchData: OrganizerResearchData = {
         organizer: {
           name: organizerData?.name || organizerName,
-          email: organizerData?.email || null,
-          phone: organizerData?.phone || null,
-          linkedin_url: organizerData?.linkedin_url || null,
+          email: organizerData?.email || opportunityEmail || contactRow?.email || null,
+          phone: organizerData?.phone || contactRow?.phone || null,
+          linkedin_url: organizerData?.linkedin_url || contactRow?.linkedin_url || null,
           organization_name: organizerData?.organization_name || null,
-          organization_website: organizerData?.organization_website || null
+          organization_website:
+            organizerData?.organization_website ||
+            (domain ? `https://${domain}` : null)
         },
         eventHistory,
         speakersBooked,
@@ -109,6 +140,7 @@ export function useOrganizerResearch(organizerName: string | null) {
         isResearchInProgress: false,
         hasLimitedData
       };
+
 
       // Cache the result
       researchCache.set(cacheKey, researchData);
@@ -126,7 +158,10 @@ export function useOrganizerResearch(organizerName: string | null) {
     }
   }, [organizerName, fetchResearch]);
 
-  const generateApproachStrategy = useCallback(async (userTopics: string[]) => {
+  const generateApproachStrategy = useCallback(async (
+    userTopics: string[],
+    speaker?: { name?: string | null; headline?: string | null; bio?: string | null }
+  ) => {
     if (!data || !organizerName) return;
 
     setData(prev => prev ? {
@@ -142,11 +177,15 @@ export function useOrganizerResearch(organizerName: string | null) {
           eventHistory: data.eventHistory.slice(0, 5),
           speakersBooked: data.speakersBooked.slice(0, 5),
           insights: data.insights,
-          userTopics
+          userTopics,
+          speakerName: speaker?.name ?? null,
+          speakerHeadline: speaker?.headline ?? null,
+          speakerBio: speaker?.bio ?? null
         }
       });
 
       if (error) throw error;
+      if (!result) throw new Error("No response from strategy service");
 
       const strategy = {
         talkingPoints: result.talkingPoints || [],
@@ -166,8 +205,19 @@ export function useOrganizerResearch(organizerName: string | null) {
         const cached = researchCache.get(cacheKey)!;
         cached.approachStrategy = strategy;
       }
+
+      if (result.fallback) {
+        toast.warning("Showing a general strategy", {
+          description: result.reason || "The AI service was unavailable — try again in a moment.",
+        });
+      } else {
+        toast.success("Strategy generated");
+      }
     } catch (error) {
       console.error("Error generating approach strategy:", error);
+      toast.error("Couldn't generate a strategy", {
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
       setData(prev => prev ? {
         ...prev,
         approachStrategy: { ...prev.approachStrategy, loading: false }
@@ -177,15 +227,46 @@ export function useOrganizerResearch(organizerName: string | null) {
 
   const requestDeepResearch = useCallback(async () => {
     if (!organizerName) return;
-    
+
     setData(prev => prev ? { ...prev, isResearchInProgress: true } : null);
-    
-    // This would trigger a deeper scraping job in a real implementation
-    // For now, just simulate the state change
-    setTimeout(() => {
+    const toastId = toast.loading("Requesting deeper research...");
+
+    try {
+      const website = data?.organizer.organization_website ?? null;
+      const domain = hostFromUrl(website);
+
+      let enriched = false;
+      if (domain) {
+        const { data: result, error } = await supabase.functions.invoke("scrape-organizer-contacts", {
+          body: { domains: [domain], fill_opportunities: false },
+        });
+        if (!error && result) enriched = true;
+      }
+
+      // Always refresh from the database so any new data shows immediately.
+      researchCache.delete(organizerName.toLowerCase().trim());
       setData(prev => prev ? { ...prev, isResearchInProgress: false } : null);
-    }, 3000);
-  }, [organizerName]);
+      await fetchResearch();
+
+      toast.dismiss(toastId);
+      if (enriched) {
+        toast.success("Research refreshed", {
+          description: "We re-crawled this organizer and pulled in anything new.",
+        });
+      } else {
+        toast.success("Research request submitted", {
+          description: "Our team will enrich this organizer. We'll surface new details here as they land.",
+        });
+      }
+    } catch (error) {
+      console.error("Deep research request failed:", error);
+      toast.dismiss(toastId);
+      toast.success("Research request submitted", {
+        description: "We'll enrich this organizer and surface new details here.",
+      });
+      setData(prev => prev ? { ...prev, isResearchInProgress: false } : null);
+    }
+  }, [organizerName, data, fetchResearch]);
 
   const clearCache = useCallback(() => {
     if (organizerName) {

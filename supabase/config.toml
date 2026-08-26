@@ -76,3 +76,6 @@ verify_jwt = true
 [functions.eventbrite-organizer-test]
 verify_jwt = true
 
+
+[functions.submit-support-request]
+verify_jwt = false
