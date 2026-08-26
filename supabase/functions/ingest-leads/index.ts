@@ -535,6 +535,10 @@ Deno.serve(async (req) => {
     if (verticalRaw && !verticalSlug) unmappedVerticals.push(verticalRaw);
 
     const eventDateIso = toTimestamp(rec.event_date);
+    const city = str(rec.city);
+    const state = str(rec.state);
+    const locationText = str(rec.location);
+    const resolved = resolveCountry(rec, state, locationText);
     valid.push({
       event_name: eventName,
       event_url: link,
@@ -543,7 +547,11 @@ Deno.serve(async (req) => {
       organizer_name: str(rec.organizer_name) ?? str(rec.organization),
       organizer_email: str(rec.organizer_email),
       description: descriptionParts.length > 0 ? descriptionParts.join(" | ") : null,
-      location: str(rec.location),
+      location: locationText,
+      country: resolved.country,
+      city,
+      state,
+      location_confidence: str(rec.location_confidence) ?? (resolved.locationType ? "virtual" : null),
       deadline: toTimestamp(rec.application_deadline),
       event_date: eventDateIso,
       fee_estimate_min: num(rec.fee_estimate_min),
@@ -556,8 +564,10 @@ Deno.serve(async (req) => {
       scraped_at: new Date().toISOString(),
       raw_data: item as Record<string, unknown>,
       __topic_raw: str(rec.topic_or_industry),
+      __explicit_country: resolved.explicit,
     });
   }
+
 
   // De-duplicate within the payload itself: canonical URL first, then fingerprint.
   let skippedDuplicates = 0;
