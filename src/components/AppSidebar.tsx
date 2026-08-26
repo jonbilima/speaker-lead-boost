@@ -47,6 +47,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const [actionCount, setActionCount] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
 
