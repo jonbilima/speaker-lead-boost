@@ -196,9 +196,20 @@ export function AppSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton tooltip="Watch the guided tour again"
-              onClick={() => {
+              onClick={async () => {
                 ["tour_completed", "tour_find_completed", "tour_pipeline_completed"].forEach(
                   (k) => localStorage.removeItem(k));
+                try {
+                  const { data: { session } } = await supabase.auth.getSession();
+                  if (session) {
+                    await supabase
+                      .from("onboarding_progress")
+                      .update({ tour_completed: false })
+                      .eq("user_id", session.user.id);
+                  }
+                } catch (e) {
+                  console.error("Failed to reset tour progress", e);
+                }
                 window.location.href = "/dashboard";
               }}>
               <RotateCcw className="h-4 w-4" />

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,12 +15,27 @@ import { TestimonialsTab } from "@/components/testimonials/TestimonialsTab";
 import { EmbedWidgetSection } from "@/components/widget/EmbedWidgetSection";
 
 const Assets = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [assets, setAssets] = useState<SpeakerAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"assets" | "testimonials" | "widget">("assets");
   const [profile, setProfile] = useState<{ slug: string | null; is_public: boolean; id: string } | null>(null);
+
+  // Deep link: /assets?upload=headshot opens the upload dialog pre-set to that type
+  useEffect(() => {
+    const requested = searchParams.get("upload");
+    if (!requested) return;
+    if (ASSET_TYPES.some((t) => t.id === requested)) {
+      setActiveTab("assets");
+      setSelectedType(requested);
+      setUploadDialogOpen(true);
+    }
+    searchParams.delete("upload");
+    setSearchParams(searchParams, { replace: true });
+  }, [searchParams, setSearchParams]);
+
 
   const loadData = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
