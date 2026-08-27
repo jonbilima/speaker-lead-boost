@@ -328,53 +328,69 @@ ${speaker}`;
                       </div>
                     </Card>
 
-                    <Card className={`p-3 ${!headshotAsset ? "opacity-50" : ""}`}>
-                      <div className="flex items-center gap-3">
-                        <Checkbox
-                          id="include-headshot"
-                          checked={includeHeadshot}
-                          onCheckedChange={(checked) => setIncludeHeadshot(checked as boolean)}
-                          disabled={!headshotAsset}
-                        />
-                        <Label htmlFor="include-headshot" className="flex items-center gap-2 cursor-pointer">
-                          <Image className="h-4 w-4 text-muted-foreground" />
-                          Headshot
-                          {!headshotAsset && <span className="text-xs text-muted-foreground">(not uploaded)</span>}
-                        </Label>
-                      </div>
-                    </Card>
-
-                    <Card className={`p-3 ${!oneSheetAsset ? "opacity-50" : ""}`}>
-                      <div className="flex items-center gap-3">
-                        <Checkbox
-                          id="include-one-sheet"
-                          checked={includeOneSheet}
-                          onCheckedChange={(checked) => setIncludeOneSheet(checked as boolean)}
-                          disabled={!oneSheetAsset}
-                        />
-                        <Label htmlFor="include-one-sheet" className="flex items-center gap-2 cursor-pointer">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          One-Sheet PDF
-                          {!oneSheetAsset && <span className="text-xs text-muted-foreground">(not uploaded)</span>}
-                        </Label>
-                      </div>
-                    </Card>
-
-                    <Card className={`p-3 ${!videoAsset ? "opacity-50" : ""}`}>
-                      <div className="flex items-center gap-3">
-                        <Checkbox
-                          id="include-video"
-                          checked={includeVideo}
-                          onCheckedChange={(checked) => setIncludeVideo(checked as boolean)}
-                          disabled={!videoAsset}
-                        />
-                        <Label htmlFor="include-video" className="flex items-center gap-2 cursor-pointer">
-                          <Video className="h-4 w-4 text-muted-foreground" />
-                          Video Reel
-                          {!videoAsset && <span className="text-xs text-muted-foreground">(not uploaded)</span>}
-                        </Label>
-                      </div>
-                    </Card>
+                    {[
+                      {
+                        id: "include-headshot",
+                        label: "Headshot",
+                        icon: Image,
+                        asset: headshotAsset,
+                        checked: includeHeadshot,
+                        setChecked: setIncludeHeadshot,
+                        uploadType: "headshot",
+                      },
+                      {
+                        id: "include-one-sheet",
+                        label: "One-Sheet PDF",
+                        icon: FileText,
+                        asset: oneSheetAsset,
+                        checked: includeOneSheet,
+                        setChecked: setIncludeOneSheet,
+                        uploadType: "one_sheet",
+                      },
+                      {
+                        id: "include-video",
+                        label: "Video Reel",
+                        icon: Video,
+                        asset: videoAsset,
+                        checked: includeVideo,
+                        setChecked: setIncludeVideo,
+                        uploadType: "speaker_reel",
+                      },
+                    ].map((row) => {
+                      const RowIcon = row.icon;
+                      return (
+                        <Card key={row.id} className="p-3">
+                          <div className="flex items-center gap-3">
+                            <Checkbox
+                              id={row.id}
+                              checked={row.checked}
+                              onCheckedChange={(checked) => row.setChecked(checked as boolean)}
+                              disabled={!row.asset}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <Label
+                                htmlFor={row.id}
+                                className={`flex items-center gap-2 ${row.asset ? "cursor-pointer" : "text-muted-foreground"}`}
+                              >
+                                <RowIcon className="h-4 w-4 text-muted-foreground" />
+                                {row.label}
+                              </Label>
+                              {!row.asset && (
+                                <a
+                                  href={`/assets?upload=${row.uploadType}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="mt-1 inline-flex items-center gap-1 text-xs text-violet-600 hover:underline"
+                                >
+                                  <ExternalLink className="h-3 w-3" />
+                                  Not uploaded — add it on Speaker Assets
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
                   </div>
                 </div>
 
