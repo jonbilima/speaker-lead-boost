@@ -4,7 +4,7 @@ import { fetchPage, hostOf, isBlockedHost, renderPage } from "./organizer-crawle
 
 /** Hosts that are never an organizer's own site. */
 const NOISE_HOST_RE =
-  /(facebook|twitter|x\.com|linkedin|instagram|youtube|youtu\.be|tiktok|threads|mastodon|bsky|github|gravatar|google|gstatic|googleapis|apple\.com|microsoft\.com|office\.com|bit\.ly|t\.co|paypal|stripe|patreon|slack\.com|discord|whatsapp|telegram|wikipedia|amazon\.|cloudflare|jsdelivr|cdn\.|w3\.org|schema\.org|creativecommons|gofundme|mailchimp|constantcontact|hubspot|eventbrite|sessionize|papercall|meetup\.com|callingallpapers|cvent|pheedloop|typeform|forms\.gle|linktr\.ee|hopin|zoom\.us|vimeo|flickr|medium\.com|substack|wordpress\.com|wix\.com|squarespace\.com|godaddy)/i;
+  /(facebook|twitter|x\.com|linkedin|instagram|youtube|youtu\.be|tiktok|threads|mastodon|bsky|github|gravatar|google|gstatic|googleapis|apple\.com|microsoft\.com|office\.com|bit\.ly|t\.co|paypal|stripe|patreon|slack\.com|discord|whatsapp|telegram|wikipedia|amazon\.|cloudflare|jsdelivr|cdn\.|w3\.org|schema\.org|creativecommons|gofundme|mailchimp|constantcontact|hubspot|eventbrite|sessionize|papercall|meetup\.com|callingallpapers|cvent|pheedloop|typeform|forms\.gle|linktr\.ee|hopin|zoom\.us|vimeo|flickr|medium\.com|substack|wordpress\.com|wix\.com|squarespace\.com|godaddy|evbuc|meetupstatic|imgix|cloudinary|unsplash|fontawesome|bootstrapcdn|typekit|fonts\.|licdn|square\.site|sched\.com|eventcreate|ticketmaster|ticketleap|universe\.com|regfox|swoogo|whova|accelevents|bizzabo|hopin\.com|attendify)/i;
 
 const TOKEN_STOP = new Set(
   "the a an of and for on in at to 20 2024 2025 2026 2027 conference conf summit expo event events day days week annual national regional virtual online hybrid call papers cfp".split(
@@ -55,6 +55,8 @@ export function pickOrganizerDomain(
     if (!host || host === listingHost) continue;
     if (isBlockedHost(host) || NOISE_HOST_RE.test(host)) continue;
     if (host.split(".").length < 2) continue;
+    // CDN / asset subdomains are never the organizer site.
+    if (/^(img|imgs|images|static|assets|media|cdn|files|secure|s3|storage)\d*\./.test(host)) continue;
 
     bump(host, 1);
     const label = m[2].replace(/<[^>]+>/g, " ").toLowerCase();
