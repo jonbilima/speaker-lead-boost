@@ -589,7 +589,14 @@ ${speaker}`;
             ) : (
               <Package className="h-4 w-4 mr-2" />
             )}
-            {creating ? "Creating..." : "Create Package"}
+            {creating
+              ? organizerEmail && emailToOrganizer
+                ? "Creating & emailing..."
+                : "Creating..."
+              : organizerEmail && emailToOrganizer
+                ? "Create & email package"
+                : "Create package & copy link"}
+
           </Button>
         </DialogFooter>
       </DialogContent>
