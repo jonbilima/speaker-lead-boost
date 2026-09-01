@@ -25,6 +25,10 @@ interface PackageData {
   id: string;
   tracking_code: string;
   created_at: string;
+  status: string;
+  emailed_at: string | null;
+  emailed_to: string | null;
+  shared_at: string | null;
   views: {
     opened: number;
     bio_viewed: number;
@@ -48,7 +52,7 @@ export function PackageStats({ matchId, eventName }: PackageStatsProps) {
     
     const { data: pkg, error: pkgError } = await supabase
       .from("application_packages")
-      .select("id, tracking_code, created_at")
+      .select("id, tracking_code, created_at, status, emailed_at, emailed_to, shared_at")
       .eq("match_id", matchId)
       .maybeSingle();
 
@@ -83,6 +87,10 @@ export function PackageStats({ matchId, eventName }: PackageStatsProps) {
       id: pkg.id,
       tracking_code: pkg.tracking_code,
       created_at: pkg.created_at,
+      status: (pkg as any).status || "created",
+      emailed_at: (pkg as any).emailed_at ?? null,
+      emailed_to: (pkg as any).emailed_to ?? null,
+      shared_at: (pkg as any).shared_at ?? null,
       views: viewCounts,
     });
     setLoading(false);
@@ -123,8 +131,15 @@ export function PackageStats({ matchId, eventName }: PackageStatsProps) {
           <Package className="h-4 w-4 text-violet-600" />
           <span className="font-medium text-sm">Application Package</span>
         </div>
-        <Badge variant="secondary" className="text-xs">
-          Sent {formatDistanceToNow(new Date(packageData.created_at), { addSuffix: true })}
+        <Badge
+          variant={packageData.status === "emailed" ? "default" : "outline"}
+          className="text-xs"
+        >
+          {packageData.status === "emailed"
+            ? `Emailed ${formatDistanceToNow(new Date(packageData.emailed_at || packageData.created_at), { addSuffix: true })}`
+            : packageData.status === "shared"
+              ? `Shared by you ${formatDistanceToNow(new Date(packageData.shared_at || packageData.created_at), { addSuffix: true })}`
+              : "Created — not sent yet"}
         </Badge>
       </div>
 

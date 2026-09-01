@@ -13,17 +13,29 @@ import {
   Copy,
   Calendar,
   TrendingUp,
+  Mail,
+  Check,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useEmailSender } from "@/hooks/useEmailSender";
 import { format, formatDistanceToNow } from "date-fns";
+
+
+type PackageStatus = "created" | "emailed" | "shared";
 
 interface PackageWithStats {
   id: string;
   tracking_code: string;
   package_title: string;
   created_at: string;
+  status: PackageStatus;
+  emailed_at: string | null;
+  emailed_to: string | null;
+  shared_at: string | null;
   event_name: string | null;
+  organizer_email: string | null;
+  cover_message: string | null;
   views: {
     opened: number;
     video_played: number;
@@ -32,9 +44,13 @@ interface PackageWithStats {
   };
 }
 
+
 export function PackagesTab() {
   const [loading, setLoading] = useState(true);
   const [packages, setPackages] = useState<PackageWithStats[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const { sendEmail } = useEmailSender();
+
 
   useEffect(() => {
     loadPackages();
@@ -54,8 +70,14 @@ export function PackagesTab() {
         tracking_code,
         package_title,
         created_at,
-        opportunities (event_name)
+        status,
+        emailed_at,
+        emailed_to,
+        shared_at,
+        cover_message,
+        opportunities (event_name, organizer_email)
       `)
+
       .eq("speaker_id", session.user.id)
       .order("created_at", { ascending: false });
 
@@ -99,7 +121,14 @@ export function PackagesTab() {
       tracking_code: p.tracking_code,
       package_title: p.package_title,
       created_at: p.created_at,
+      status: (p.status as PackageStatus) || "created",
+      emailed_at: p.emailed_at ?? null,
+      emailed_to: p.emailed_to ?? null,
+      shared_at: p.shared_at ?? null,
+      cover_message: p.cover_message ?? null,
       event_name: p.opportunities?.event_name || null,
+      organizer_email: p.opportunities?.organizer_email || null,
+
       views: viewsByPackage[p.id] || {
         opened: 0,
         video_played: 0,
@@ -122,6 +151,70 @@ export function PackagesTab() {
     window.open(`/p/${trackingCode}`, "_blank");
   };
 
+  const emailPackage = async (pkg: PackageWithStats) => {
+    if (!pkg.organizer_email) return;
+    setBusyId(pkg.id);
+    try {
+      const url = `${window.location.origin}/p/${pkg.tracking_code}`;
+      const result = await sendEmail({
+        to: pkg.organizer_email,
+        subject: pkg.package_title,
+        body: `${pkg.cover_message || ""}\n\nYou can view my full speaker package here:\n${url}`,
+        relatedType: "other",
+        relatedId: pkg.id,
+      });
+
+      if (!result.success || result.limitReached) return;
+
+      await supabase
+        .from("application_packages")
+        .update({
+          status: "emailed",
+          emailed_at: new Date().toISOString(),
+          emailed_to: pkg.organizer_email,
+        })
+        .eq("id", pkg.id);
+
+      toast.success(`Package emailed to ${pkg.organizer_email}`);
+      loadPackages();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const markShared = async (pkg: PackageWithStats) => {
+    setBusyId(pkg.id);
+    try {
+      await supabase
+        .from("application_packages")
+        .update({ status: "shared", shared_at: new Date().toISOString() })
+        .eq("id", pkg.id);
+      toast.success("Marked as shared");
+      loadPackages();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const statusBadge = (pkg: PackageWithStats) => {
+    if (pkg.status === "emailed") {
+      return (
+        <Badge className="bg-violet-600">
+          Emailed {formatDistanceToNow(new Date(pkg.emailed_at || pkg.created_at), { addSuffix: true })}
+        </Badge>
+      );
+    }
+    if (pkg.status === "shared") {
+      return (
+        <Badge variant="secondary">
+          Shared by you {formatDistanceToNow(new Date(pkg.shared_at || pkg.created_at), { addSuffix: true })}
+        </Badge>
+      );
+    }
+    return <Badge variant="outline">Created — not sent yet</Badge>;
+  };
+
+
   if (loading) {
     return (
       <div className="space-y-3">
@@ -139,9 +232,9 @@ export function PackagesTab() {
     return (
       <Card className="p-8 text-center">
         <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-        <h3 className="font-medium mb-2">No Packages Sent</h3>
+        <h3 className="font-medium mb-2">No packages yet</h3>
         <p className="text-sm text-muted-foreground">
-          Create your first application package from an opportunity detail view
+          Build one from an opportunity in your pipeline. A package is a private page with your bio and materials — we email it to the organizer when we have their address, otherwise you share the link yourself.
         </p>
       </Card>
     );
@@ -204,7 +297,9 @@ export function PackagesTab() {
                 </div>
 
                 <div className="flex flex-col items-end gap-2">
+                  {statusBadge(pkg)}
                   {pkg.views.contact_clicked > 0 && (
+
                     <Badge className="bg-green-600">
                       <User className="h-3 w-3 mr-1" />
                       {pkg.views.contact_clicked} contact{pkg.views.contact_clicked > 1 ? "s" : ""}
@@ -225,7 +320,18 @@ export function PackagesTab() {
                 </div>
               </div>
 
-              <div className="flex gap-2 mt-3">
+              <div className="flex flex-wrap gap-2 mt-3">
+                {pkg.organizer_email && pkg.status !== "emailed" && (
+                  <Button
+                    size="sm"
+                    className="flex-1 bg-violet-600 hover:bg-violet-700"
+                    disabled={busyId === pkg.id}
+                    onClick={() => emailPackage(pkg)}
+                  >
+                    <Mail className="h-3 w-3 mr-1" />
+                    Email to organizer
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant="outline"
@@ -235,6 +341,19 @@ export function PackagesTab() {
                   <Copy className="h-3 w-3 mr-1" />
                   Copy Link
                 </Button>
+                {pkg.status === "created" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    disabled={busyId === pkg.id}
+                    onClick={() => markShared(pkg)}
+                  >
+                    <Check className="h-3 w-3 mr-1" />
+                    I shared it
+                  </Button>
+                )}
+
                 <Button
                   size="sm"
                   variant="outline"

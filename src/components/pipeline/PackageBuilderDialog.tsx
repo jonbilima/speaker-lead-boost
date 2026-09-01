@@ -29,7 +29,9 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useEmailSender } from "@/hooks/useEmailSender";
 import { PipelineOpportunity } from "./PipelineCard";
+
 
 interface PackageBuilderDialogProps {
   opportunity: PipelineOpportunity | null;
@@ -55,6 +57,10 @@ export function PackageBuilderDialog({
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [creating, setCreating] = useState(false);
+  const { sendEmail } = useEmailSender();
+  const organizerEmail = opportunity?.organizer_email || null;
+  const [emailToOrganizer, setEmailToOrganizer] = useState(true);
+
   const [profile, setProfile] = useState<any>(null);
   const [assets, setAssets] = useState<SpeakerAsset[]>([]);
   
@@ -191,33 +197,75 @@ ${speaker}`;
         ...selectedAssets,
       ].filter(Boolean) as string[];
 
-      const { error } = await supabase.from("application_packages").insert({
-        speaker_id: session.user.id,
-        match_id: opportunity.score_id,
-        event_id: opportunity.id,
-        tracking_code: trackingCode,
-        package_title: packageTitle,
-        cover_message: coverMessage,
-        included_assets: Array.from(new Set(includedAssetIds)),
-        include_bio: includeBio,
-        include_headshot: includeHeadshot,
-        include_one_sheet: includeOneSheet,
-        include_video: includeVideo,
-        custom_note: customNote || null,
-      });
+      const { data: inserted, error } = await supabase
+        .from("application_packages")
+        .insert({
+          speaker_id: session.user.id,
+          match_id: opportunity.score_id,
+          event_id: opportunity.id,
+          tracking_code: trackingCode,
+          package_title: packageTitle,
+          cover_message: coverMessage,
+          included_assets: Array.from(new Set(includedAssetIds)),
+          include_bio: includeBio,
+          include_headshot: includeHeadshot,
+          include_one_sheet: includeOneSheet,
+          include_video: includeVideo,
+          custom_note: customNote || null,
+          status: "created",
+        })
+        .select("id")
+        .single();
 
       if (error) throw error;
 
       const packageUrl = `${window.location.origin}/p/${trackingCode}`;
+
+      if (organizerEmail && emailToOrganizer) {
+        const result = await sendEmail({
+          to: organizerEmail,
+          subject: packageTitle || `Speaker package — ${opportunity.event_name}`,
+          body: `${coverMessage}\n\nYou can view my full speaker package here:\n${packageUrl}\n\n— ${profile?.name || ""}`,
+          fromName: profile?.name || undefined,
+          relatedType: "other",
+          relatedId: inserted?.id,
+        });
+
+        if (result.success && !result.limitReached) {
+          await supabase
+            .from("application_packages")
+            .update({
+              status: "emailed",
+              emailed_at: new Date().toISOString(),
+              emailed_to: organizerEmail,
+            })
+            .eq("id", inserted.id);
+
+          toast.success(`Package emailed to ${organizerEmail}`, {
+            description: "You'll see opens and downloads as the organizer engages.",
+          });
+          onPackageCreated();
+          onOpenChange(false);
+          return;
+        }
+
+        toast.warning("Package created, but the email didn't send", {
+          description: "Copy the link below and send it yourself.",
+        });
+      }
+
       try {
         await navigator.clipboard.writeText(packageUrl);
       } catch {
         // clipboard may be blocked; the toast action below still works
       }
-      
+
       toast.success(
         <div className="flex flex-col gap-2">
-          <span>Package created — link copied to your clipboard.</span>
+          <span>
+            Package created. Nothing was emailed — share this link with the organizer yourself
+            (it's been copied to your clipboard).
+          </span>
           <a
             href={packageUrl}
             target="_blank"
@@ -240,6 +288,7 @@ ${speaker}`;
         </div>,
         { duration: 10000 }
       );
+
 
       onPackageCreated();
       onOpenChange(false);
@@ -276,6 +325,33 @@ ${speaker}`;
 
             <ScrollArea className="flex-1 mt-4">
               <TabsContent value="build" className="mt-0 space-y-4">
+                <Card className="p-3 bg-muted/40 text-xs text-muted-foreground space-y-2">
+                  <p>
+                    A package is a private web page holding your cover message, bio and
+                    materials. It gets its own link, so you can see when the organizer opens
+                    it, plays your reel or downloads your one-sheet.
+                  </p>
+                  {organizerEmail ? (
+                    <div className="flex items-start gap-2 text-foreground">
+                      <Checkbox
+                        id="email-organizer"
+                        checked={emailToOrganizer}
+                        onCheckedChange={(checked) => setEmailToOrganizer(checked as boolean)}
+                      />
+                      <Label htmlFor="email-organizer" className="cursor-pointer text-xs font-normal">
+                        Email this package to <strong>{organizerEmail}</strong> for me when I
+                        create it. Leave unchecked to just get the link and share it yourself.
+                      </Label>
+                    </div>
+                  ) : (
+                    <p className="text-foreground">
+                      We don't have an email for this organizer, so nothing can be sent
+                      automatically. You'll get the link on the next screen — share it with
+                      them yourself, then mark the package as shared.
+                    </p>
+                  )}
+                </Card>
+
                 <div className="space-y-2">
                   <Label>Package Title</Label>
                   <Input
@@ -513,7 +589,14 @@ ${speaker}`;
             ) : (
               <Package className="h-4 w-4 mr-2" />
             )}
-            {creating ? "Creating..." : "Create Package"}
+            {creating
+              ? organizerEmail && emailToOrganizer
+                ? "Creating & emailing..."
+                : "Creating..."
+              : organizerEmail && emailToOrganizer
+                ? "Create & email package"
+                : "Create package & copy link"}
+
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -95,8 +95,8 @@ const toolkitItems = [
   },
   {
     id: "send-package",
-    title: "Send Package",
-    description: "Create speaker package",
+    title: "Speaker Package",
+    description: "Build a package to email or share",
     icon: Send,
     action: "modal",
   },
