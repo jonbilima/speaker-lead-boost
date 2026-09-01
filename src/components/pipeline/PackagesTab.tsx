@@ -18,12 +18,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 
+type PackageStatus = "created" | "emailed" | "shared";
+
 interface PackageWithStats {
   id: string;
   tracking_code: string;
   package_title: string;
   created_at: string;
+  status: PackageStatus;
+  emailed_at: string | null;
+  emailed_to: string | null;
+  shared_at: string | null;
   event_name: string | null;
+  organizer_email: string | null;
+  cover_message: string | null;
   views: {
     opened: number;
     video_played: number;
@@ -31,6 +39,7 @@ interface PackageWithStats {
     contact_clicked: number;
   };
 }
+
 
 export function PackagesTab() {
   const [loading, setLoading] = useState(true);
