@@ -43,6 +43,8 @@ export type Database = {
           cover_message: string | null
           created_at: string
           custom_note: string | null
+          emailed_at: string | null
+          emailed_to: string | null
           event_id: string | null
           expires_at: string | null
           id: string
@@ -53,13 +55,17 @@ export type Database = {
           included_assets: string[] | null
           match_id: string | null
           package_title: string
+          shared_at: string | null
           speaker_id: string
+          status: string
           tracking_code: string
         }
         Insert: {
           cover_message?: string | null
           created_at?: string
           custom_note?: string | null
+          emailed_at?: string | null
+          emailed_to?: string | null
           event_id?: string | null
           expires_at?: string | null
           id?: string
@@ -70,13 +76,17 @@ export type Database = {
           included_assets?: string[] | null
           match_id?: string | null
           package_title: string
+          shared_at?: string | null
           speaker_id: string
+          status?: string
           tracking_code: string
         }
         Update: {
           cover_message?: string | null
           created_at?: string
           custom_note?: string | null
+          emailed_at?: string | null
+          emailed_to?: string | null
           event_id?: string | null
           expires_at?: string | null
           id?: string
@@ -87,7 +97,9 @@ export type Database = {
           included_assets?: string[] | null
           match_id?: string | null
           package_title?: string
+          shared_at?: string | null
           speaker_id?: string
+          status?: string
           tracking_code?: string
         }
         Relationships: [
