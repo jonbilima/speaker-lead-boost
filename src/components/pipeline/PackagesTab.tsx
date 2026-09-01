@@ -16,7 +16,9 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useEmailSender } from "@/hooks/useEmailSender";
 import { format, formatDistanceToNow } from "date-fns";
+
 
 type PackageStatus = "created" | "emailed" | "shared";
 
