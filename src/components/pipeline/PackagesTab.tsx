@@ -44,6 +44,9 @@ interface PackageWithStats {
 export function PackagesTab() {
   const [loading, setLoading] = useState(true);
   const [packages, setPackages] = useState<PackageWithStats[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const { sendEmail } = useEmailSender();
+
 
   useEffect(() => {
     loadPackages();
