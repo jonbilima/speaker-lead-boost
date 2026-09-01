@@ -63,8 +63,14 @@ export function PackagesTab() {
         tracking_code,
         package_title,
         created_at,
-        opportunities (event_name)
+        status,
+        emailed_at,
+        emailed_to,
+        shared_at,
+        cover_message,
+        opportunities (event_name, organizer_email)
       `)
+
       .eq("speaker_id", session.user.id)
       .order("created_at", { ascending: false });
 
