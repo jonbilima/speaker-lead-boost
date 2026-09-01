@@ -13,6 +13,8 @@ import {
   Copy,
   Calendar,
   TrendingUp,
+  Mail,
+  Check,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -230,7 +232,7 @@ export function PackagesTab() {
     return (
       <Card className="p-8 text-center">
         <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-        <h3 className="font-medium mb-2">No Packages Sent</h3>
+        <h3 className="font-medium mb-2">No packages yet</h3>
         <p className="text-sm text-muted-foreground">
           Create your first application package from an opportunity detail view
         </p>
