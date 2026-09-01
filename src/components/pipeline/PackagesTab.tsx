@@ -297,7 +297,9 @@ export function PackagesTab() {
                 </div>
 
                 <div className="flex flex-col items-end gap-2">
+                  {statusBadge(pkg)}
                   {pkg.views.contact_clicked > 0 && (
+
                     <Badge className="bg-green-600">
                       <User className="h-3 w-3 mr-1" />
                       {pkg.views.contact_clicked} contact{pkg.views.contact_clicked > 1 ? "s" : ""}
