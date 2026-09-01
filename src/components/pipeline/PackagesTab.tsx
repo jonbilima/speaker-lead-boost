@@ -316,7 +316,18 @@ export function PackagesTab() {
                 </div>
               </div>
 
-              <div className="flex gap-2 mt-3">
+              <div className="flex flex-wrap gap-2 mt-3">
+                {pkg.organizer_email && pkg.status !== "emailed" && (
+                  <Button
+                    size="sm"
+                    className="flex-1 bg-violet-600 hover:bg-violet-700"
+                    disabled={busyId === pkg.id}
+                    onClick={() => emailPackage(pkg)}
+                  >
+                    <Mail className="h-3 w-3 mr-1" />
+                    Email to organizer
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant="outline"
@@ -326,6 +337,19 @@ export function PackagesTab() {
                   <Copy className="h-3 w-3 mr-1" />
                   Copy Link
                 </Button>
+                {pkg.status === "created" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    disabled={busyId === pkg.id}
+                    onClick={() => markShared(pkg)}
+                  >
+                    <Check className="h-3 w-3 mr-1" />
+                    I shared it
+                  </Button>
+                )}
+
                 <Button
                   size="sm"
                   variant="outline"
