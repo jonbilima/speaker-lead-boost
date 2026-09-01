@@ -144,6 +144,70 @@ export function PackagesTab() {
     window.open(`/p/${trackingCode}`, "_blank");
   };
 
+  const emailPackage = async (pkg: PackageWithStats) => {
+    if (!pkg.organizer_email) return;
+    setBusyId(pkg.id);
+    try {
+      const url = `${window.location.origin}/p/${pkg.tracking_code}`;
+      const result = await sendEmail({
+        to: pkg.organizer_email,
+        subject: pkg.package_title,
+        body: `${pkg.cover_message || ""}\n\nYou can view my full speaker package here:\n${url}`,
+        relatedType: "other",
+        relatedId: pkg.id,
+      });
+
+      if (!result.success || result.limitReached) return;
+
+      await supabase
+        .from("application_packages")
+        .update({
+          status: "emailed",
+          emailed_at: new Date().toISOString(),
+          emailed_to: pkg.organizer_email,
+        })
+        .eq("id", pkg.id);
+
+      toast.success(`Package emailed to ${pkg.organizer_email}`);
+      loadPackages();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const markShared = async (pkg: PackageWithStats) => {
+    setBusyId(pkg.id);
+    try {
+      await supabase
+        .from("application_packages")
+        .update({ status: "shared", shared_at: new Date().toISOString() })
+        .eq("id", pkg.id);
+      toast.success("Marked as shared");
+      loadPackages();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const statusBadge = (pkg: PackageWithStats) => {
+    if (pkg.status === "emailed") {
+      return (
+        <Badge className="bg-violet-600">
+          Emailed {formatDistanceToNow(new Date(pkg.emailed_at || pkg.created_at), { addSuffix: true })}
+        </Badge>
+      );
+    }
+    if (pkg.status === "shared") {
+      return (
+        <Badge variant="secondary">
+          Shared by you {formatDistanceToNow(new Date(pkg.shared_at || pkg.created_at), { addSuffix: true })}
+        </Badge>
+      );
+    }
+    return <Badge variant="outline">Created — not sent yet</Badge>;
+  };
+
+
   if (loading) {
     return (
       <div className="space-y-3">
