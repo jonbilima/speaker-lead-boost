@@ -144,10 +144,10 @@ export function SendPackageDialog({ open, onOpenChange }: SendPackageDialogProps
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
-              Send Speaker Package
+              Create Speaker Package
             </DialogTitle>
             <DialogDescription>
-              Select an opportunity to create and send your speaker package.
+              Pick an opportunity to build a speaker package for. We\u2019ll email it to the organizer if we have their address \u2014 otherwise you\u2019ll get a link to share yourself.
             </DialogDescription>
           </DialogHeader>
 
