@@ -114,7 +114,14 @@ export function PackagesTab() {
       tracking_code: p.tracking_code,
       package_title: p.package_title,
       created_at: p.created_at,
+      status: (p.status as PackageStatus) || "created",
+      emailed_at: p.emailed_at ?? null,
+      emailed_to: p.emailed_to ?? null,
+      shared_at: p.shared_at ?? null,
+      cover_message: p.cover_message ?? null,
       event_name: p.opportunities?.event_name || null,
+      organizer_email: p.opportunities?.organizer_email || null,
+
       views: viewsByPackage[p.id] || {
         opened: 0,
         video_played: 0,
