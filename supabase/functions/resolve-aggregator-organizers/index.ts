@@ -14,6 +14,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { crawlDomain, hostOf, isBlockedHost } from "../_shared/organizer-crawler.ts";
 import { resolveListing } from "../_shared/aggregator-resolver.ts";
+import { validateAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,10 +36,19 @@ interface Opp {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const bearer = (req.headers.get("Authorization") ?? "").replace("Bearer ", "").trim();
+  if (bearer !== serviceKey) {
+    const auth = await validateAuth(req);
+    if (!auth.isAdmin) {
+      return new Response(JSON.stringify({ error: "Admin access required" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
+
+  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey);
 
   try {
     const body = await req.json().catch(() => ({}));
