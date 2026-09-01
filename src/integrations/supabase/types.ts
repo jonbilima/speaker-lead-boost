@@ -1941,6 +1941,47 @@ export type Database = {
           },
         ]
       }
+      opportunity_organizer_domains: {
+        Row: {
+          candidates: string[]
+          error: string | null
+          listing_url: string | null
+          method: string
+          opportunity_id: string
+          rendered: boolean
+          resolved_at: string
+          resolved_domain: string | null
+        }
+        Insert: {
+          candidates?: string[]
+          error?: string | null
+          listing_url?: string | null
+          method?: string
+          opportunity_id: string
+          rendered?: boolean
+          resolved_at?: string
+          resolved_domain?: string | null
+        }
+        Update: {
+          candidates?: string[]
+          error?: string | null
+          listing_url?: string | null
+          method?: string
+          opportunity_id?: string
+          rendered?: boolean
+          resolved_at?: string
+          resolved_domain?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_organizer_domains_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       opportunity_scores: {
         Row: {
           accepted_at: string | null

@@ -72,6 +72,11 @@ verify_jwt = false
 [functions.scrape-organizer-contacts]
 verify_jwt = true
 
+[functions.resolve-aggregator-organizers]
+verify_jwt = true
+
+
+
 # Temporary diagnostic for Eventbrite organizer resolution. Admin/service only.
 [functions.eventbrite-organizer-test]
 verify_jwt = true
