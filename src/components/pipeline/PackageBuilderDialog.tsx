@@ -325,6 +325,33 @@ ${speaker}`;
 
             <ScrollArea className="flex-1 mt-4">
               <TabsContent value="build" className="mt-0 space-y-4">
+                <Card className="p-3 bg-muted/40 text-xs text-muted-foreground space-y-2">
+                  <p>
+                    A package is a private web page holding your cover message, bio and
+                    materials. It gets its own link, so you can see when the organizer opens
+                    it, plays your reel or downloads your one-sheet.
+                  </p>
+                  {organizerEmail ? (
+                    <div className="flex items-start gap-2 text-foreground">
+                      <Checkbox
+                        id="email-organizer"
+                        checked={emailToOrganizer}
+                        onCheckedChange={(checked) => setEmailToOrganizer(checked as boolean)}
+                      />
+                      <Label htmlFor="email-organizer" className="cursor-pointer text-xs font-normal">
+                        Email this package to <strong>{organizerEmail}</strong> for me when I
+                        create it. Leave unchecked to just get the link and share it yourself.
+                      </Label>
+                    </div>
+                  ) : (
+                    <p className="text-foreground">
+                      We don't have an email for this organizer, so nothing can be sent
+                      automatically. You'll get the link on the next screen — share it with
+                      them yourself, then mark the package as shared.
+                    </p>
+                  )}
+                </Card>
+
                 <div className="space-y-2">
                   <Label>Package Title</Label>
                   <Input
