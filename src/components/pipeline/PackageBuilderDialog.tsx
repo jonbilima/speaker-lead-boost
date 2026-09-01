@@ -55,6 +55,10 @@ export function PackageBuilderDialog({
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [creating, setCreating] = useState(false);
+  const { sendEmail } = useEmailSender();
+  const organizerEmail = opportunity?.organizer_email || null;
+  const [emailToOrganizer, setEmailToOrganizer] = useState(true);
+
   const [profile, setProfile] = useState<any>(null);
   const [assets, setAssets] = useState<SpeakerAsset[]>([]);
   
