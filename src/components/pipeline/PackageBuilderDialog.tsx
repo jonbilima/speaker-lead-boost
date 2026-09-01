@@ -191,33 +191,75 @@ ${speaker}`;
         ...selectedAssets,
       ].filter(Boolean) as string[];
 
-      const { error } = await supabase.from("application_packages").insert({
-        speaker_id: session.user.id,
-        match_id: opportunity.score_id,
-        event_id: opportunity.id,
-        tracking_code: trackingCode,
-        package_title: packageTitle,
-        cover_message: coverMessage,
-        included_assets: Array.from(new Set(includedAssetIds)),
-        include_bio: includeBio,
-        include_headshot: includeHeadshot,
-        include_one_sheet: includeOneSheet,
-        include_video: includeVideo,
-        custom_note: customNote || null,
-      });
+      const { data: inserted, error } = await supabase
+        .from("application_packages")
+        .insert({
+          speaker_id: session.user.id,
+          match_id: opportunity.score_id,
+          event_id: opportunity.id,
+          tracking_code: trackingCode,
+          package_title: packageTitle,
+          cover_message: coverMessage,
+          included_assets: Array.from(new Set(includedAssetIds)),
+          include_bio: includeBio,
+          include_headshot: includeHeadshot,
+          include_one_sheet: includeOneSheet,
+          include_video: includeVideo,
+          custom_note: customNote || null,
+          status: "created",
+        })
+        .select("id")
+        .single();
 
       if (error) throw error;
 
       const packageUrl = `${window.location.origin}/p/${trackingCode}`;
+
+      if (organizerEmail && emailToOrganizer) {
+        const result = await sendEmail({
+          to: organizerEmail,
+          subject: packageTitle || `Speaker package — ${opportunity.event_name}`,
+          body: `${coverMessage}\n\nYou can view my full speaker package here:\n${packageUrl}\n\n— ${profile?.name || ""}`,
+          fromName: profile?.name || undefined,
+          relatedType: "other",
+          relatedId: inserted?.id,
+        });
+
+        if (result.success && !result.limitReached) {
+          await supabase
+            .from("application_packages")
+            .update({
+              status: "emailed",
+              emailed_at: new Date().toISOString(),
+              emailed_to: organizerEmail,
+            })
+            .eq("id", inserted.id);
+
+          toast.success(`Package emailed to ${organizerEmail}`, {
+            description: "You'll see opens and downloads as the organizer engages.",
+          });
+          onPackageCreated();
+          onOpenChange(false);
+          return;
+        }
+
+        toast.warning("Package created, but the email didn't send", {
+          description: "Copy the link below and send it yourself.",
+        });
+      }
+
       try {
         await navigator.clipboard.writeText(packageUrl);
       } catch {
         // clipboard may be blocked; the toast action below still works
       }
-      
+
       toast.success(
         <div className="flex flex-col gap-2">
-          <span>Package created — link copied to your clipboard.</span>
+          <span>
+            Package created. Nothing was emailed — share this link with the organizer yourself
+            (it's been copied to your clipboard).
+          </span>
           <a
             href={packageUrl}
             target="_blank"
@@ -240,6 +282,7 @@ ${speaker}`;
         </div>,
         { duration: 10000 }
       );
+
 
       onPackageCreated();
       onOpenChange(false);
