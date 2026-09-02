@@ -84,3 +84,7 @@ verify_jwt = true
 
 [functions.submit-support-request]
 verify_jwt = false
+
+# Next-cycle date discovery. Admin/service only; authorized in-code.
+[functions.discover-event-cycles]
+verify_jwt = false

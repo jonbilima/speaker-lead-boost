@@ -2612,6 +2612,45 @@ export type Database = {
         }
         Relationships: []
       }
+      organizer_crawl_runs: {
+        Row: {
+          created_at: string
+          domain: string
+          error: string | null
+          id: string
+          pages_fetched: number
+          ran_at: string
+          render_used: boolean
+          signals_found: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          error?: string | null
+          id?: string
+          pages_fetched?: number
+          ran_at?: string
+          render_used?: boolean
+          signals_found?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          error?: string | null
+          id?: string
+          pages_fetched?: number
+          ran_at?: string
+          render_used?: boolean
+          signals_found?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       organizer_domain_match_20260824: {
         Row: {
           created_at: string
@@ -2765,6 +2804,75 @@ export type Database = {
           new_email?: string
           old_email?: string | null
           opportunity_id?: string
+        }
+        Relationships: []
+      }
+      organizer_event_signals: {
+        Row: {
+          cfp_confirmed_at: string | null
+          cfp_deadline: string | null
+          cfp_source_url: string | null
+          cfp_status: string
+          cfp_url: string | null
+          created_at: string
+          date_confidence: string | null
+          date_confirmed_at: string | null
+          date_source_url: string | null
+          domain: string
+          event_name: string | null
+          event_slug: string
+          id: string
+          next_event_date: string | null
+          next_event_date_end: string | null
+          next_event_date_text: string | null
+          raw_evidence: Json
+          render_used: boolean
+          site_shape: string | null
+          updated_at: string
+        }
+        Insert: {
+          cfp_confirmed_at?: string | null
+          cfp_deadline?: string | null
+          cfp_source_url?: string | null
+          cfp_status?: string
+          cfp_url?: string | null
+          created_at?: string
+          date_confidence?: string | null
+          date_confirmed_at?: string | null
+          date_source_url?: string | null
+          domain: string
+          event_name?: string | null
+          event_slug: string
+          id?: string
+          next_event_date?: string | null
+          next_event_date_end?: string | null
+          next_event_date_text?: string | null
+          raw_evidence?: Json
+          render_used?: boolean
+          site_shape?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cfp_confirmed_at?: string | null
+          cfp_deadline?: string | null
+          cfp_source_url?: string | null
+          cfp_status?: string
+          cfp_url?: string | null
+          created_at?: string
+          date_confidence?: string | null
+          date_confirmed_at?: string | null
+          date_source_url?: string | null
+          domain?: string
+          event_name?: string | null
+          event_slug?: string
+          id?: string
+          next_event_date?: string | null
+          next_event_date_end?: string | null
+          next_event_date_text?: string | null
+          raw_evidence?: Json
+          render_used?: boolean
+          site_shape?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
