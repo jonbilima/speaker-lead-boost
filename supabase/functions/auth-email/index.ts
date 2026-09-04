@@ -11,6 +11,10 @@
 //   signup   — creates the account (unconfirmed) and sends a confirm link;
 //              the app calls this INSTEAD of client-side signUp so the
 //              platform never sends its own competing email.
+//   email_change — signed-in user moves their sign-in address. Requires a
+//              valid Bearer JWT (the caller proves who they are); the
+//              confirmation link is sent to the NEW address only, so a
+//              typo can never lock anyone out of their account.
 //
 // Always returns 200 with a generic body for recovery, so the endpoint
 // can't be used to enumerate who has an account. Real failures are logged.
@@ -117,6 +121,40 @@ Deno.serve(async (req: Request) => {
               "Confirm your email address and your account is live:",
               "Confirm my email &rarr;", data.properties.action_link,
               "If you didn't sign up for NextMIC, you can ignore this email."));
+      return json({ ok: true });
+    }
+
+    if (action === "email_change") {
+      // identity comes from the caller's session token, never from the body
+      const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+      if (!bearer) return json({ error: "You must be signed in to change your email." }, 401);
+      const { data: caller, error: callerErr } = await admin.auth.getUser(bearer);
+      if (callerErr || !caller?.user) {
+        return json({ error: "Your session has expired — sign in again and retry." }, 401);
+      }
+      const current = (caller.user.email ?? "").toLowerCase();
+      if (addr.toLowerCase() === current) {
+        return json({ error: "That's already your sign-in email." }, 400);
+      }
+      if (await throttled(current, "email_change")) {
+        return json({ ok: true, note: "throttled" });
+      }
+      const { data, error } = await admin.auth.admin.generateLink({
+        type: "email_change_new",
+        email: caller.user.email!,
+        newEmail: addr,
+        options: { redirectTo: `${APP_URL}/profile` },
+      });
+      if (error) {
+        // most common real cause: the new address already belongs to someone
+        console.error("email_change link failed:", error.message);
+        return json({ error: "We couldn't start that change. If that address already has a NextMIC account, sign in with it instead." }, 400);
+      }
+      await send(addr, "Confirm your new NextMIC email",
+        shell("Confirm your new email address",
+              `You asked to change your NextMIC sign-in email to <strong>${addr}</strong>. Click below to confirm — until you do, keep signing in with your current address.`,
+              "Confirm this address &rarr;", data.properties.action_link,
+              "If you didn't request this, ignore this email and nothing will change."));
       return json({ ok: true });
     }
 

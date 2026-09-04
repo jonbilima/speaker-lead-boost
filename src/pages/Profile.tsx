@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
 import { EmailSettingsSection } from "@/components/settings/EmailSettingsSection";
+import { ChangeEmailDialog } from "@/components/settings/ChangeEmailDialog";
 import { InvoiceSettingsSection } from "@/components/settings/InvoiceSettingsSection";
 import { ConnectedAccountsSection } from "@/components/settings/ConnectedAccountsSection";
 import { EmailDigestPreferences } from "@/components/settings/EmailDigestPreferences";
@@ -288,12 +289,20 @@ const Profile = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    disabled
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      disabled
+                      className="flex-1"
+                    />
+                    <ChangeEmailDialog currentEmail={formData.email} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    This is your sign-in address. Changing it sends a
+                    confirmation link to the new address.
+                  </p>
                 </div>
               </div>
 
