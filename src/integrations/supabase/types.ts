@@ -935,6 +935,66 @@ export type Database = {
           },
         ]
       }
+      ingest_runs: {
+        Row: {
+          created_at: string
+          details: Json
+          duplicates: number
+          duration_ms: number | null
+          enriched_fields: number
+          enriched_rows: number
+          error_message: string | null
+          function_name: string
+          id: string
+          inserted: number
+          invalid: number
+          matched_by_canonical_url: number
+          matched_by_event_url: number
+          matched_by_fingerprint: number
+          received: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json
+          duplicates?: number
+          duration_ms?: number | null
+          enriched_fields?: number
+          enriched_rows?: number
+          error_message?: string | null
+          function_name?: string
+          id?: string
+          inserted?: number
+          invalid?: number
+          matched_by_canonical_url?: number
+          matched_by_event_url?: number
+          matched_by_fingerprint?: number
+          received?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json
+          duplicates?: number
+          duration_ms?: number | null
+          enriched_fields?: number
+          enriched_rows?: number
+          error_message?: string | null
+          function_name?: string
+          id?: string
+          inserted?: number
+          invalid?: number
+          matched_by_canonical_url?: number
+          matched_by_event_url?: number
+          matched_by_fingerprint?: number
+          received?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       invoices: {
         Row: {
           booking_id: string | null
