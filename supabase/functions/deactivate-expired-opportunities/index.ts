@@ -69,6 +69,10 @@ Deno.serve(async (req) => {
   const expired: string[] = [];
   let skippedRolling = 0;
   let skippedImplausible = 0;
+  let skippedDateless = 0;
+  let datelessRetired = 0;
+  // Undated, non-rolling listings retire 120 days after arrival.
+  const datelessCutoff = new Date(now.getTime() - 120 * 86400000);
 
   // Absolute sanity floor: a date this old is a parsing artefact, not a real
   // listing date. Anything newer than this is treated as a genuine date, even
@@ -103,7 +107,18 @@ Deno.serve(async (req) => {
     }
 
     const reference = row.deadline ?? row.event_date;
-    if (!reference) continue;
+    if (!reference) {
+      // No date at all and not rolling: retire 120 days after it arrived so
+      // undated listings can't accumulate forever.
+      const arrived = row.created_at ? new Date(row.created_at as string) : null;
+      if (arrived && !isNaN(arrived.getTime()) && arrived < datelessCutoff) {
+        expired.push(row.id as string);
+        datelessRetired++;
+      } else {
+        skippedDateless++;
+      }
+      continue;
+    }
     const when = new Date(reference as string);
     if (isNaN(when.getTime())) continue;
     if (when < artefactFloor) {
@@ -139,6 +154,8 @@ Deno.serve(async (req) => {
       deactivated,
       skipped_rolling: skippedRolling,
       skipped_implausible: skippedImplausible,
+      skipped_dateless: skippedDateless,
+      dateless_retired: datelessRetired,
     }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
