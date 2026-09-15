@@ -102,12 +102,32 @@ async function markProcessed(eventId: string, type: string) {
 
 // --- provisioning core ---
 
+const USER_PAGE_SIZE = 200;
+const USER_PAGE_LIMIT = 100; // 20k accounts; a guard, not an expected ceiling
+
 async function findUserByEmail(email: string) {
-  // listUsers has no email filter pre-v2; use the paged filter API
-  const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-  if (error) throw error;
+  // Must walk EVERY page. This read only looked at page 1, so once the
+  // project passed 200 accounts an existing buyer looked new: ensureUser
+  // fell through to createUser, got "already registered", threw, and the
+  // delivery 500'd into a permanent retry loop — the customer silently
+  // never provisioned. listUsers has no email filter pre-v2, so paginate.
   const target = email.trim().toLowerCase();
-  return data.users.find((u) => (u.email ?? "").toLowerCase() === target) ?? null;
+  for (let page = 1; page <= USER_PAGE_LIMIT; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({
+      page, perPage: USER_PAGE_SIZE,
+    });
+    if (error) throw error;
+    const hit = data.users.find((u) => (u.email ?? "").toLowerCase() === target);
+    if (hit) return hit;
+    // short page = last page. Checked on length rather than data.nextPage so
+    // this does not depend on which supabase-js version the edge runtime pins.
+    if (data.users.length < USER_PAGE_SIZE) return null;
+  }
+  // Never return null here: that would createUser a duplicate and fail anyway,
+  // but with "already registered" instead of the real cause.
+  throw new Error(
+    `findUserByEmail: exhausted ${USER_PAGE_LIMIT} pages (${USER_PAGE_LIMIT * USER_PAGE_SIZE}+ accounts) looking for ${target}`,
+  );
 }
 
 async function ensureUser(email: string, name: string | null, products: string[],
