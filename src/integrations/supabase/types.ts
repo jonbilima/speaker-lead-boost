@@ -1609,6 +1609,30 @@ export type Database = {
         }
         Relationships: []
       }
+      opportunities_expiry_backup_20260915: {
+        Row: {
+          deadline: string | null
+          event_date: string | null
+          id: string | null
+          is_active: boolean | null
+          snapshot_at: string | null
+        }
+        Insert: {
+          deadline?: string | null
+          event_date?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          snapshot_at?: string | null
+        }
+        Update: {
+          deadline?: string | null
+          event_date?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          snapshot_at?: string | null
+        }
+        Relationships: []
+      }
       opportunities_ingest_repair_backup_20260818: {
         Row: {
           deadline: string | null
@@ -1818,6 +1842,24 @@ export type Database = {
         Update: {
           id?: string | null
           ingest_source?: string | null
+          source?: string | null
+        }
+        Relationships: []
+      }
+      opportunities_source_backup_20260915: {
+        Row: {
+          id: string | null
+          prior_source_label: string | null
+          source: string | null
+        }
+        Insert: {
+          id?: string | null
+          prior_source_label?: string | null
+          source?: string | null
+        }
+        Update: {
+          id?: string | null
+          prior_source_label?: string | null
           source?: string | null
         }
         Relationships: []
