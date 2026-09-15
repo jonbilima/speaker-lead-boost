@@ -1453,6 +1453,33 @@ export type Database = {
         }
         Relationships: []
       }
+      opportunities_dateless_backup_20260915: {
+        Row: {
+          created_at: string | null
+          deadline: string | null
+          event_date: string | null
+          id: string | null
+          is_active: boolean | null
+          raw_data: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          deadline?: string | null
+          event_date?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          raw_data?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          deadline?: string | null
+          event_date?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          raw_data?: Json | null
+        }
+        Relationships: []
+      }
       opportunities_deadlink_backup_20260825: {
         Row: {
           event_url: string | null
