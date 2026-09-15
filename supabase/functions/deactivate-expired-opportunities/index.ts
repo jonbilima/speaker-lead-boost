@@ -57,28 +57,43 @@ Deno.serve(async (req) => {
   let skippedRolling = 0;
   let skippedImplausible = 0;
 
+  // Absolute sanity floor: a date this old is a parsing artefact, not a real
+  // listing date. Anything newer than this is treated as a genuine date, even
+  // if the row was ingested after that date had already passed.
+  const artefactFloor = new Date(now.getTime() - 3 * 365 * 86400000);
+
   for (const row of data ?? []) {
     const raw = (row.raw_data ?? {}) as Record<string, unknown>;
-    if (
+    const rolling =
       hasSkipWord(raw.application_deadline) ||
       hasSkipWord(raw.deadline) ||
-      hasSkipWord(raw.days_until_deadline)
-    ) {
+      hasSkipWord(raw.days_until_deadline);
+
+    const eventDate = row.event_date ? new Date(row.event_date as string) : null;
+    const eventDateValid = eventDate && !isNaN(eventDate.getTime());
+
+    // The event itself is over: expire regardless of any rolling/ongoing wording,
+    // because a rolling call for papers cannot outlive its own event.
+    if (eventDateValid && eventDate! < now) {
+      if (eventDate! < artefactFloor) {
+        skippedImplausible++;
+        continue;
+      }
+      expired.push(row.id as string);
+      continue;
+    }
+
+    // No past event date. A rolling deadline stays open.
+    if (rolling) {
       skippedRolling++;
       continue;
     }
 
-    const reference = row.deadline ?? (row.deadline == null ? row.event_date : null);
+    const reference = row.deadline ?? row.event_date;
     if (!reference) continue;
     const when = new Date(reference as string);
     if (isNaN(when.getTime())) continue;
-    // Guard: a reference date older than the row itself (or absurdly old) is a
-    // parsing artefact, not a genuine expiry. Never deactivate on those.
-    const createdAt = row.created_at ? new Date(row.created_at as string) : null;
-    const floor = createdAt && !isNaN(createdAt.getTime())
-      ? new Date(createdAt.getTime() - 86400000)
-      : new Date(now.getFullYear() - 1, 0, 1);
-    if (when < floor) {
+    if (when < artefactFloor) {
       skippedImplausible++;
       continue;
     }
