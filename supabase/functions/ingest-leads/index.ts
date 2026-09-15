@@ -503,6 +503,7 @@ Deno.serve(async (req) => {
     );
   }
 
+  const runStartedAt = Date.now();
   const received = raw.length;
   const valid: Record<string, unknown>[] = [];
   let skippedInvalid = 0;
@@ -790,6 +791,33 @@ Deno.serve(async (req) => {
   console.log(
     `ingest-leads: received=${received} inserted=${inserted} duplicates=${skippedDuplicates} invalid=${skippedInvalid} matched_by_event_url=${matchedByUrl} matched_by_canonical_url=${matchedByCanonicalUrl} matched_by_fingerprint=${matchedByFingerprint} enriched_rows=${enrichedRows} enriched_fields=${enrichedFields} mapped_vertical=${mappedVertical} unmapped_vertical=${unmappedVertical} unmapped_values=${JSON.stringify(unmappedValues)} unrecognized_is_open=${JSON.stringify(unrecognizedIsOpenValues)}`,
   );
+
+  // Persist a per-run audit record. Never let logging break ingestion.
+  try {
+    await supabase.from("ingest_runs").insert({
+      function_name: "ingest-leads",
+      status: "success",
+      received,
+      inserted,
+      duplicates: skippedDuplicates,
+      invalid: skippedInvalid,
+      enriched_rows: enrichedRows,
+      enriched_fields: enrichedFields,
+      matched_by_event_url: matchedByUrl,
+      matched_by_canonical_url: matchedByCanonicalUrl,
+      matched_by_fingerprint: matchedByFingerprint,
+      duration_ms: Date.now() - runStartedAt,
+      details: {
+        mapped_vertical: mappedVertical,
+        unmapped_vertical: unmappedVertical,
+        unmapped_vertical_values: unmappedValues,
+        topic_links_created: topicLinksCreated,
+        unrecognized_is_open_values: unrecognizedIsOpenValues,
+      },
+    });
+  } catch (e) {
+    console.error("ingest_runs logging failed (ingestion unaffected):", e);
+  }
 
   return new Response(
     JSON.stringify({
