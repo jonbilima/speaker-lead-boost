@@ -154,6 +154,8 @@ Deno.serve(async (req) => {
       deactivated,
       skipped_rolling: skippedRolling,
       skipped_implausible: skippedImplausible,
+      skipped_dateless: skippedDateless,
+      dateless_retired: datelessRetired,
     }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
