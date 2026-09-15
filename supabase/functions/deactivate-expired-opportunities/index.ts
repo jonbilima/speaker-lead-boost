@@ -103,7 +103,18 @@ Deno.serve(async (req) => {
     }
 
     const reference = row.deadline ?? row.event_date;
-    if (!reference) continue;
+    if (!reference) {
+      // No date at all and not rolling: retire 120 days after it arrived so
+      // undated listings can't accumulate forever.
+      const arrived = row.created_at ? new Date(row.created_at as string) : null;
+      if (arrived && !isNaN(arrived.getTime()) && arrived < datelessCutoff) {
+        expired.push(row.id as string);
+        datelessRetired++;
+      } else {
+        skippedDateless++;
+      }
+      continue;
+    }
     const when = new Date(reference as string);
     if (isNaN(when.getTime())) continue;
     if (when < artefactFloor) {
