@@ -5,7 +5,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
-const SKIP_WORDS = ["rolling", "ongoing", "continual", "continuous", "tbd", "open"];
+// "open" alone matched things like "Opens March 1", so only genuinely
+// open-ended phrasings count as rolling.
+const SKIP_WORDS = [
+  "rolling",
+  "ongoing",
+  "continual",
+  "continuous",
+  "year-round",
+  "year round",
+  "anytime",
+  "tbd",
+  "open until",
+  "until filled",
+];
 
 function hasSkipWord(value: unknown): boolean {
   if (typeof value !== "string") return false;
