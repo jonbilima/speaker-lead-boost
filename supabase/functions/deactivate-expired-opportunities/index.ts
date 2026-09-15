@@ -69,6 +69,10 @@ Deno.serve(async (req) => {
   const expired: string[] = [];
   let skippedRolling = 0;
   let skippedImplausible = 0;
+  let skippedDateless = 0;
+  let datelessRetired = 0;
+  // Undated, non-rolling listings retire 120 days after arrival.
+  const datelessCutoff = new Date(now.getTime() - 120 * 86400000);
 
   // Absolute sanity floor: a date this old is a parsing artefact, not a real
   // listing date. Anything newer than this is treated as a genuine date, even
