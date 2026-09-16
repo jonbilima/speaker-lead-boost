@@ -614,20 +614,61 @@ Deno.serve(async (req) => {
       "id, event_name, event_url, canonical_url, event_fingerprint, source, organizer_name, organizer_email, description, location, country, city, state, location_confidence, organization_website, deadline, event_date, fee_estimate_min, fee_estimate_max, audience_size, vertical_slug, merged_into";
 
 
-    const orParts = [`event_url.in.(${urls.map(quoteIn).join(",")})`];
-    if (canon.length > 0) orParts.push(`canonical_url.in.(${canon.map(quoteIn).join(",")})`);
-    if (fps.length > 0) orParts.push(`event_fingerprint.in.(${fps.map(quoteIn).join(",")})`);
+    // Build the OR filter in slices bounded by accumulated character length so the
+    // outgoing PostgREST URL can never exceed the proxy's URL-length ceiling,
+    // regardless of batch size or unusually long URLs.
+    const FILTER_CHAR_BUDGET = 6000;
+    type FilterTerm = { field: "event_url" | "canonical_url" | "event_fingerprint"; value: string };
+    const terms: FilterTerm[] = [
+      ...urls.map((v) => ({ field: "event_url" as const, value: v })),
+      ...canon.map((v) => ({ field: "canonical_url" as const, value: v })),
+      ...fps.map((v) => ({ field: "event_fingerprint" as const, value: v })),
+    ];
 
-    const { data: existing, error: lookupError } = await supabase
-      .from("opportunities")
-      .select(selectCols)
-      .is("merged_into", null)
-      .or(orParts.join(","));
-
-    if (lookupError) {
-      console.error("Duplicate lookup failed:", lookupError);
-      return new Response(JSON.stringify({ error: "Duplicate lookup failed" }), { status: 500, headers: jsonHeaders });
+    const slices: FilterTerm[][] = [];
+    let current: FilterTerm[] = [];
+    let currentChars = 0;
+    for (const term of terms) {
+      const cost = quoteIn(term.value).length + term.field.length + 8;
+      if (current.length > 0 && currentChars + cost > FILTER_CHAR_BUDGET) {
+        slices.push(current);
+        current = [];
+        currentChars = 0;
+      }
+      current.push(term);
+      currentChars += cost;
     }
+    if (current.length > 0) slices.push(current);
+
+    const existing: Record<string, unknown>[] = [];
+    const seenIds = new Set<string>();
+    for (const slice of slices) {
+      const grouped: Record<string, string[]> = {};
+      for (const t of slice) (grouped[t.field] ||= []).push(t.value);
+      const sliceOrParts = Object.entries(grouped).map(
+        ([field, values]) => `${field}.in.(${values.map(quoteIn).join(",")})`,
+      );
+
+      const { data: sliceRows, error: lookupError } = await supabase
+        .from("opportunities")
+        .select(selectCols)
+        .is("merged_into", null)
+        .or(sliceOrParts.join(","));
+
+      if (lookupError) {
+        console.error("Duplicate lookup failed:", lookupError);
+        return new Response(JSON.stringify({ error: "Duplicate lookup failed" }), { status: 500, headers: jsonHeaders });
+      }
+
+      for (const r of (sliceRows ?? []) as Record<string, unknown>[]) {
+        const id = r.id as string;
+        if (seenIds.has(id)) continue;
+        seenIds.add(id);
+        existing.push(r);
+      }
+    }
+    console.log(`ingest-leads: duplicate lookup ran in ${slices.length} slice(s) for ${terms.length} filter terms`);
+
 
     const rows = (existing ?? []) as Record<string, unknown>[];
     const byUrl = new Map<string, Record<string, unknown>>();
