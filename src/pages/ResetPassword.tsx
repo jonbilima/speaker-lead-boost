@@ -111,12 +111,23 @@ const ResetPassword = () => {
           <CardHeader>
             <CardTitle>Reset password</CardTitle>
             <CardDescription>
-              {ready
+              {phase === "ready"
                 ? "Enter a new password for your account."
-                : "Open this page from the reset link in your email. If you got here by mistake, request a new link from the sign-in page."}
+                : phase === "verifying"
+                  ? "Checking your reset link…"
+                  : `${problem} Request a new reset link from the sign-in page.`}
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {phase === "invalid" ? (
+              <Button className="w-full" onClick={() => navigate("/auth")}>
+                Request a new reset link
+              </Button>
+            ) : phase === "verifying" ? (
+              <div className="flex items-center justify-center py-6 text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin mr-2" /> Verifying reset link…
+              </div>
+            ) : (
             <form onSubmit={handleUpdatePassword} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="new-password">New password</Label>
