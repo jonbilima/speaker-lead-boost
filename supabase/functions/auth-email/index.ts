@@ -183,7 +183,7 @@ Deno.serve(async (req: Request) => {
       await send(addr, "Reset your NextMIC password",
         shell("Reset your password",
               "Click below to choose a new password for your NextMIC account:",
-              "Set a new password &rarr;", data.properties.action_link,
+              "Set a new password &rarr;", link,
               "This link expires in 1 hour. If you didn't ask for it, you can safely ignore this email — your password won't change."));
       return json({ ok: true });
     }
