@@ -169,6 +169,7 @@ const ResetPassword = () => {
                 ) : "Update password"}
               </Button>
             </form>
+            )}
           </CardContent>
         </Card>
 
