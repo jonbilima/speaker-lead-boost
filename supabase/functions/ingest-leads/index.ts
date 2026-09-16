@@ -597,6 +597,28 @@ Deno.serve(async (req) => {
     { auth: { persistSession: false } },
   );
 
+  // Record a failed delivery so it is never silently absent from ingest_runs.
+  // Never let logging itself break the response.
+  const logFailedRun = async (stage: string, error: unknown) => {
+    try {
+      await supabase.from("ingest_runs").insert({
+        function_name: "ingest-leads",
+        status: "failed",
+        received,
+        inserted: 0,
+        duplicates: skippedDuplicates,
+        invalid: skippedInvalid,
+        duration_ms: Date.now() - runStartedAt,
+        details: {
+          failed_stage: stage,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+    } catch (e) {
+      console.error("ingest_runs failure logging failed:", e);
+    }
+  };
+
   let toInsert = deduped;
   let matchedByUrl = 0;
   let matchedByCanonicalUrl = 0;
@@ -657,6 +679,7 @@ Deno.serve(async (req) => {
 
       if (lookupError) {
         console.error("Duplicate lookup failed:", lookupError);
+        await logFailedRun("duplicate_lookup", lookupError);
         return new Response(JSON.stringify({ error: "Duplicate lookup failed" }), { status: 500, headers: jsonHeaders });
       }
 
@@ -764,6 +787,7 @@ Deno.serve(async (req) => {
 
     if (error) {
       console.error("Insert failed:", error);
+      await logFailedRun("insert", error);
       return new Response(JSON.stringify({ error: "Insert failed", details: error.message }), {
         status: 500,
         headers: jsonHeaders,
