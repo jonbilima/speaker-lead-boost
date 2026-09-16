@@ -171,10 +171,19 @@ Deno.serve(async (req: Request) => {
         console.error("recovery link failed for", addr, error.message);
         return json({ ok: true });
       }
+      // Point at our own page carrying the one-time token hash, NOT the
+      // directly-consumable /auth/v1/verify link. Mail scanners pre-fetch
+      // links; a verify link gets burned before the human clicks it, which
+      // is what left users on a permanently disabled reset form.
+      const hashed = (data.properties as { hashed_token?: string }).hashed_token;
+      const link = hashed
+        ? `${APP_URL}/reset-password?token_hash=${encodeURIComponent(hashed)}&type=recovery`
+        : data.properties.action_link;
+
       await send(addr, "Reset your NextMIC password",
         shell("Reset your password",
               "Click below to choose a new password for your NextMIC account:",
-              "Set a new password &rarr;", data.properties.action_link,
+              "Set a new password &rarr;", link,
               "This link expires in 1 hour. If you didn't ask for it, you can safely ignore this email — your password won't change."));
       return json({ ok: true });
     }
