@@ -9,28 +9,68 @@ import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 import { Loader2 } from "lucide-react";
 
+type Phase = "verifying" | "ready" | "invalid";
+
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [ready, setReady] = useState(false);
+  const [phase, setPhase] = useState<Phase>("verifying");
+  const [problem, setProblem] = useState("");
   const navigate = useNavigate();
+  const ready = phase === "ready";
 
   useEffect(() => {
-    // Supabase fires PASSWORD_RECOVERY when the recovery link is opened.
-    // It also establishes a temporary session from the URL hash.
+    let cancelled = false;
+
+    // New-style links carry the one-time token hash; we exchange it here so
+    // mail scanners pre-fetching the URL can't burn the token first.
+    const url = new URL(window.location.href);
+    const tokenHash = url.searchParams.get("token_hash");
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const urlError = hash.get("error_description") || hash.get("error") ||
+      url.searchParams.get("error_description");
+
+    const fail = (msg: string) => {
+      if (cancelled) return;
+      setProblem(msg);
+      setPhase("invalid");
+    };
+
+    if (urlError) {
+      fail(decodeURIComponent(urlError.replace(/\+/g, " ")));
+      return;
+    }
+
+    if (tokenHash) {
+      supabase.auth
+        .verifyOtp({ type: "recovery", token_hash: tokenHash })
+        .then(({ data, error }) => {
+          if (cancelled) return;
+          if (error || !data.session) {
+            fail(error?.message || "This reset link is no longer valid.");
+            return;
+          }
+          window.history.replaceState({}, "", "/reset-password");
+          setPhase("ready");
+        });
+      return;
+    }
+
+    // Legacy hash links: Supabase establishes the session itself.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
-        setReady(true);
+        setPhase("ready");
       }
     });
 
-    // Fallback: if a recovery session already exists when we land here.
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true);
+      if (cancelled) return;
+      if (session) setPhase("ready");
+      else fail("This reset link is invalid, expired, or has already been used.");
     });
 
-    return () => subscription.unsubscribe();
+    return () => { cancelled = true; subscription.unsubscribe(); };
   }, []);
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
