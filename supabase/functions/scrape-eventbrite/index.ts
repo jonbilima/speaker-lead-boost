@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.80.0";
-import { validateAuth, unauthorizedResponse, forbiddenResponse, corsHeaders } from "../_shared/auth.ts";
+import { validateAuth, unauthorizedResponse, forbiddenResponse, corsHeaders, isInternalServiceCall } from "../_shared/auth.ts";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -8,7 +8,8 @@ serve(async (req) => {
   }
 
   // Validate authentication and require admin role
-  const auth = await validateAuth(req);
+  const internal = isInternalServiceCall(req);
+  const auth = internal ? { user: { id: 'internal' }, error: null, isAdmin: true } : await validateAuth(req);
   if (auth.error || !auth.user) {
     return unauthorizedResponse(auth.error || 'Unauthorized');
   }

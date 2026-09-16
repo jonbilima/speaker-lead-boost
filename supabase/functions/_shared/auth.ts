@@ -74,3 +74,14 @@ export function forbiddenResponse(message: string = 'Admin access required'): Re
     }
   );
 }
+
+/**
+ * True when the request comes from another edge function using the service-role
+ * key (e.g. scrape-all-sources fanning out to individual scrapers).
+ */
+export function isInternalServiceCall(req: Request): boolean {
+  if (req.headers.get('x-internal-call') !== 'true') return false;
+  const token = (req.headers.get('Authorization') || '').replace('Bearer ', '').trim();
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  return !!token && !!serviceKey && token === serviceKey;
+}

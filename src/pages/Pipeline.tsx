@@ -70,7 +70,8 @@ const Pipeline = () => {
           location,
           fee_estimate_min,
           fee_estimate_max,
-          event_url
+          event_url,
+          organizer_email
         )
       `)
       .eq("user_id", session.user.id)
@@ -108,6 +109,7 @@ const Pipeline = () => {
           fee_estimate_min: score.opportunities!.fee_estimate_min,
           fee_estimate_max: score.opportunities!.fee_estimate_max,
           event_url: score.opportunities!.event_url,
+          organizer_email: score.opportunities!.organizer_email ?? null,
           ai_score: score.ai_score || 0,
           ai_reason: score.ai_reason,
           pipeline_stage: (score.pipeline_stage as PipelineOpportunity['pipeline_stage']) || "new",

@@ -42,8 +42,21 @@ export function ChangeEmailDialog({ currentEmail }: { currentEmail: string }) {
       const { data, error } = await supabase.functions.invoke("auth-email", {
         body: { action: "email_change", email: a },
       });
-      if (error) throw error;
-      if (data?.error) {
+      // invoke() rejects non-2xx into `error` with a generic message; the real,
+      // user-facing explanation is in the response body.
+      if (error) {
+        let message = "";
+        const ctx = (error as { context?: Response }).context;
+        if (ctx && typeof ctx.text === "function") {
+          try {
+            const body = await ctx.text();
+            message = JSON.parse(body)?.error || "";
+          } catch {
+            message = "";
+          }
+        }
+        toast.error(message || "Couldn't start the change. Email support@nextmic.ai.");
+      } else if (data?.error) {
         toast.error(data.error);
       } else {
         toast.success(`Confirmation sent to ${a}. Click the link in that email to finish — keep signing in with your current address until then.`);
@@ -54,6 +67,7 @@ export function ChangeEmailDialog({ currentEmail }: { currentEmail: string }) {
     } catch (err: any) {
       toast.error(err?.message || "Couldn't start the change. Email support@nextmic.ai.");
     }
+
     setSending(false);
   };
 

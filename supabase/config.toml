@@ -7,11 +7,13 @@ verify_jwt = true
 [functions.generate-pitch]
 verify_jwt = false
 
+# Authorized in-code (admin JWT or internal service-role call from scrape-all-sources).
 [functions.scrape-sessionize]
-verify_jwt = true
+verify_jwt = false
 
+# Authorized in-code (admin JWT or internal service-role call from scrape-all-sources).
 [functions.scrape-eventbrite]
-verify_jwt = true
+verify_jwt = false
 
 [functions.extract-opportunity-topics]
 verify_jwt = true
@@ -19,8 +21,9 @@ verify_jwt = true
 [functions.scrape-test]
 verify_jwt = true
 
+# Authorized in-code (admin JWT or internal service-role call from scrape-all-sources).
 [functions.scrape-papercall]
-verify_jwt = true
+verify_jwt = false
 
 [functions.scrape-with-apify]
 verify_jwt = true

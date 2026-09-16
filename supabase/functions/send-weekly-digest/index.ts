@@ -281,7 +281,7 @@ async function gatherDigestData(supabase: any, userId: string): Promise<DigestDa
     .select(`
       ai_score,
       opportunities (
-        name,
+        event_name,
         deadline
       )
     `)
@@ -295,7 +295,7 @@ async function gatherDigestData(supabase: any, userId: string): Promise<DigestDa
     .from('opportunity_scores')
     .select(`
       opportunities (
-        name,
+        event_name,
         deadline
       )
     `)
@@ -313,7 +313,7 @@ async function gatherDigestData(supabase: any, userId: string): Promise<DigestDa
       due_date,
       opportunity_scores (
         opportunities (
-          name
+          event_name
         )
       )
     `)
@@ -325,12 +325,12 @@ async function gatherDigestData(supabase: any, userId: string): Promise<DigestDa
   // Get pipeline counts
   const { data: pipelineData } = await supabase
     .from('opportunity_scores')
-    .select('stage')
+    .select('pipeline_stage')
     .eq('user_id', userId);
 
   const pipelineCounts: Record<string, number> = {};
   pipelineData?.forEach((item: any) => {
-    const stage = item.stage || 'matched';
+    const stage = item.pipeline_stage || 'matched';
     pipelineCounts[stage] = (pipelineCounts[stage] || 0) + 1;
   });
 
@@ -390,16 +390,16 @@ async function gatherDigestData(supabase: any, userId: string): Promise<DigestDa
 
   return {
     newMatches: (newMatches || []).map((m: any) => ({
-      name: m.opportunities?.name || 'Unknown',
+      name: m.opportunities?.event_name || 'Unknown',
       deadline: m.opportunities?.deadline || '',
       score: m.ai_score || 0,
     })),
     upcomingDeadlines: (deadlines || []).map((d: any) => ({
-      name: d.opportunities?.name || 'Unknown',
+      name: d.opportunities?.event_name || 'Unknown',
       deadline: d.opportunities?.deadline || '',
     })),
     overdueFollowUps: (followUps || []).map((f: any) => ({
-      name: f.opportunity_scores?.opportunities?.name || 'Unknown',
+      name: f.opportunity_scores?.opportunities?.event_name || 'Unknown',
       dueDate: f.due_date || '',
     })),
     pipelineCounts,

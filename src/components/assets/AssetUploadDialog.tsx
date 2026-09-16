@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +37,13 @@ export function AssetUploadDialog({
 }: AssetUploadDialogProps) {
   const [uploading, setUploading] = useState(false);
   const [assetType, setAssetType] = useState(defaultAssetType || "headshot");
+
+  // The dialog stays mounted, so the requested type can arrive (or change)
+  // after first render — e.g. opening /assets?upload=one_sheet.
+  useEffect(() => {
+    if (open && defaultAssetType) setAssetType(defaultAssetType);
+  }, [open, defaultAssetType]);
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [file, setFile] = useState<File | null>(null);
