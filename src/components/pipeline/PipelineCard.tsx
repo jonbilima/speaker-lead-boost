@@ -20,6 +20,7 @@ export interface PipelineOpportunity {
   fee_estimate_min: number | null;
   fee_estimate_max: number | null;
   event_url: string | null;
+  organizer_email?: string | null;
   ai_score: number;
   ai_reason: string | null;
   pipeline_stage: string;
