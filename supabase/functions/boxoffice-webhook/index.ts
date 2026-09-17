@@ -225,23 +225,77 @@ async function handleClaim(req: Request): Promise<Response> {
   if (!session_token || !password || String(password).length < 8) {
     return json({ error: "session_token and a password of 8+ characters are required" }, 400);
   }
-  const r = await fetch(`${ENGINE_URL}/api/provision/claim`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json",
-               "X-BoxOffice-Hook-Secret": HOOK_SECRET },
-    body: JSON.stringify({ funnel_id: FUNNEL_ID, token: session_token }),
-  });
-  if (r.status === 409) return json({ error: "This link was already used. Check your email for your login link." }, 409);
-  if (!r.ok) return json({ error: "We couldn't verify your purchase — your login email is on its way instead." }, 400);
-  const claim = await r.json();
-  const user = await ensureUser(claim.email, claim.name ?? null,
-                                claim.products ?? [], String(password));
-  const { data, error } = await admin.auth.admin.generateLink({
-    type: "magiclink", email: claim.email,
-    options: { redirectTo: `${APP_URL}/` },
-  });
-  if (error) return json({ ok: true, user_id: user.id, redirect: `${APP_URL}/` });
-  return json({ ok: true, user_id: user.id, redirect: data.properties.action_link });
+
+  let claim: { email: string; name?: string | null; products?: string[] };
+  try {
+    const r = await fetch(`${ENGINE_URL}/api/provision/claim`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json",
+                 "X-BoxOffice-Hook-Secret": HOOK_SECRET },
+      body: JSON.stringify({ funnel_id: FUNNEL_ID, token: session_token }),
+    });
+    if (r.status === 409) {
+      return json({
+        error: "This link was already used. Your account exists — sign in, or use “Forgot password” to set a new one.",
+        recovery: `${APP_URL}/auth`,
+      }, 409);
+    }
+    if (!r.ok) {
+      return json({
+        error: "We couldn't verify your purchase from this link — your login email is on its way instead.",
+        recovery: `${APP_URL}/auth`,
+      }, 400);
+    }
+    claim = await r.json();
+  } catch (ex) {
+    console.error("claim: engine verification failed:", ex);
+    return json({
+      error: "We couldn't reach our purchase system just now. Your login email is on its way — or use “Forgot password” with your purchase email.",
+      recovery: `${APP_URL}/auth`,
+    }, 503);
+  }
+
+  // Account creation / password set. Failures here previously threw and the
+  // buyer saw a blank error — most often when the email already had an
+  // account. Give them a working route in instead.
+  let user;
+  try {
+    user = await ensureUser(claim.email, claim.name ?? null,
+                            claim.products ?? [], String(password));
+  } catch (ex) {
+    const msg = String((ex as Error)?.message ?? ex);
+    console.error("claim: ensureUser failed for", claim.email, msg);
+    const existing = /already\s*(been\s*)?registered|already exists|duplicate/i.test(msg);
+    try {
+      const link = await setPasswordLink(claim.email);
+      await sendWelcomeEmail(claim.email, claim.name ?? null, link);
+    } catch (mailEx) {
+      console.error("claim: fallback recovery email failed:", mailEx);
+    }
+    return json({
+      error: existing
+        ? `You already have a NextMIC account for ${claim.email}. We've emailed you a link to set a new password — or sign in if you already know it.`
+        : `We couldn't finish setting your password. We've emailed a set-password link to ${claim.email}. Your purchase is safe.`,
+      account_exists: existing,
+      email: claim.email,
+      recovery: `${APP_URL}/auth`,
+    }, 409);
+  }
+
+  try {
+    const { data, error } = await admin.auth.admin.generateLink({
+      type: "magiclink", email: claim.email,
+      options: { redirectTo: `${APP_URL}/` },
+    });
+    if (error || !data?.properties?.action_link) {
+      return json({ ok: true, user_id: user.id, redirect: `${APP_URL}/auth` });
+    }
+    return json({ ok: true, user_id: user.id, redirect: data.properties.action_link });
+  } catch (ex) {
+    console.error("claim: magiclink generation failed:", ex);
+    // Password IS set at this point — send them to sign in with it.
+    return json({ ok: true, user_id: user.id, redirect: `${APP_URL}/auth` });
+  }
 }
 
 function json(body: unknown, status = 200): Response {
