@@ -19,6 +19,9 @@ interface IncomingRecord {
   lead_quality?: unknown;
   organizer_email?: unknown;
   organizer_name?: unknown;
+  organizer_contact_email?: unknown;
+  organizer_contact_name?: unknown;
+  organizer_contact_url?: unknown;
   description?: unknown;
   audience_size?: unknown;
   fee_estimate_min?: unknown;
@@ -401,6 +404,7 @@ function sourceTrust(source: unknown): number {
 const ENRICHABLE_FIELDS = [
   "organizer_name",
   "organizer_email",
+  "organizer_contact_url",
   "description",
   "location",
   "deadline",
@@ -545,8 +549,10 @@ Deno.serve(async (req) => {
       event_url: link,
       canonical_url: canonicalizeUrl(link),
       event_fingerprint: buildFingerprint(eventName, eventDateIso),
-      organizer_name: str(rec.organizer_name) ?? str(rec.organization),
-      organizer_email: str(rec.organizer_email),
+      organizer_name:
+        str(rec.organizer_name) ?? str(rec.organizer_contact_name) ?? str(rec.organization),
+      organizer_email: str(rec.organizer_email) ?? str(rec.organizer_contact_email),
+      organizer_contact_url: str(rec.organizer_contact_url),
       description: descriptionParts.length > 0 ? descriptionParts.join(" | ") : null,
       location: locationText,
       country: resolved.country,
@@ -633,7 +639,7 @@ Deno.serve(async (req) => {
     const fps = deduped.map((r) => r.event_fingerprint as string | null).filter((v): v is string => !!v);
 
     const selectCols =
-      "id, event_name, event_url, canonical_url, event_fingerprint, source, organizer_name, organizer_email, description, location, country, city, state, location_confidence, organization_website, deadline, event_date, fee_estimate_min, fee_estimate_max, audience_size, vertical_slug, merged_into";
+      "id, event_name, event_url, canonical_url, event_fingerprint, source, organizer_name, organizer_email, organizer_contact_url, description, location, country, city, state, location_confidence, organization_website, deadline, event_date, fee_estimate_min, fee_estimate_max, audience_size, vertical_slug, merged_into";
 
 
     // Build the OR filter in slices bounded by accumulated character length so the

@@ -1227,6 +1227,7 @@ export type Database = {
           location_venue: string | null
           merged_into: string | null
           organization_website: string | null
+          organizer_contact_url: string | null
           organizer_email: string | null
           organizer_linkedin: string | null
           organizer_name: string | null
@@ -1268,6 +1269,7 @@ export type Database = {
           location_venue?: string | null
           merged_into?: string | null
           organization_website?: string | null
+          organizer_contact_url?: string | null
           organizer_email?: string | null
           organizer_linkedin?: string | null
           organizer_name?: string | null
@@ -1309,6 +1311,7 @@ export type Database = {
           location_venue?: string | null
           merged_into?: string | null
           organization_website?: string | null
+          organizer_contact_url?: string | null
           organizer_email?: string | null
           organizer_linkedin?: string | null
           organizer_name?: string | null
@@ -1435,6 +1438,27 @@ export type Database = {
           source?: string | null
           submitted_by?: string | null
           timezone?: string | null
+        }
+        Relationships: []
+      }
+      opportunities_contact_backup_20260917: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          organizer_email: string | null
+          organizer_name: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          organizer_email?: string | null
+          organizer_name?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          organizer_email?: string | null
+          organizer_name?: string | null
         }
         Relationships: []
       }
