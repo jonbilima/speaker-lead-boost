@@ -309,7 +309,17 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "POST only" }, 405);
   const url = new URL(req.url);
 
-  if (url.pathname.endsWith("/claim")) return handleClaim(req);
+  if (url.pathname.endsWith("/claim")) {
+    try {
+      return await handleClaim(req);
+    } catch (ex) {
+      console.error("claim: unhandled failure:", ex);
+      return json({
+        error: "Something went wrong setting your password. Your purchase is safe — use “Forgot password” with your purchase email to get in.",
+        recovery: `${APP_URL}/auth`,
+      }, 500);
+    }
+  }
 
   // signed engine events
   const body = await req.text();
