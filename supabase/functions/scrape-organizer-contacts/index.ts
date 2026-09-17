@@ -21,13 +21,45 @@ const corsHeaders = {
 const CACHE_DAYS_HIT = 90;
 const CACHE_DAYS_MISS = 14;
 
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey);
+
+  // Authorized in-code: cron secret (same pattern as deactivate-expired-opportunities),
+  // service-role bearer, or an authenticated admin JWT from the admin UI.
+  const cronSecret = Deno.env.get("EXPIRY_CRON_SECRET") ?? "";
+  const provided = (req.headers.get("x-cron-secret") ?? "").trim();
+  const bearer = (req.headers.get("Authorization") ?? "").replace("Bearer ", "").trim();
+  let authorized =
+    (cronSecret !== "" && provided !== "" && timingSafeEqual(provided, cronSecret)) ||
+    (bearer !== "" && timingSafeEqual(bearer, serviceKey));
+  if (!authorized && bearer !== "") {
+    const { data: { user } } = await supabase.auth.getUser(bearer);
+    if (user) {
+      const { data: role } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      authorized = !!role;
+    }
+  }
+  if (!authorized) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const body = await req.json().catch(() => ({}));
@@ -44,14 +76,17 @@ Deno.serve(async (req) => {
     let targets: string[] = [];
     if (body.url) targets = [body.url];
     else if (Array.isArray(body.urls)) targets = body.urls;
-    else if (body.backfill) {
-      const { data } = await supabase
+    else if (body.backfill || body.auto) {
+      // auto: only active opportunities that currently have no organizer email,
+      // newest first, so daily arrivals get crawled without a manual pass.
+      let q = supabase
         .from("opportunities")
-        .select("event_url")
+        .select("event_url, created_at")
         .eq("is_active", true)
         .is("merged_into", null)
-        .not("event_url", "is", null)
-        .limit(5000);
+        .not("event_url", "is", null);
+      if (body.auto) q = q.is("organizer_email", null).order("created_at", { ascending: false });
+      const { data } = await q.limit(5000);
       const byDomain = new Map<string, string>();
       for (const r of data ?? []) {
         const h = hostOf(r.event_url as string);
@@ -60,6 +95,7 @@ Deno.serve(async (req) => {
       }
       targets = [...byDomain.values()];
     }
+
 
     // Domain-level cache
     const domains = [...new Set(targets.map((u) => hostOf(u)).filter(Boolean))] as string[];

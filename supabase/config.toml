@@ -70,10 +70,10 @@ verify_jwt = true
 [functions.score-new-opportunities]
 verify_jwt = false
 
-# Organizer contact discovery. Admin/cron only: requires a valid JWT
-# (service-role token in practice). Never callable by anon.
+# Organizer contact discovery. Authorized in-code: cron secret, service-role
+# token, or an admin JWT. Never usable by anon.
 [functions.scrape-organizer-contacts]
-verify_jwt = true
+verify_jwt = false
 
 [functions.resolve-aggregator-organizers]
 verify_jwt = true
