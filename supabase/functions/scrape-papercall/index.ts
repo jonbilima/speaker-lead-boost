@@ -96,12 +96,14 @@ serve(async (req) => {
           opportunities.push({
             event_name: eventName,
             event_url: eventUrl,
-            deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Default 30 days
+            // No dates are published on the listing page, so store none.
+            // Never invent a "30 days out" deadline or "90 days out" event date.
+            deadline: null,
             location: 'TBD',
             description: `CFP opportunity from PaperCall.io - ${eventName}. Visit event page for full details.`,
             organizer_email: null,
             organizer_name: null,
-            event_date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // Default 90 days
+            event_date: null,
             audience_size: null,
             fee_estimate_min: null,
             fee_estimate_max: null,

@@ -3,22 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.80.0";
 import { DOMParser } from "jsr:@b-fuze/deno-dom/wasm";
 import { validateAuth, unauthorizedResponse, forbiddenResponse, corsHeaders, isInternalServiceCall } from "../_shared/auth.ts";
 
-// Helper to parse dates from various formats
+// Helper to parse dates from various formats.
+// Only stores a date when the source stated a specific day: a bare year or a
+// month+year must never become a first-of-month guess.
 function parseDate(dateStr: string | null): string | null {
-  if (!dateStr) return null;
-  try {
-    // Try parsing MM/DD/YYYY format
-    const parts = dateStr.trim().split('/');
-    if (parts.length === 3) {
-      const [month, day, year] = parts;
-      return new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`).toISOString();
-    }
-    // Try direct parse
-    const date = new Date(dateStr);
-    return isNaN(date.getTime()) ? null : date.toISOString();
-  } catch {
-    return null;
-  }
+  return parseExplicitDate(dateStr);
 }
 
 // Helper to extract deadline from description text
