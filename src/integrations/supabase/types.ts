@@ -2143,6 +2143,7 @@ export type Database = {
           calculated_at: string
           completed_at: string | null
           deadline_urgency_score: number | null
+          dismissed_at: string | null
           fee_alignment_score: number | null
           id: string
           interested_at: string | null
@@ -2167,6 +2168,7 @@ export type Database = {
           calculated_at?: string
           completed_at?: string | null
           deadline_urgency_score?: number | null
+          dismissed_at?: string | null
           fee_alignment_score?: number | null
           id?: string
           interested_at?: string | null
@@ -2191,6 +2193,7 @@ export type Database = {
           calculated_at?: string
           completed_at?: string | null
           deadline_urgency_score?: number | null
+          dismissed_at?: string | null
           fee_alignment_score?: number | null
           id?: string
           interested_at?: string | null

@@ -1,0 +1,2 @@
+ALTER TABLE public.opportunity_scores ADD COLUMN IF NOT EXISTS dismissed_at timestamptz;
+CREATE INDEX IF NOT EXISTS idx_opportunity_scores_user_dismissed ON public.opportunity_scores (user_id) WHERE dismissed_at IS NULL;
