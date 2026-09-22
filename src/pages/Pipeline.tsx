@@ -21,6 +21,7 @@ import {
   PipelineFilters,
   DEFAULT_PIPELINE_FILTERS,
 } from "@/components/pipeline/PipelineToolbar";
+import { isDeadlinePassed } from "@/lib/eventDates";
 
 
 const PIPELINE_STAGES = [
