@@ -2070,6 +2070,41 @@ export type Database = {
         }
         Relationships: []
       }
+      opportunities_unsupported_eventdate_backup_20260922: {
+        Row: {
+          cleared_at: string
+          event_date_was: string | null
+          event_name: string | null
+          opportunity_id: string
+          reason: string | null
+          source: string | null
+        }
+        Insert: {
+          cleared_at?: string
+          event_date_was?: string | null
+          event_name?: string | null
+          opportunity_id: string
+          reason?: string | null
+          source?: string | null
+        }
+        Update: {
+          cleared_at?: string
+          event_date_was?: string | null
+          event_name?: string | null
+          opportunity_id?: string
+          reason?: string | null
+          source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunities_unsupported_eventdate_backup__opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       opportunities_vertical_backup_20260818: {
         Row: {
           id: string | null
