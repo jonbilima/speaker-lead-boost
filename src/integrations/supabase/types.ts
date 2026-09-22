@@ -1660,6 +1660,35 @@ export type Database = {
         }
         Relationships: []
       }
+      opportunities_eventdate_placeholder_backup_20260922: {
+        Row: {
+          cleared_at: string
+          event_date_was: string
+          event_name: string | null
+          opportunity_id: string
+        }
+        Insert: {
+          cleared_at?: string
+          event_date_was: string
+          event_name?: string | null
+          opportunity_id: string
+        }
+        Update: {
+          cleared_at?: string
+          event_date_was?: string
+          event_name?: string | null
+          opportunity_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunities_eventdate_placeholder_backup__opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       opportunities_expiry_backup_20260915: {
         Row: {
           deadline: string | null
