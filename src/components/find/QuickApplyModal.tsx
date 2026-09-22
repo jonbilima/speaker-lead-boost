@@ -14,6 +14,7 @@ import { Opportunity } from "@/pages/Find";
 import { useEmailSender } from "@/hooks/useEmailSender";
 import { useOrganizerContact } from "@/hooks/useOrganizerContact";
 import { ContactPathPanel } from "@/components/find/ContactPathPanel";
+import { formatEventDate } from "@/lib/eventDates";
 
 interface QuickApplyModalProps {
   open: boolean;
@@ -233,7 +234,7 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
               {opportunity.event_date && (
                 <span className="flex items-center gap-1 text-muted-foreground">
                   <Calendar className="h-3 w-3" />
-                  {new Date(opportunity.event_date).toLocaleDateString()}
+                  {formatEventDate(opportunity.event_date)}
                 </span>
               )}
               <span className="flex items-center gap-1 text-muted-foreground">

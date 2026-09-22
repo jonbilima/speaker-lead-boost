@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { PipelineOpportunity } from "./PipelineCard";
 import { cn } from "@/lib/utils";
+import { formatEventDate } from "@/lib/eventDates";
 
 interface MobilePipelineProps {
   stages: Array<{
@@ -191,10 +192,7 @@ function MobileOpportunityCard({
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return null;
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
+    return formatEventDate(dateStr, "short");
   };
 
   const formatFee = (min: number | null, max: number | null) => {
