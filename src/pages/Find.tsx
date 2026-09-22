@@ -454,6 +454,14 @@ const Find = () => {
             <p className="text-muted-foreground mt-1">
               Discover speaking opportunities matched to your expertise
             </p>
+            {expiredCount > 0 && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {expiredCount} call{expiredCount === 1 ? " has" : "s have"} closed —{" "}
+                <Link to="/next-cycle" className="text-primary underline underline-offset-2">
+                  pitch them for next cycle
+                </Link>
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <DataFreshnessIndicator />
