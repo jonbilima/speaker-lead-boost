@@ -75,7 +75,8 @@ serve(async (req) => {
       });
     }
 
-    const { opportunity_id, tone = 'professional' } = await req.json();
+    const { opportunity_id, tone = 'professional', mode = 'apply' } = await req.json();
+    const nextCycle = mode === 'next_cycle';
 
     if (!opportunity_id) {
       return new Response(JSON.stringify({ error: 'opportunity_id required' }), {
@@ -161,6 +162,25 @@ serve(async (req) => {
     const oppTopics = opportunity.opportunity_topics?.map((ot: { topics: { name: string } }) => ot.topics.name).join(', ') || 'Not specified';
     const pastTalks = profile.past_talks?.join(', ') || 'None listed';
 
+    const closedOn = opportunity.deadline
+      ? new Date(opportunity.deadline).toISOString().slice(0, 10)
+      : null;
+    const runsOn = opportunity.event_date
+      ? new Date(opportunity.event_date).toISOString().slice(0, 10)
+      : null;
+
+    // Next-cycle outreach is a different conversation from an open application:
+    // the call has already closed, so the speaker is introducing themselves
+    // early for the following edition rather than submitting to this one.
+    const nextCycleFraming = `
+
+This is NEXT-CYCLE outreach, not an application. The call for speakers already closed${closedOn ? ` on ${closedOn}` : ''}${runsOn ? `, and the event runs on ${runsOn}` : ''}. Follow these rules in addition to the ones above:
+- Acknowledge briefly that this cycle's call has closed; never apply to it or ask to be squeezed in.
+- Ask to be considered for the next edition and to be told when that call opens.
+- Position this as the start of a relationship with the organizer, not a one-off submission.
+- Never imply urgency or a deadline. There is none.
+- Offer something useful now (a topic outline, a reel, a short call) with no pressure.`;
+
     const prompt = `Generate 3 cold email pitches for a speaking opportunity.
 
 Speaker:
@@ -181,7 +201,7 @@ Opportunity:
 Match analysis (deterministic, use this to frame the pitch):
 ${fitReasons}
 
-Tone: ${tone}`;
+Tone: ${tone}${nextCycle ? nextCycleFraming : ''}`;
 
     const aiResponse = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
