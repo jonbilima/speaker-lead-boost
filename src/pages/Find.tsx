@@ -322,7 +322,11 @@ const Find = () => {
     searchTerm.length > 0;
 
   // Filter and sort opportunities
+  const expiredCount = opportunities.filter(opp => isDeadlinePassed(opp.deadline)).length;
+
   const filteredOpportunities = opportunities.filter(opp => {
+    // Closed calls live on the Next Cycle page, never in the current feed
+    if (isDeadlinePassed(opp.deadline)) return false;
     // Search filter
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
