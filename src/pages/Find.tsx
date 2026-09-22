@@ -22,6 +22,8 @@ import { SmartSubmitDialog } from "@/components/find/SmartSubmitDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SavedSearch } from "@/hooks/useSavedSearches";
 import { useOrganizerContactLookup } from "@/hooks/useOrganizerContact";
+import { isDeadlinePassed, daysUntil } from "@/lib/eventDates";
+import { Link } from "react-router-dom";
 
 export interface Opportunity {
   id: string;
