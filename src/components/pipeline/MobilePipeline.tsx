@@ -10,7 +10,8 @@ import {
   ChevronRight,
   Building2,
   Check,
-  X
+  X,
+  Ban
 } from "lucide-react";
 import { PipelineOpportunity } from "./PipelineCard";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,7 @@ interface MobilePipelineProps {
   onCardClick: (opp: PipelineOpportunity) => void;
   onMoveToStage: (oppId: string, newStage: string) => void;
   onResearchOrganizer?: (organizerName: string, organizerEmail?: string | null) => void;
+  onDismiss?: (opp: PipelineOpportunity) => void;
 }
 
 export function MobilePipeline({
@@ -38,6 +40,7 @@ export function MobilePipeline({
   onCardClick,
   onMoveToStage,
   onResearchOrganizer,
+  onDismiss,
 }: MobilePipelineProps) {
   const currentIndex = stages.findIndex(s => s.id === currentStage);
   const stageOpps = opportunities.filter(o => o.pipeline_stage === currentStage);
@@ -122,6 +125,7 @@ export function MobilePipeline({
               }}
               onReject={() => onMoveToStage(opp.score_id, "rejected")}
               onResearch={onResearchOrganizer}
+              onDismiss={onDismiss ? () => onDismiss(opp) : undefined}
               canAdvance={currentIndex < stages.length - 1 && currentStage !== "rejected"}
             />
           ))
@@ -137,6 +141,7 @@ interface MobileOpportunityCardProps {
   onAdvance: () => void;
   onReject: () => void;
   onResearch?: (name: string, email?: string | null) => void;
+  onDismiss?: () => void;
   canAdvance: boolean;
 }
 
@@ -146,6 +151,7 @@ function MobileOpportunityCard({
   onAdvance,
   onReject,
   onResearch,
+  onDismiss,
   canAdvance,
 }: MobileOpportunityCardProps) {
   const [swipeX, setSwipeX] = useState(0);
@@ -294,6 +300,23 @@ function MobileOpportunityCard({
               </div>
             </div>
           </div>
+
+          {onDismiss && (
+            <div className="mt-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-[11px] text-muted-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDismiss();
+                }}
+              >
+                <Ban className="h-3 w-3 mr-1" />
+                Not for me
+              </Button>
+            </div>
+          )}
 
           {/* Swipe Hint */}
           <div className="mt-3 text-center text-[10px] text-muted-foreground/60">

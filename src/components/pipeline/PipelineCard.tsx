@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar, MapPin, DollarSign, Clock, Building2, FileEdit, Send } from "lucide-react";
+import { Calendar, MapPin, DollarSign, Clock, Building2, FileEdit, Send, Ban } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { FollowUpIndicator } from "./FollowUpIndicator";
 
@@ -20,6 +20,10 @@ export interface PipelineOpportunity {
   fee_estimate_min: number | null;
   fee_estimate_max: number | null;
   event_url: string | null;
+  organizer_contact_url?: string | null;
+  vertical_slug?: string | null;
+  country?: string | null;
+  created_at?: string | null;
 
   ai_score: number;
   ai_reason: string | null;
@@ -34,6 +38,7 @@ interface PipelineCardProps {
   index: number;
   onClick: () => void;
   onResearchOrganizer?: (organizerName: string, organizerEmail?: string | null) => void;
+  onDismiss?: (opportunity: PipelineOpportunity) => void;
   onOpenToolkit?: (context: any) => void;
   selectionMode?: boolean;
   isSelected?: boolean;
@@ -46,6 +51,7 @@ export function PipelineCard({
   index, 
   onClick, 
   onResearchOrganizer,
+  onDismiss,
   selectionMode,
   isSelected,
   onToggleSelection,
@@ -203,6 +209,23 @@ export function PipelineCard({
                 {formatDistanceToNow(new Date(opportunity.calculated_at), { addSuffix: true })}
               </span>
             </div>
+
+            {onDismiss && !selectionMode && (
+              <div className="pt-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-[11px] text-muted-foreground hover:text-destructive"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDismiss(opportunity);
+                  }}
+                >
+                  <Ban className="h-3 w-3 mr-1" />
+                  Not for me
+                </Button>
+              </div>
+            )}
 
             {/* Tags */}
             {opportunityTags.length > 0 && (
