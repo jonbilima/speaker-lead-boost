@@ -138,7 +138,7 @@ const NextCycle = () => {
       const email = opp.organizer_email ?? info.primaryEmail ?? null;
       const contactUrl =
         opp.organizer_contact_url ??
-        info.paths.find((p) => p.kind !== "listing")?.url ??
+        info.paths.find((p) => p.kind === "form" || p.kind === "linkedin")?.href ??
         null;
 
       const existing = byKey.get(key);
