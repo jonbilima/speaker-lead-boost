@@ -51,6 +51,7 @@ export function PipelineCard({
   index, 
   onClick, 
   onResearchOrganizer,
+  onDismiss,
   selectionMode,
   isSelected,
   onToggleSelection,
@@ -208,6 +209,23 @@ export function PipelineCard({
                 {formatDistanceToNow(new Date(opportunity.calculated_at), { addSuffix: true })}
               </span>
             </div>
+
+            {onDismiss && !selectionMode && (
+              <div className="pt-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-[11px] text-muted-foreground hover:text-destructive"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDismiss(opportunity);
+                  }}
+                >
+                  <Ban className="h-3 w-3 mr-1" />
+                  Not for me
+                </Button>
+              </div>
+            )}
 
             {/* Tags */}
             {opportunityTags.length > 0 && (
