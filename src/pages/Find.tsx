@@ -344,7 +344,7 @@ const Find = () => {
     if (activeSmartList === "perfect-matches" && (opp.ai_score === null || opp.ai_score < 85)) return false;
     if (activeSmartList === "closing-soon") {
       if (!opp.deadline) return false;
-      const daysLeft = Math.ceil((new Date(opp.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      const daysLeft = daysUntil(opp.deadline) ?? 0;
       if (daysLeft > 14 || daysLeft < 0) return false;
     }
     if (activeSmartList === "new-this-week") {
@@ -368,7 +368,7 @@ const Find = () => {
 
     // Deadline filter
     if (filters.deadlines.length > 0 && opp.deadline) {
-      const daysLeft = Math.ceil((new Date(opp.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      const daysLeft = daysUntil(opp.deadline) ?? 0;
       const matchesDeadline = filters.deadlines.some(range => {
         if (range === "This Week") return daysLeft >= 0 && daysLeft <= 7;
         if (range === "This Month") return daysLeft >= 0 && daysLeft <= 30;
