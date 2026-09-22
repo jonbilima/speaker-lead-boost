@@ -430,6 +430,18 @@ const Pipeline = () => {
           ))}
         </div>
 
+        {/* Filters, sorting, search */}
+        {opportunities.length > 0 && (
+          <PipelineToolbar
+            filters={filters}
+            onChange={setFilters}
+            stages={PIPELINE_STAGES}
+            verticals={verticalOptions}
+            locations={locationOptions}
+            resultCount={visibleOpportunities.length}
+          />
+        )}
+
         {/* Kanban Board */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -447,12 +459,13 @@ const Pipeline = () => {
           /* Mobile View */
           <MobilePipeline
             stages={PIPELINE_STAGES}
-            opportunities={opportunities}
+            opportunities={visibleOpportunities}
             currentStage={mobileStage}
             onStageChange={setMobileStage}
             onCardClick={handleCardClick}
             onMoveToStage={handleMobileStageMove}
             onResearchOrganizer={handleResearchOrganizer}
+            onDismiss={handleDismiss}
           />
         ) : (
           /* Desktop Kanban View */
