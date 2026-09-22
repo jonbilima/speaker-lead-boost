@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { validateAuth, unauthorizedResponse, forbiddenResponse, corsHeaders } from "../_shared/auth.ts";
+import { parseExplicitDate } from "../_shared/strict-date.ts";
 
 // Apify actor configurations for different sources
 const APIFY_ACTORS = {

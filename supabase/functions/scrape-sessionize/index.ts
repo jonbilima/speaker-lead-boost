@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.80.0";
 import { DOMParser } from "jsr:@b-fuze/deno-dom/wasm";
 import { validateAuth, unauthorizedResponse, forbiddenResponse, corsHeaders, isInternalServiceCall } from "../_shared/auth.ts";
+import { parseExplicitDate } from "../_shared/strict-date.ts";
 
 // Helper to parse dates from various formats.
 // Only stores a date when the source stated a specific day: a bare year or a
