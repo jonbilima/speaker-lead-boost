@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { validateAuth, unauthorizedResponse, forbiddenResponse, corsHeaders } from "../_shared/auth.ts";
+import { parseExplicitDate } from "../_shared/strict-date.ts";
 
 // Apify actor configurations for different sources
 const APIFY_ACTORS = {
@@ -236,31 +237,10 @@ serve(async (req) => {
 
     // Process and upsert opportunities
     for (const item of flatResults) {
-      // Parse deadline if present
-      let deadline = null;
-      if (item.deadline) {
-        try {
-          const parsed = new Date(item.deadline);
-          if (!isNaN(parsed.getTime())) {
-            deadline = parsed.toISOString();
-          }
-        } catch (e) {
-          console.log(`Could not parse deadline: ${item.deadline}`);
-        }
-      }
-
-      // Parse event date if present
-      let eventDate = null;
-      if (item.event_date) {
-        try {
-          const parsed = new Date(item.event_date);
-          if (!isNaN(parsed.getTime())) {
-            eventDate = parsed.toISOString();
-          }
-        } catch (e) {
-          console.log(`Could not parse event_date: ${item.event_date}`);
-        }
-      }
+      // Parse deadline / event date. Only an explicitly stated day is kept —
+      // a bare year or month+year stores nothing rather than a guessed date.
+      const deadline = parseExplicitDate(item.deadline);
+      const eventDate = parseExplicitDate(item.event_date);
 
       const opportunity = {
         event_name: item.event_name.substring(0, 255),
