@@ -148,26 +148,35 @@ serve(async (req) => {
 
     console.log(`PaperCall scraping complete: ${inserted} inserted, ${updated} updated`);
 
+    // A run that extracts nothing at all is a failure, not a clean run.
+    const zeroResult = opportunities.length === 0;
+
     // Update scraping log
     await supabase
       .from('scraping_logs')
       .update({
         completed_at: new Date().toISOString(),
-        status: 'success',
+        status: zeroResult ? 'failed' : 'success',
         opportunities_found: opportunities.length,
         opportunities_inserted: inserted,
-        opportunities_updated: updated
+        opportunities_updated: updated,
+        error_message: zeroResult
+          ? `PaperCall page fetched (${html.length} chars) but no event listings could be extracted - page layout likely changed`
+          : null
       })
       .eq('id', logEntry.id);
 
     return new Response(
       JSON.stringify({ 
-        success: true,
+        success: !zeroResult,
         found: opportunities.length,
         inserted,
         updated
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      {
+        status: zeroResult ? 502 : 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
     );
 
   } catch (error) {

@@ -144,28 +144,37 @@ serve(async (req) => {
       }
     }
 
+    // A run that extracts nothing at all is a failure, not a clean run.
+    const zeroResult = opportunities.length === 0;
+
     // Update log
     if (log) {
       await supabase
         .from("scraping_logs")
         .update({
-          status: "completed",
+          status: zeroResult ? "failed" : "completed",
           completed_at: new Date().toISOString(),
           opportunities_found: opportunities.length,
           opportunities_inserted: inserted,
           opportunities_updated: updated,
+          error_message: zeroResult
+            ? `conferencelist.io scraped (${links.length} links, ${cfpLinks.length} CFP-like) but no opportunities extracted - page layout likely changed`
+            : null,
         })
         .eq("id", log.id);
     }
 
     return new Response(
       JSON.stringify({
-        success: true,
+        success: !zeroResult,
         found: opportunities.length,
         inserted,
         updated,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: zeroResult ? 502 : 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
   } catch (error) {
     console.error("Error scraping conferencelist:", error);
