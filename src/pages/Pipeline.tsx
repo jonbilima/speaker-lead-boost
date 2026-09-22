@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
@@ -16,6 +16,11 @@ import { MobilePipeline } from "@/components/pipeline/MobilePipeline";
 import { BulkActionToolbar } from "@/components/pipeline/BulkActionToolbar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePipelineBulkActions } from "@/hooks/usePipelineBulkActions";
+import {
+  PipelineToolbar,
+  PipelineFilters,
+  DEFAULT_PIPELINE_FILTERS,
+} from "@/components/pipeline/PipelineToolbar";
 
 
 const PIPELINE_STAGES = [
