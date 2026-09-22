@@ -124,6 +124,7 @@ export function MobilePipeline({
               }}
               onReject={() => onMoveToStage(opp.score_id, "rejected")}
               onResearch={onResearchOrganizer}
+              onDismiss={onDismiss ? () => onDismiss(opp) : undefined}
               canAdvance={currentIndex < stages.length - 1 && currentStage !== "rejected"}
             />
           ))
@@ -139,6 +140,7 @@ interface MobileOpportunityCardProps {
   onAdvance: () => void;
   onReject: () => void;
   onResearch?: (name: string, email?: string | null) => void;
+  onDismiss?: () => void;
   canAdvance: boolean;
 }
 
@@ -148,6 +150,7 @@ function MobileOpportunityCard({
   onAdvance,
   onReject,
   onResearch,
+  onDismiss,
   canAdvance,
 }: MobileOpportunityCardProps) {
   const [swipeX, setSwipeX] = useState(0);
