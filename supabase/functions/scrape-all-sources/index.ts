@@ -109,12 +109,15 @@ serve(async (req) => {
 
         if (response.ok) {
           const data = await response.json();
+          const found = data.found || data.opportunities_found || 0;
           results.push({
             source: scraper.name,
-            success: true,
-            found: data.found || data.opportunities_found || 0,
+            // A source that returns nothing at all is not a healthy run.
+            success: found > 0,
+            found,
             inserted: data.inserted || data.opportunities_inserted || 0,
             updated: data.updated || data.opportunities_updated || 0,
+            error: found === 0 ? 'returned zero results' : undefined,
           });
           console.log(`${scraper.name} completed: found=${data.found || 0}, inserted=${data.inserted || 0}`);
         } else {
