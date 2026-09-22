@@ -42,6 +42,7 @@ const Pipeline = () => {
   const [researchSheetOpen, setResearchSheetOpen] = useState(false);
   const [researchOrganizer, setResearchOrganizer] = useState<{ name: string; email?: string | null } | null>(null);
   const [mobileStage, setMobileStage] = useState("new");
+  const [filters, setFilters] = useState<PipelineFilters>(DEFAULT_PIPELINE_FILTERS);
   const [acceptedOpp, setAcceptedOpp] = useState<{
     matchId: string;
     eventName: string;
@@ -230,8 +231,112 @@ const Pipeline = () => {
     }
   };
 
+  const handleDismiss = async (opp: PipelineOpportunity) => {
+    setOpportunities((prev) => prev.filter((o) => o.score_id !== opp.score_id));
+
+    const { error } = await supabase
+      .from("opportunity_scores")
+      .update({ dismissed_at: new Date().toISOString() })
+      .eq("id", opp.score_id);
+
+    if (error) {
+      console.error("Error dismissing opportunity:", error);
+      toast.error("Couldn't hide that one — please try again");
+      loadOpportunities();
+      return;
+    }
+
+    toast.success(`Hidden: ${opp.event_name}`, {
+      duration: 8000,
+      action: {
+        label: "Undo",
+        onClick: async () => {
+          const { error: undoError } = await supabase
+            .from("opportunity_scores")
+            .update({ dismissed_at: null })
+            .eq("id", opp.score_id);
+          if (undoError) {
+            toast.error("Couldn't bring it back");
+          } else {
+            loadOpportunities();
+          }
+        },
+      },
+    });
+  };
+
+  const verticalOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(opportunities.map((o) => o.vertical_slug).filter((v): v is string => !!v))
+      ).sort(),
+    [opportunities]
+  );
+
+  const locationOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(opportunities.map((o) => o.location).filter((l): l is string => !!l))
+      ).sort(),
+    [opportunities]
+  );
+
+  const visibleOpportunities = useMemo(() => {
+    const term = filters.search.trim().toLowerCase();
+    const now = Date.now();
+
+    const filtered = opportunities.filter((o) => {
+      if (term) {
+        const haystack = `${o.event_name} ${o.organizer_name ?? ""}`.toLowerCase();
+        if (!haystack.includes(term)) return false;
+      }
+      if (filters.stage !== "all" && o.pipeline_stage !== filters.stage) return false;
+      if (filters.vertical !== "all" && o.vertical_slug !== filters.vertical) return false;
+      if (filters.location !== "all" && o.location !== filters.location) return false;
+
+      if (filters.contactPath !== "all") {
+        const hasEmail = !!o.organizer_email;
+        const hasAny = hasEmail || !!o.organizer_contact_url;
+        if (filters.contactPath === "email" && !hasEmail) return false;
+        if (filters.contactPath === "has" && !hasAny) return false;
+        if (filters.contactPath === "none" && hasAny) return false;
+      }
+
+      if (filters.deadline !== "all") {
+        if (filters.deadline === "none") {
+          if (o.deadline) return false;
+        } else {
+          if (!o.deadline) return false;
+          const days = (new Date(o.deadline).getTime() - now) / 86400000;
+          if (days < 0 || days > Number(filters.deadline)) return false;
+        }
+      }
+
+      return true;
+    });
+
+    const timeOr = (value: string | null | undefined, fallback: number) =>
+      value ? new Date(value).getTime() : fallback;
+
+    return [...filtered].sort((a, b) => {
+      switch (filters.sort) {
+        case "deadline":
+          return timeOr(a.deadline, Infinity) - timeOr(b.deadline, Infinity);
+        case "event_date":
+          return timeOr(a.event_date, Infinity) - timeOr(b.event_date, Infinity);
+        case "added":
+          return (
+            timeOr(b.created_at ?? b.calculated_at, 0) -
+            timeOr(a.created_at ?? a.calculated_at, 0)
+          );
+        default:
+          return b.ai_score - a.ai_score;
+      }
+    });
+  }, [opportunities, filters]);
+
   const getOpportunitiesByStage = (stageId: string) => {
-    return opportunities.filter((opp) => opp.pipeline_stage === stageId);
+    return visibleOpportunities.filter((opp) => opp.pipeline_stage === stageId);
   };
 
   const handleCardClick = (opp: PipelineOpportunity) => {
