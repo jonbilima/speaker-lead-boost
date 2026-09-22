@@ -12,6 +12,7 @@ import {
   LifeBuoy,
   CreditCard,
   RotateCcw,
+  CalendarClock,
 } from "lucide-react";
 import {
   Sidebar,
@@ -36,6 +37,7 @@ const menuItems = [
   { title: "Home", url: "/dashboard", icon: Home },
   { title: "Find", url: "/find", icon: Search },
   { title: "Pipeline", url: "/pipeline", icon: LayoutGrid },
+  { title: "Next Cycle", url: "/next-cycle", icon: CalendarClock },
   { title: "Business", url: "/business", icon: Briefcase },
   { title: "Calendar", url: "/calendar", icon: Calendar },
   { title: "Profile & Settings", url: "/profile", icon: UserCircle },
