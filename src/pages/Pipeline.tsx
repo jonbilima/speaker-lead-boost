@@ -76,11 +76,16 @@ const Pipeline = () => {
           fee_estimate_min,
           fee_estimate_max,
           event_url,
-          organizer_email
+          organizer_email,
+          organizer_contact_url,
+          vertical_slug,
+          country,
+          created_at
         )
       `)
       .eq("user_id", session.user.id)
       .neq("is_archived", true)
+      .is("dismissed_at", null)
       .order("ai_score", { ascending: false });
 
     if (error) {
@@ -115,6 +120,10 @@ const Pipeline = () => {
           fee_estimate_max: score.opportunities!.fee_estimate_max,
           event_url: score.opportunities!.event_url,
           organizer_email: score.opportunities!.organizer_email ?? null,
+          organizer_contact_url: score.opportunities!.organizer_contact_url ?? null,
+          vertical_slug: score.opportunities!.vertical_slug ?? null,
+          country: score.opportunities!.country ?? null,
+          created_at: score.opportunities!.created_at ?? null,
           ai_score: score.ai_score || 0,
           ai_reason: score.ai_reason,
           pipeline_stage: (score.pipeline_stage as PipelineOpportunity['pipeline_stage']) || "new",
