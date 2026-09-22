@@ -32,6 +32,7 @@ import { formatDistanceToNow, format } from "date-fns";
 import { PipelineOpportunity } from "./PipelineCard";
 import { PackageBuilderDialog } from "./PackageBuilderDialog";
 import { PackageStats } from "./PackageStats";
+import { formatEventDateOr } from "@/lib/eventDates";
 
 interface Activity {
   id: string;
@@ -180,7 +181,7 @@ export function PipelineDetailModal({
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "Not specified";
-    return format(new Date(dateStr), "MMMM d, yyyy");
+    return formatEventDateOr(dateStr, "Not specified", "long");
   };
 
   if (!opportunity) return null;

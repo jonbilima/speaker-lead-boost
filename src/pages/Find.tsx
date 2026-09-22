@@ -22,6 +22,8 @@ import { SmartSubmitDialog } from "@/components/find/SmartSubmitDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SavedSearch } from "@/hooks/useSavedSearches";
 import { useOrganizerContactLookup } from "@/hooks/useOrganizerContact";
+import { isDeadlinePassed, daysUntil } from "@/lib/eventDates";
+import { Link } from "react-router-dom";
 
 export interface Opportunity {
   id: string;
@@ -322,7 +324,11 @@ const Find = () => {
     searchTerm.length > 0;
 
   // Filter and sort opportunities
+  const expiredCount = opportunities.filter(opp => isDeadlinePassed(opp.deadline)).length;
+
   const filteredOpportunities = opportunities.filter(opp => {
+    // Closed calls live on the Next Cycle page, never in the current feed
+    if (isDeadlinePassed(opp.deadline)) return false;
     // Search filter
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
@@ -338,7 +344,7 @@ const Find = () => {
     if (activeSmartList === "perfect-matches" && (opp.ai_score === null || opp.ai_score < 85)) return false;
     if (activeSmartList === "closing-soon") {
       if (!opp.deadline) return false;
-      const daysLeft = Math.ceil((new Date(opp.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      const daysLeft = daysUntil(opp.deadline) ?? 0;
       if (daysLeft > 14 || daysLeft < 0) return false;
     }
     if (activeSmartList === "new-this-week") {
@@ -362,7 +368,7 @@ const Find = () => {
 
     // Deadline filter
     if (filters.deadlines.length > 0 && opp.deadline) {
-      const daysLeft = Math.ceil((new Date(opp.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      const daysLeft = daysUntil(opp.deadline) ?? 0;
       const matchesDeadline = filters.deadlines.some(range => {
         if (range === "This Week") return daysLeft >= 0 && daysLeft <= 7;
         if (range === "This Month") return daysLeft >= 0 && daysLeft <= 30;
@@ -448,6 +454,14 @@ const Find = () => {
             <p className="text-muted-foreground mt-1">
               Discover speaking opportunities matched to your expertise
             </p>
+            {expiredCount > 0 && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {expiredCount} call{expiredCount === 1 ? " has" : "s have"} closed —{" "}
+                <Link to="/next-cycle" className="text-primary underline underline-offset-2">
+                  pitch them for next cycle
+                </Link>
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <DataFreshnessIndicator />

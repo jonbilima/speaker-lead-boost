@@ -21,6 +21,7 @@ import Coach from "./pages/Coach";
 import Templates from "./pages/Templates";
 import Topics from "./pages/Topics";
 import Find from "./pages/Find";
+import NextCycle from "./pages/NextCycle";
 import Business from "./pages/Business";
 import EmbedWidget from "./pages/EmbedWidget";
 import TestimonialSubmit from "./pages/TestimonialSubmit";
@@ -133,6 +134,7 @@ const App = () => (
                 <Route path="/templates" element={<Templates />} />
                 <Route path="/topics" element={<Topics />} />
                 <Route path="/find" element={<Find />} />
+                <Route path="/next-cycle" element={<NextCycle />} />
                 <Route path="/business" element={<Business />} />
                 <Route path="/embed/:slug" element={<EmbedWidget />} />
                 <Route path="/testimonial/:token" element={<TestimonialSubmit />} />

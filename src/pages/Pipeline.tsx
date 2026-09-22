@@ -21,6 +21,7 @@ import {
   PipelineFilters,
   DEFAULT_PIPELINE_FILTERS,
 } from "@/components/pipeline/PipelineToolbar";
+import { isDeadlinePassed } from "@/lib/eventDates";
 
 
 const PIPELINE_STAGES = [
@@ -286,6 +287,10 @@ const Pipeline = () => {
     const now = Date.now();
 
     const filtered = opportunities.filter((o) => {
+      // An untouched lead whose call has closed belongs on Next Cycle, not in New.
+      // Anything the speaker has already moved along stays where they put it.
+      if (o.pipeline_stage === "new" && isDeadlinePassed(o.deadline)) return false;
+
       if (term) {
         const haystack = `${o.event_name} ${o.organizer_name ?? ""}`.toLowerCase();
         if (!haystack.includes(term)) return false;

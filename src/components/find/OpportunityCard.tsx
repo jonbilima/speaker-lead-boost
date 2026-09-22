@@ -22,6 +22,7 @@ import { useState } from "react";
 import { describeReasonCodes, isMissingDataScore } from "@/lib/reasonCodes";
 import { useOrganizerContact } from "@/hooks/useOrganizerContact";
 import { ContactPathPanel } from "@/components/find/ContactPathPanel";
+import { formatEventDate, daysUntil } from "@/lib/eventDates";
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
@@ -42,8 +43,8 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
 
   const getDeadlineInfo = (deadline: string | null) => {
     if (!deadline) return { text: "No deadline", urgent: false };
-    const days = Math.ceil((new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-    if (days < 0) return { text: "Passed", urgent: true };
+    const days = daysUntil(deadline) ?? 0;
+    if (days < 0) return { text: "Call closed", urgent: true };
     if (days === 0) return { text: "Closes today", urgent: true };
     if (days === 1) return { text: "Closes tomorrow", urgent: true };
     if (days <= 7) return { text: `${days} days left`, urgent: true };
@@ -290,7 +291,7 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
             {opportunity.event_date && (
               <span className="flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
-                {new Date(opportunity.event_date).toLocaleDateString()}
+                {formatEventDate(opportunity.event_date)}
               </span>
             )}
             <span className="flex items-center gap-1">

@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Copy, ExternalLink, Sparkles, CheckCircle2, FileText } from "lucide-react";
 import { TemplateSelector } from "@/components/templates/TemplateSelector";
+import { formatEventDate, daysUntil } from "@/lib/eventDates";
 interface Opportunity {
   id: string;
   event_name: string;
@@ -91,8 +92,8 @@ export const OpportunityModal = ({ opportunity, open, onOpenChange, onApplied }:
 
   const formatDeadline = (deadline: string | null) => {
     if (!deadline) return "No deadline";
-    const days = Math.ceil((new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-    if (days < 0) return "Passed";
+    const days = daysUntil(deadline) ?? 0;
+    if (days < 0) return "Call closed";
     if (days === 0) return "Today";
     if (days === 1) return "Tomorrow";
     if (days < 7) return `${days} days left`;
@@ -247,7 +248,7 @@ export const OpportunityModal = ({ opportunity, open, onOpenChange, onApplied }:
               )}
               {opportunity.event_date && (
                 <div>
-                  <span className="font-semibold">Event Date:</span> {new Date(opportunity.event_date).toLocaleDateString()}
+                  <span className="font-semibold">Event Date:</span> {formatEventDate(opportunity.event_date)}
                 </div>
               )}
             </div>

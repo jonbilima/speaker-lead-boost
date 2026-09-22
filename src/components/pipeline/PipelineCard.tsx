@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar, MapPin, DollarSign, Clock, Building2, FileEdit, Send, Ban } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { FollowUpIndicator } from "./FollowUpIndicator";
+import { formatEventDate } from "@/lib/eventDates";
 
 export interface PipelineOpportunity {
   id: string;
@@ -65,11 +66,7 @@ export function PipelineCard({
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return null;
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    return formatEventDate(dateStr, "medium");
   };
 
   const formatFee = (min: number | null, max: number | null) => {
