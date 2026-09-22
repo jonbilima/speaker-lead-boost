@@ -164,7 +164,9 @@ serve(async (req) => {
         opportunities_found: totalFound,
         opportunities_inserted: totalInserted,
         opportunities_updated: totalUpdated,
-        error_message: failedSources.length > 0 ? `Failed sources: ${failedSources.join(', ')}` : null,
+        error_message: failedSources.length > 0
+          ? `Failed sources: ${results.filter(r => !r.success).map(r => `${r.source} (${r.error ?? 'unknown error'})`).join(', ')}`.slice(0, 2000)
+          : null,
       })
       .eq('id', masterLogId);
 
