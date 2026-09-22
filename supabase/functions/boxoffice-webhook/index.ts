@@ -155,14 +155,18 @@ async function ensureUser(email: string, name: string | null, products: string[]
   return data.user;
 }
 
-async function setPasswordLink(email: string): Promise<string> {
-  const { data, error } = await admin.auth.admin.generateLink({
-    type: "recovery", email,
-    // must land on the route that actually handles PASSWORD_RECOVERY
-    options: { redirectTo: `${APP_URL}/reset-password` },
-  });
-  if (error) throw error;
-  return data.properties.action_link;
+/* The welcome email used to carry a generateLink({type:"recovery"}) token.
+ * Those are single-use and expire in about an hour — the wrong lifetime for
+ * the one message a customer keeps and returns to days later. Single-use is
+ * the sharper half: anything that follows the URL consumes it, so a corporate
+ * mail scanner burns the token before the human clicks, which is how buyers
+ * on business domains were locked out of links they had never used.
+ *
+ * The welcome email now carries a permanent URL. The customer mints their own
+ * token from the sign-in page at the moment they want it, so it is always
+ * fresh; /reset-password offers the same escape hatch when one does expire. */
+function setupUrl(email: string): string {
+  return `${APP_URL}/auth?email=${encodeURIComponent(email)}`;
 }
 
 async function sendWelcomeEmail(email: string, name: string | null, link: string) {
@@ -180,7 +184,8 @@ async function sendWelcomeEmail(email: string, name: string | null, link: string
         <h2 style="font-size:20px">Welcome to NextMIC, ${first}!</h2>
         <p>Your account is ready. One step left — set your password and you're in:</p>
         <p style="margin:28px 0"><a href="${link}" style="background:#E8A33D;color:#0F0D15;font-weight:700;padding:14px 26px;border-radius:8px;text-decoration:none">Set my password &rarr;</a></p>
-        <p style="font-size:13px;color:#6D6879">This link is personal to you. If you didn't buy the Booked in 5 Challenge, reply to this email.</p>
+        <p>That opens your sign-in page with your email already filled in. Click <strong>&ldquo;Forgot password?&rdquo;</strong> underneath it and we'll send you a link to choose your password.</p>
+        <p style="font-size:13px;color:#6D6879">This email doesn't expire &mdash; come back to it whenever you're ready. If you didn't buy the Booked in 5 Challenge, reply and let us know.</p>
         <p style="font-size:13px;color:#6D6879">— The NextMIC team &middot; support@nextmic.ai</p>
       </div>`,
     }),
@@ -196,8 +201,7 @@ async function handlePurchaseCompleted(evt: any) {
   if (!email) return { ok: false, error: "no email in payload" };
   const products = (d.products ?? []).map((p: any) => p.ref ?? p);
   const user = await ensureUser(email, d.name ?? null, products);
-  const link = await setPasswordLink(email);
-  await sendWelcomeEmail(email, d.name ?? null, link);
+  await sendWelcomeEmail(email, d.name ?? null, setupUrl(email));
   return { ok: true, user_id: user.id, provisioned: true };
 }
 
@@ -267,8 +271,9 @@ async function handleClaim(req: Request): Promise<Response> {
     console.error("claim: ensureUser failed for", claim.email, msg);
     const existing = /already\s*(been\s*)?registered|already exists|duplicate/i.test(msg);
     try {
-      const link = await setPasswordLink(claim.email);
-      await sendWelcomeEmail(claim.email, claim.name ?? null, link);
+      // Permanent URL here too: this buyer is already stuck once, and a token
+      // that a mail scanner can burn would strand them a second time.
+      await sendWelcomeEmail(claim.email, claim.name ?? null, setupUrl(claim.email));
     } catch (mailEx) {
       console.error("claim: fallback recovery email failed:", mailEx);
     }

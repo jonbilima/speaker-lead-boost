@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,8 +17,40 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [phase, setPhase] = useState<Phase>("verifying");
   const [problem, setProblem] = useState("");
+  const [resendEmail, setResendEmail] = useState("");
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const ready = phase === "ready";
+
+  // Sending someone back to /auth to retype their address is three steps for a
+  // customer who is already stuck. Mint the replacement from this page instead.
+  const handleResend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const addr = resendEmail.trim();
+    if (!addr) {
+      toast.error("Enter the email address you bought with.");
+      return;
+    }
+    setResending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("auth-email", {
+        body: { action: "recovery", email: addr },
+      });
+      if (error) throw error;
+      if (data?.error) toast.error(data.error);
+      else { setResent(true); toast.success("New link sent. Check your email."); }
+    } catch (err: any) {
+      toast.error(err?.message || "Couldn't send the link. Email support@nextmic.ai and we'll get you in.");
+    }
+    setResending(false);
+  };
+
+  useEffect(() => {
+    const prefill = searchParams.get("email");
+    if (prefill) setResendEmail(prefill);
+  }, [searchParams]);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,6 +121,12 @@ const ResetPassword = () => {
     const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
+      // The recovery session can lapse between landing here and submitting.
+      // Drop into the resend path rather than leaving a dead form on screen.
+      if (/session|expired|jwt|token/i.test(error.message)) {
+        setProblem("Your reset link expired before the password was saved.");
+        setPhase("invalid");
+      }
       toast.error(error.message);
       setLoading(false);
     } else {
@@ -115,14 +153,57 @@ const ResetPassword = () => {
                 ? "Enter a new password for your account."
                 : phase === "verifying"
                   ? "Checking your reset link…"
-                  : `${problem} Request a new reset link from the sign-in page.`}
+                  : resent
+                    ? "We've sent a new link. Open it as soon as it arrives — for your security it's only good for about an hour."
+                    : `${problem} Reset links are single-use and last about an hour. Enter your email and we'll send a fresh one.`}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {phase === "invalid" ? (
-              <Button className="w-full" onClick={() => navigate("/auth")}>
-                Request a new reset link
-              </Button>
+              resent ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Nothing after a few minutes? Check your spam folder for a message from{" "}
+                    <span className="font-medium">receipts@nextmic.ai</span>, or email{" "}
+                    <a className="underline" href="mailto:support@nextmic.ai">support@nextmic.ai</a>{" "}
+                    and we'll get you in.
+                  </p>
+                  <Button variant="outline" className="w-full" onClick={() => setResent(false)}>
+                    Send it again
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleResend} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="resend-email">Your email</Label>
+                    <Input
+                      id="resend-email"
+                      type="email"
+                      autoComplete="email"
+                      placeholder="you@example.com"
+                      value={resendEmail}
+                      onChange={(e) => setResendEmail(e.target.value)}
+                      required
+                      disabled={resending}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Use the address you bought with.
+                    </p>
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-accent to-primary"
+                    disabled={resending}
+                  >
+                    {resending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Sending…
+                      </>
+                    ) : "Send me a new link"}
+                  </Button>
+                </form>
+              )
             ) : phase === "verifying" ? (
               <div className="flex items-center justify-center py-6 text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin mr-2" /> Verifying reset link…

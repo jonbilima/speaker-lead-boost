@@ -41,6 +41,14 @@ const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  // The welcome email links here with ?email=… so a new customer never retypes
+  // the address they bought with: "Forgot password?" becomes one click, and the
+  // address matches their order exactly, which is what the entitlement join needs.
+  useEffect(() => {
+    const prefill = searchParams.get("email");
+    if (prefill) setEmail(prefill);
+  }, [searchParams]);
+
   useEffect(() => {
     // Set up auth state listener BEFORE checking session
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
