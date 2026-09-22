@@ -12,6 +12,7 @@ interface PipelineColumnProps {
   opportunities: PipelineOpportunity[];
   onCardClick: (opportunity: PipelineOpportunity) => void;
   onResearchOrganizer?: (organizerName: string, organizerEmail?: string | null) => void;
+  onDismiss?: (opportunity: PipelineOpportunity) => void;
   selectionMode?: boolean;
   selectedIds?: Set<string>;
   onToggleSelection?: (scoreId: string) => void;
@@ -25,6 +26,7 @@ export function PipelineColumn({
   opportunities, 
   onCardClick, 
   onResearchOrganizer,
+  onDismiss,
   selectionMode,
   selectedIds,
   onToggleSelection,
@@ -71,6 +73,7 @@ export function PipelineColumn({
                   index={index}
                   onClick={() => onCardClick(opp)}
                   onResearchOrganizer={onResearchOrganizer}
+                  onDismiss={onDismiss}
                   selectionMode={selectionMode}
                   isSelected={selectedIds?.has(opp.score_id)}
                   onToggleSelection={onToggleSelection}

@@ -28,6 +28,7 @@ interface MobilePipelineProps {
   onCardClick: (opp: PipelineOpportunity) => void;
   onMoveToStage: (oppId: string, newStage: string) => void;
   onResearchOrganizer?: (organizerName: string, organizerEmail?: string | null) => void;
+  onDismiss?: (opp: PipelineOpportunity) => void;
 }
 
 export function MobilePipeline({
@@ -38,6 +39,7 @@ export function MobilePipeline({
   onCardClick,
   onMoveToStage,
   onResearchOrganizer,
+  onDismiss,
 }: MobilePipelineProps) {
   const currentIndex = stages.findIndex(s => s.id === currentStage);
   const stageOpps = opportunities.filter(o => o.pipeline_stage === currentStage);
