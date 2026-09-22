@@ -57,25 +57,15 @@ function toTimestamp(v: unknown): string | null {
   const s = str(v);
   if (!s) return null;
 
-  const hasYear = /\b(19|20)\d{2}\b/.test(s);
   const monthDay = s.match(
     /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2})\b/i,
   );
-  const numericDate = /\d{1,4}[/-]\d{1,2}([/-]\d{1,4})?/.test(s);
 
-  // No date component whatsoever -> not a date.
-  if (!hasYear && !monthDay && !numericDate) return null;
-
-  if (hasYear || numericDate) {
-    const iso = Date.parse(s);
-    if (!Number.isNaN(iso)) {
-      const d = new Date(iso);
-      if (isPlausibleYear(d)) return d.toISOString();
-    }
-  }
+  // A specific day was stated -> safe to parse.
+  if (hasExplicitDay(s)) return parseExplicitDate(s);
 
   // Month + day but no year (e.g. "Mon, Aug 17, 10:30 AM EDT"): assume the
-  // nearest upcoming occurrence.
+  // nearest upcoming occurrence. Still an explicitly stated day.
   if (monthDay) {
     const now = new Date();
     const year = now.getUTCFullYear();
@@ -90,6 +80,8 @@ function toTimestamp(v: unknown): string | null {
     }
   }
 
+  // Bare year ("2027"), month+year ("March 2027") or no date at all -> store
+  // nothing rather than inventing a month/day.
   return null;
 }
 
