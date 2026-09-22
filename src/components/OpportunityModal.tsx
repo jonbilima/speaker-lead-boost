@@ -92,8 +92,8 @@ export const OpportunityModal = ({ opportunity, open, onOpenChange, onApplied }:
 
   const formatDeadline = (deadline: string | null) => {
     if (!deadline) return "No deadline";
-    const days = Math.ceil((new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-    if (days < 0) return "Passed";
+    const days = daysUntil(deadline) ?? 0;
+    if (days < 0) return "Call closed";
     if (days === 0) return "Today";
     if (days === 1) return "Tomorrow";
     if (days < 7) return `${days} days left`;
