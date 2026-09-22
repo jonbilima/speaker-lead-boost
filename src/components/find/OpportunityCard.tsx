@@ -42,8 +42,8 @@ export function OpportunityCard({ opportunity, viewMode, onQuickApply, onRefresh
 
   const getDeadlineInfo = (deadline: string | null) => {
     if (!deadline) return { text: "No deadline", urgent: false };
-    const days = Math.ceil((new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-    if (days < 0) return { text: "Passed", urgent: true };
+    const days = daysUntil(deadline) ?? 0;
+    if (days < 0) return { text: "Call closed", urgent: true };
     if (days === 0) return { text: "Closes today", urgent: true };
     if (days === 1) return { text: "Closes tomorrow", urgent: true };
     if (days <= 7) return { text: `${days} days left`, urgent: true };
