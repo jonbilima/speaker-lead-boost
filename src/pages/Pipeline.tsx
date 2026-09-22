@@ -472,7 +472,9 @@ const Pipeline = () => {
           <div className="overflow-x-auto pb-4" data-tour="pipeline-columns">
             <DragDropContext onDragEnd={handleDragEnd}>
               <div className="flex gap-4 min-w-max">
-                {PIPELINE_STAGES.map((stage, stageIndex) => (
+                {PIPELINE_STAGES.filter(
+                  (s) => filters.stage === "all" || s.id === filters.stage
+                ).map((stage, stageIndex) => (
                   <div 
                     key={stage.id}
                     data-tour={stageIndex === 0 ? "pipeline-new" : stageIndex === 2 ? "pipeline-pitched" : undefined}
@@ -482,6 +484,7 @@ const Pipeline = () => {
                       opportunities={getOpportunitiesByStage(stage.id)}
                       onCardClick={handleCardClick}
                       onResearchOrganizer={handleResearchOrganizer}
+                      onDismiss={handleDismiss}
                       selectionMode={bulkActions.selectionMode}
                       selectedIds={bulkActions.selectedIds}
                       onToggleSelection={bulkActions.toggleSelection}
