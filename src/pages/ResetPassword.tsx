@@ -24,6 +24,13 @@ const ResetPassword = () => {
   const navigate = useNavigate();
   const ready = phase === "ready";
 
+  /* A banned account can be issued reset links forever and can never use one:
+   * verifyOtp rejects every token with "User is banned". Offering the resend
+   * form here put lapsed members on a treadmill — request, receive, fail,
+   * repeat — with the reason printed directly above the button that couldn't
+   * possibly work. A ban is a billing state, so say so and point at the fix. */
+  const membershipEnded = /banned/i.test(problem);
+
   // Sending someone back to /auth to retype their address is three steps for a
   // customer who is already stuck. Mint the replacement from this page instead.
   const handleResend = async (e: React.FormEvent) => {
@@ -142,7 +149,11 @@ const ResetPassword = () => {
           <div className="inline-flex items-center mb-4">
             <Logo size="lg" />
           </div>
-          <p className="text-muted-foreground">Set a new password</p>
+          <p className="text-muted-foreground">
+            {phase !== "invalid"
+              ? "Set a new password"
+              : membershipEnded ? "Your membership has ended" : "Let's get you a fresh link"}
+          </p>
         </div>
 
         <Card className="border-2">
@@ -153,14 +164,30 @@ const ResetPassword = () => {
                 ? "Enter a new password for your account."
                 : phase === "verifying"
                   ? "Checking your reset link…"
-                  : resent
-                    ? "We've sent a new link. Open it as soon as it arrives — for your security it's only good for about an hour."
-                    : `${problem} Reset links are single-use and last about an hour. Enter your email and we'll send a fresh one.`}
+                  : membershipEnded
+                    ? "Your NextMIC membership has ended, so sign-in is switched off for this account. A new password won't reopen it — restarting your membership will, and everything you bought outright is still here waiting."
+                    : resent
+                      ? "We've sent a new link. Open it as soon as it arrives — for your security it's only good for about an hour."
+                      : `${problem} Reset links are single-use and last about an hour. Enter your email and we'll send a fresh one.`}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {phase === "invalid" ? (
-              resent ? (
+              membershipEnded ? (
+                <div className="space-y-4">
+                  <Button
+                    className="w-full bg-gradient-to-r from-accent to-primary"
+                    onClick={() => { window.location.href = "https://launch.nextmic.ai"; }}
+                  >
+                    Restart my membership
+                  </Button>
+                  <p className="text-sm text-muted-foreground">
+                    Think this is a mistake, or already restarted and still locked out? Email{" "}
+                    <a className="underline" href="mailto:support@nextmic.ai">support@nextmic.ai</a>{" "}
+                    and we'll sort it out the same day.
+                  </p>
+                </div>
+              ) : resent ? (
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">
                     Nothing after a few minutes? Check your spam folder for a message from{" "}
