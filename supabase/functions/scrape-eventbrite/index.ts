@@ -273,6 +273,7 @@ serve(async (req) => {
     if (discoveryErrors.length) {
       warnings.push(`${discoveryErrors.length}/${SEARCH_PAGES.length} search pages failed`);
     }
+    if (skippedIrrelevant) warnings.push(`${skippedIrrelevant} listings skipped as not speaking calls`);
     if (apiFailures) warnings.push(`${apiFailures} event lookups failed (last: ${lastApiError})`);
 
     await supabase
