@@ -1660,6 +1660,27 @@ export type Database = {
         }
         Relationships: []
       }
+      opportunities_eventbrite_junk_backup_20260928: {
+        Row: {
+          deactivated_at: string | null
+          event_name: string | null
+          opportunity_id: string | null
+          was_active: boolean | null
+        }
+        Insert: {
+          deactivated_at?: string | null
+          event_name?: string | null
+          opportunity_id?: string | null
+          was_active?: boolean | null
+        }
+        Update: {
+          deactivated_at?: string | null
+          event_name?: string | null
+          opportunity_id?: string | null
+          was_active?: boolean | null
+        }
+        Relationships: []
+      }
       opportunities_eventdate_placeholder_backup_20260922: {
         Row: {
           cleared_at: string
