@@ -12,9 +12,30 @@ import { validateAuth, unauthorizedResponse, forbiddenResponse, corsHeaders, isI
 const SEARCH_PAGES = [
   "https://www.eventbrite.com/d/online/call-for-speakers/",
   "https://www.eventbrite.com/d/united-states/call-for-speakers/",
-  "https://www.eventbrite.com/d/online/call-for-proposals/",
-  "https://www.eventbrite.com/d/united-states/speaker-conference/",
+  "https://www.eventbrite.com/d/united-states/call-for-presenters/",
+  "https://www.eventbrite.com/d/united-states/speaker-applications/",
 ];
+
+// A listing must explicitly invite speakers/presenters/proposals.
+const CALL_PATTERNS = [
+  /call\s+for\s+(speakers?|presenters?|proposals?|papers?|sessions?|abstracts?|submissions?|panelists?)/i,
+  /\bcfp\b/i,
+  /(speaker|presenter|session|panel)\s+(applications?|submissions?|proposals?)\s+(are\s+)?(now\s+)?open/i,
+  /(apply|submit)\s+(to|a\s+proposal\s+to)\s+(speak|present)/i,
+  /seeking\s+(speakers?|presenters?|panelists?)/i,
+  /now\s+accepting\s+(speaker|session|presentation)\s+(proposals?|applications?)/i,
+];
+// Events *about* speaking/proposals (webinars, coaching, workshops) are not calls.
+const EXCLUDE_PATTERNS = [
+  /\b(webinar|workshop|masterclass|coaching|bootcamp|training|how\s+to\s+(write|land|get))\b/i,
+  /\b(casting\s+call|support\s+group|cold\s+call)\b/i,
+];
+
+function isSpeakingCall(name: string, body: string): boolean {
+  if (EXCLUDE_PATTERNS.some((p) => p.test(name))) return false;
+  const text = `${name}\n${body}`;
+  return CALL_PATTERNS.some((p) => p.test(text));
+}
 
 const MAX_EVENTS_PER_RUN = 40;
 
@@ -158,6 +179,7 @@ serve(async (req) => {
     let updated = 0;
     let hydrated = 0;
     let apiFailures = 0;
+    let skippedIrrelevant = 0;
     let lastApiError: string | null = null;
 
     for (const url of candidateUrls) {
@@ -178,6 +200,15 @@ serve(async (req) => {
         hydrated++;
 
         const eventUrl = cleanUrl((event as { url?: string }).url ?? url);
+
+        // Relevance gate: only keep genuine calls for speakers/proposals.
+        const nameText = (event as { name?: { text?: string } }).name?.text ?? '';
+        const bodyText = (event as { description?: { text?: string }; summary?: string }).description?.text
+          ?? (event as { summary?: string }).summary ?? '';
+        if (!isSpeakingCall(nameText, bodyText)) {
+          skippedIrrelevant++;
+          continue;
+        }
 
         const { data: existing } = await supabase
           .from('opportunities')
