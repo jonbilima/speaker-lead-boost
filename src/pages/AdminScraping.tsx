@@ -188,32 +188,6 @@ export default function AdminScraping() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Sessionize</CardTitle>
-                <CardDescription>Scrape speaking opportunities from Sessionize CFP API</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  onClick={() => triggerScraping('Sessionize', 'scrape-sessionize')}
-                  disabled={scraping['Sessionize']}
-                  className="w-full"
-                >
-                  {scraping['Sessionize'] ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Scraping...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="mr-2 h-4 w-4" />
-                      Scrape Sessionize
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
                 <CardTitle>Eventbrite</CardTitle>
                 <CardDescription>Scrape speaking opportunities from Eventbrite API</CardDescription>
               </CardHeader>

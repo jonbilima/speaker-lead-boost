@@ -7,9 +7,6 @@ verify_jwt = true
 [functions.generate-pitch]
 verify_jwt = false
 
-# Authorized in-code (admin JWT or internal service-role call from scrape-all-sources).
-[functions.scrape-sessionize]
-verify_jwt = false
 
 # Authorized in-code (admin JWT or internal service-role call from scrape-all-sources).
 [functions.scrape-eventbrite]

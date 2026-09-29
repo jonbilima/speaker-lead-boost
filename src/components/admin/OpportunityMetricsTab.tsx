@@ -178,7 +178,6 @@ export function OpportunityMetricsTab() {
     
     try {
       const functionMap: Record<string, string> = {
-        'sessionize': 'scrape-sessionize',
         'papercall': 'scrape-papercall',
         'eventbrite': 'scrape-eventbrite',
         'test': 'scrape-test',
