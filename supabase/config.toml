@@ -88,4 +88,6 @@ verify_jwt = false
 # Next-cycle date discovery. Admin/service only; authorized in-code.
 [functions.discover-event-cycles]
 verify_jwt = false
-\n[functions.apify-abort-running]\nverify_jwt = false
+
+[functions.apify-abort-running]
+verify_jwt = false
