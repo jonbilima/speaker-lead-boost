@@ -29,7 +29,7 @@ serve(async (req) => {
       out.push({ id: run.id, actId: run.actId, status: run.status, startedAt: run.startedAt, aborted });
     }
   }
-  const recent = await (await fetch(`https://api.apify.com/v2/actor-runs?desc=1&limit=10`, { headers: h })).json();
+  const rr = await fetch(`https://api.apify.com/v2/actor-runs?desc=1&limit=10`, { headers: h }); const recent = await rr.json(); out.push({ listStatus: rr.status, err: recent?.error ?? null, total: recent?.data?.total ?? null });
   const recentRuns = (recent?.data?.items ?? []).map((x: { id: string; status: string; startedAt: string; finishedAt: string }) => ({ id: x.id, status: x.status, startedAt: x.startedAt, finishedAt: x.finishedAt }));
   return new Response(JSON.stringify({ dry, active: out, recentRuns }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 });
