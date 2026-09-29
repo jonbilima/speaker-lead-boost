@@ -82,7 +82,8 @@ serve(async (req) => {
     // Define scrapers to run
     const scrapers = [
       { name: 'papercall', function: 'scrape-papercall' },
-      { name: 'sessionize', function: 'scrape-sessionize' },
+      // REMOVED 2026-09-29: 'scrape-sessionize' actually fetched WikiCFP (not
+      // Sessionize) and failed all 53 runs since Nov 2025. Function deleted.
       { name: 'eventbrite', function: 'scrape-eventbrite' },
       // DISABLED 2026-08-20: Meetup yielded ~80% of inventory with zero organizer
       // emails/topics/dates and floor scores. Re-enable by uncommenting this line
