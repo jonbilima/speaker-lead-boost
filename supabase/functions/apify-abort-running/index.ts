@@ -4,9 +4,13 @@ import { validateAuth, unauthorizedResponse, forbiddenResponse, corsHeaders } fr
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
-  const auth = await validateAuth(req);
-  if (auth.error || !auth.user) return unauthorizedResponse(auth.error || 'Unauthorized');
-  if (!auth.isAdmin) return forbiddenResponse('Admin only');
+  const cronSecret = Deno.env.get('EXPIRY_CRON_SECRET') ?? '';
+  const cronOk = cronSecret.length > 0 && (req.headers.get('x-cron-secret') ?? '').trim() === cronSecret;
+  if (!cronOk) {
+    const auth = await validateAuth(req);
+    if (auth.error || !auth.user) return unauthorizedResponse(auth.error || 'Unauthorized');
+    if (!auth.isAdmin) return forbiddenResponse('Admin only');
+  }
   const key = Deno.env.get('APIFY_API_KEY');
   if (!key) return new Response(JSON.stringify({ error: 'no key' }), { status: 500, headers: corsHeaders });
   const h = { Authorization: `Bearer ${key}` };
