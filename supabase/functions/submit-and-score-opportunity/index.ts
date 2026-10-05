@@ -71,6 +71,7 @@ Deno.serve(async (req) => {
         .from('opportunities')
         .select('id, is_active')
         .eq('event_url', event_url)
+        .eq('is_private', false)
         .limit(1)
         .maybeSingle();
 

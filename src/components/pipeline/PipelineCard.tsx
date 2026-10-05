@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar, MapPin, DollarSign, Clock, Building2, FileEdit, Send, Ban } from "lucide-react";
+import { Calendar, MapPin, DollarSign, Clock, Building2, FileEdit, Send, Ban, Lock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { FollowUpIndicator } from "./FollowUpIndicator";
 import { formatEventDate } from "@/lib/eventDates";
@@ -25,6 +25,8 @@ export interface PipelineOpportunity {
   vertical_slug?: string | null;
   country?: string | null;
   created_at?: string | null;
+  /** Self-sourced gig, visible only to the speaker who added it. */
+  is_private?: boolean;
 
   ai_score: number;
   ai_reason: string | null;
@@ -124,9 +126,21 @@ export function PipelineCard({
             <h4 className="font-medium text-sm line-clamp-2 flex-1">
               {opportunity.event_name}
             </h4>
-            <Badge className={`${getScoreColor(opportunity.ai_score)} text-xs shrink-0`}>
-              {opportunity.ai_score}
-            </Badge>
+            {opportunity.is_private ? (
+              // A gig the speaker booked themselves: a match score means nothing here.
+              <Badge
+                variant="outline"
+                className="text-xs shrink-0 border-violet-300 text-violet-700 gap-1"
+                title="Only you can see this gig"
+              >
+                <Lock className="h-3 w-3" />
+                Private
+              </Badge>
+            ) : (
+              <Badge className={`${getScoreColor(opportunity.ai_score)} text-xs shrink-0`}>
+                {opportunity.ai_score}
+              </Badge>
+            )}
           </div>
 
           {opportunity.organizer_name && (

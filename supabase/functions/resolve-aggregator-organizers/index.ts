@@ -66,6 +66,7 @@ Deno.serve(async (req) => {
       .select("id, event_name, event_url, organizer_email")
       .eq("is_active", true)
       .is("merged_into", null)
+      .eq("is_private", false)
       .not("event_url", "is", null);
 
     if (Array.isArray(body.opportunity_ids) && body.opportunity_ids.length) {

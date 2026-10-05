@@ -157,7 +157,7 @@ export function SmartSubmitDialog({ onSuccess }: SmartSubmitDialogProps) {
       <DialogTrigger asChild>
         <Button className="gap-2 bg-gradient-to-r from-accent to-primary hover:opacity-90">
           <PlusCircle className="h-4 w-4" />
-          Add Opportunity
+          Share an opportunity
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
@@ -171,16 +171,23 @@ export function SmartSubmitDialog({ onSuccess }: SmartSubmitDialogProps) {
             ) : (
               <>
                 <Sparkles className="h-5 w-5 text-accent" />
-                Add a Speaking Opportunity
+                Share an opportunity with every speaker
               </>
             )}
           </DialogTitle>
           <DialogDescription>
-            {step === "url" && "Paste a URL and we'll automatically extract the details"}
-            {step === "review" && "Review and edit the extracted information"}
+            {step === "url" && "Paste a URL and we'll pull in the details. Shared opportunities go into the lead pool for every NextMIC speaker."}
+            {step === "review" && "Review the details. This will be visible to every NextMIC speaker."}
             {step === "success" && "Your contribution helps the speaker community!"}
           </DialogDescription>
         </DialogHeader>
+
+        {step !== "success" && (
+          <p className="text-sm text-muted-foreground rounded-md bg-muted px-3 py-2">
+            Booked a gig yourself? Use <span className="font-medium text-foreground">Add my own gig</span> in
+            your Pipeline instead. That keeps it private to you.
+          </p>
+        )}
 
         {step === "url" && (
           <div className="space-y-4 mt-4">

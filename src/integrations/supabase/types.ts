@@ -1220,6 +1220,7 @@ export type Database = {
           ingest_source: string | null
           is_active: boolean | null
           is_featured: boolean | null
+          is_private: boolean
           is_verified: boolean | null
           karma_awarded: boolean | null
           location: string | null
@@ -1232,6 +1233,7 @@ export type Database = {
           organizer_linkedin: string | null
           organizer_name: string | null
           organizer_phone: string | null
+          owner_user_id: string | null
           raw_data: Json | null
           scraped_at: string
           seniority_level: string | null
@@ -1262,6 +1264,7 @@ export type Database = {
           ingest_source?: string | null
           is_active?: boolean | null
           is_featured?: boolean | null
+          is_private?: boolean
           is_verified?: boolean | null
           karma_awarded?: boolean | null
           location?: string | null
@@ -1274,6 +1277,7 @@ export type Database = {
           organizer_linkedin?: string | null
           organizer_name?: string | null
           organizer_phone?: string | null
+          owner_user_id?: string | null
           raw_data?: Json | null
           scraped_at?: string
           seniority_level?: string | null
@@ -1304,6 +1308,7 @@ export type Database = {
           ingest_source?: string | null
           is_active?: boolean | null
           is_featured?: boolean | null
+          is_private?: boolean
           is_verified?: boolean | null
           karma_awarded?: boolean | null
           location?: string | null
@@ -1316,6 +1321,7 @@ export type Database = {
           organizer_linkedin?: string | null
           organizer_name?: string | null
           organizer_phone?: string | null
+          owner_user_id?: string | null
           raw_data?: Json | null
           scraped_at?: string
           seniority_level?: string | null
@@ -4669,6 +4675,21 @@ export type Database = {
       }
     }
     Functions: {
+      add_private_gig: {
+        Args: {
+          p_event_date?: string
+          p_event_name: string
+          p_fee?: number
+          p_is_virtual?: boolean
+          p_location?: string
+          p_notes?: string
+          p_organizer_email?: string
+          p_organizer_name?: string
+          p_stage?: string
+          p_topic?: string
+        }
+        Returns: Json
+      }
       derive_opportunity_country: {
         Args: { p_event_url: string; p_location: string; p_raw: Json }
         Returns: string

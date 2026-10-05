@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +21,8 @@ interface AcceptedBookingPromptProps {
   eventName: string;
   eventDate: string | null;
   userId: string;
+  /** Fee already agreed elsewhere (e.g. entered when adding a private gig). */
+  initialFee?: number | null;
   onSuccess: () => void;
 }
 
@@ -31,6 +33,7 @@ export function AcceptedBookingPrompt({
   eventName,
   eventDate,
   userId,
+  initialFee = null,
   onSuccess,
 }: AcceptedBookingPromptProps) {
   const [saving, setSaving] = useState(false);
@@ -38,6 +41,14 @@ export function AcceptedBookingPrompt({
   const [bookingDate, setBookingDate] = useState(
     eventDate ? eventDate.split("T")[0] : ""
   );
+
+  // The prompt stays mounted between uses, so a useState initializer alone
+  // would show the previous gig's date. Re-seed every time it opens.
+  useEffect(() => {
+    if (!open) return;
+    setConfirmedFee(initialFee != null ? String(initialFee) : "");
+    setBookingDate(eventDate ? eventDate.split("T")[0] : "");
+  }, [open, matchId, initialFee, eventDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

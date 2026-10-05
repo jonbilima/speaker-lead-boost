@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
-import { Kanban, RefreshCw, CheckSquare } from "lucide-react";
+import { Kanban, RefreshCw, CheckSquare, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import { PipelineDetailModal } from "@/components/pipeline/PipelineDetailModal";
 import { PipelineOpportunity } from "@/components/pipeline/PipelineCard";
 import { createFollowUpReminders, getUserFollowUpIntervals } from "@/hooks/useFollowUpReminders";
 import { AcceptedBookingPrompt } from "@/components/pipeline/AcceptedBookingPrompt";
+import { AddPrivateGigDialog, CreatedPrivateGig } from "@/components/pipeline/AddPrivateGigDialog";
 import { OrganizerResearchSheet } from "@/components/organizer/OrganizerResearchSheet";
 import { MobilePipeline } from "@/components/pipeline/MobilePipeline";
 import { BulkActionToolbar } from "@/components/pipeline/BulkActionToolbar";
@@ -44,11 +45,13 @@ const Pipeline = () => {
   const [researchOrganizer, setResearchOrganizer] = useState<{ name: string; email?: string | null } | null>(null);
   const [mobileStage, setMobileStage] = useState("new");
   const [filters, setFilters] = useState<PipelineFilters>(DEFAULT_PIPELINE_FILTERS);
+  const [addGigOpen, setAddGigOpen] = useState(false);
   const [acceptedOpp, setAcceptedOpp] = useState<{
     matchId: string;
     eventName: string;
     eventDate: string | null;
     userId: string;
+    fee?: number | null;
   } | null>(null);
 
   const loadOpportunities = useCallback(async () => {
@@ -82,7 +85,8 @@ const Pipeline = () => {
           organizer_contact_url,
           vertical_slug,
           country,
-          created_at
+          created_at,
+          is_private
         )
       `)
       .eq("user_id", session.user.id)
@@ -126,6 +130,7 @@ const Pipeline = () => {
           vertical_slug: score.opportunities!.vertical_slug ?? null,
           country: score.opportunities!.country ?? null,
           created_at: score.opportunities!.created_at ?? null,
+          is_private: score.opportunities!.is_private ?? false,
           ai_score: score.ai_score || 0,
           ai_reason: score.ai_reason,
           pipeline_stage: (score.pipeline_stage as PipelineOpportunity['pipeline_stage']) || "new",
@@ -229,6 +234,35 @@ const Pipeline = () => {
         }
       }
       toast.success(`Moved to ${PIPELINE_STAGES.find((s) => s.id === newStage)?.label}`);
+    }
+  };
+
+  // A gig added at a stage should behave exactly as if it had been dragged
+  // there: follow-up reminders at Applied, and at Accepted the booking prompt,
+  // which creates the confirmed booking that invoices attach to.
+  const handlePrivateGigCreated = async (gig: CreatedPrivateGig) => {
+    await loadOpportunities();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    if (gig.stage === "pitched") {
+      try {
+        const intervals = await getUserFollowUpIntervals(session.user.id);
+        await createFollowUpReminders(session.user.id, gig.matchId, new Date(), intervals);
+      } catch (reminderError) {
+        console.error("Error creating follow-up reminders:", reminderError);
+      }
+    }
+
+    if (gig.stage === "accepted") {
+      setAcceptedOpp({
+        matchId: gig.matchId,
+        eventName: gig.eventName,
+        eventDate: gig.eventDate,
+        userId: session.user.id,
+        fee: gig.fee,
+      });
+      setBookingPromptOpen(true);
     }
   };
 
@@ -387,7 +421,7 @@ const Pipeline = () => {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
               <Kanban className="h-6 w-6 text-violet-600" />
@@ -397,7 +431,14 @@ const Pipeline = () => {
               Track your speaking opportunities through each stage
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={() => setAddGigOpen(true)}
+              className="bg-violet-600 hover:bg-violet-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add my own gig
+            </Button>
             {bulkActions.selectionMode ? (
               <Button
                 variant="outline"
@@ -533,9 +574,16 @@ const Pipeline = () => {
           eventName={acceptedOpp.eventName}
           eventDate={acceptedOpp.eventDate}
           userId={acceptedOpp.userId}
+          initialFee={acceptedOpp.fee ?? null}
           onSuccess={loadOpportunities}
         />
       )}
+
+      <AddPrivateGigDialog
+        open={addGigOpen}
+        onOpenChange={setAddGigOpen}
+        onCreated={handlePrivateGigCreated}
+      />
 
       {/* Bulk Action Toolbar */}
       {bulkActions.selectionMode && (

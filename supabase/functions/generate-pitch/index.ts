@@ -127,6 +127,16 @@ serve(async (req) => {
       });
     }
 
+    // Private gigs belong to one speaker. This runs as service role, which
+    // bypasses RLS, so ownership is checked here. Same 404 as a missing row so
+    // the response never confirms another speaker's gig exists.
+    if (opportunity.is_private && opportunity.owner_user_id !== user.id) {
+      return new Response(JSON.stringify({ error: 'Opportunity not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Deterministic reason codes for this speaker/opportunity match
     const { data: scoreRow } = await supabase
       .from('opportunity_scores')

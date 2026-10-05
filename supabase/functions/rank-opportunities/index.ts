@@ -67,7 +67,9 @@ serve(async (req) => {
         *,
         opportunity_topics(topics(name))
       `)
-      .eq('is_active', true);
+      .eq('is_active', true)
+      // Shared opportunities, plus this speaker's own private gigs only.
+      .or(`is_private.eq.false,owner_user_id.eq.${user.id}`);
 
     if (oppsError) {
       console.error('Opportunities error:', oppsError);

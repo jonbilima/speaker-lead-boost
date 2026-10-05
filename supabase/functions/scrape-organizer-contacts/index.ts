@@ -84,6 +84,7 @@ Deno.serve(async (req) => {
         .select("event_url, created_at")
         .eq("is_active", true)
         .is("merged_into", null)
+        .eq("is_private", false)
         .not("event_url", "is", null);
       if (body.auto) q = q.is("organizer_email", null).order("created_at", { ascending: false });
       const { data } = await q.limit(5000);

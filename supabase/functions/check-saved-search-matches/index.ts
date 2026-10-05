@@ -45,6 +45,7 @@ Deno.serve(async (req) => {
         .from("opportunities")
         .select("id, event_name")
         .eq("is_active", true)
+        .eq("is_private", false)
         .gt("created_at", lastNotified);
 
       // Apply fee range filter
@@ -143,7 +144,8 @@ Deno.serve(async (req) => {
       const { count } = await supabase
         .from("opportunities")
         .select("id", { count: "exact", head: true })
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .eq("is_private", false);
 
       await supabase
         .from("saved_searches")

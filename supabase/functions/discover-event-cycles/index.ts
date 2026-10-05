@@ -113,6 +113,7 @@ Deno.serve(async (req) => {
         .from("opportunities")
         .select("organizer_email, event_url, deadline, event_date, id")
         .is("merged_into", null)
+        .eq("is_private", false)
         .limit(5000);
       const { data: resolved } = await supabase
         .from("opportunity_organizer_domains")
