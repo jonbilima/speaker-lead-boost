@@ -25,6 +25,7 @@ import {
   Package,
   PenLine,
   CheckCircle2,
+  Lock,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -33,6 +34,7 @@ import { PipelineOpportunity } from "./PipelineCard";
 import { PackageBuilderDialog } from "./PackageBuilderDialog";
 import { PackageStats } from "./PackageStats";
 import { formatEventDateOr } from "@/lib/eventDates";
+import { canBuildPackage, PACKAGE_UNLOCK_STAGE_LABEL } from "@/lib/packageStages";
 
 interface Activity {
   id: string;
@@ -295,11 +297,21 @@ export function PipelineDetailModal({
                 <Button
                   className="flex-1 bg-violet-600 hover:bg-violet-700"
                   onClick={() => setPackageBuilderOpen(true)}
+                  disabled={!canBuildPackage(opportunity.pipeline_stage)}
                 >
-                  <Package className="h-4 w-4 mr-2" />
-                  {hasPackage ? "Send New Package" : "Send Application Package"}
+                  {canBuildPackage(opportunity.pipeline_stage) ? (
+                    <Package className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Lock className="h-4 w-4 mr-2" />
+                  )}
+                  {hasPackage ? "Send New Package" : "Send Speaker Package"}
                 </Button>
               </div>
+              {!canBuildPackage(opportunity.pipeline_stage) && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Move this gig to {PACKAGE_UNLOCK_STAGE_LABEL} to build its speaker package.
+                </p>
+              )}
             </TabsContent>
 
             <TabsContent value="activity" className="mt-0 space-y-4">

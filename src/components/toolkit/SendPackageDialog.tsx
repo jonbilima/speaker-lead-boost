@@ -15,10 +15,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Package } from "lucide-react";
+import { Loader2, Package, Lock } from "lucide-react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { PackageBuilderDialog } from "@/components/pipeline/PackageBuilderDialog";
 import { PipelineOpportunity } from "@/components/pipeline/PipelineCard";
+import {
+  PACKAGE_LOCKED_STAGES,
+  PACKAGE_UNLOCKED_STAGES,
+  PACKAGE_UNLOCK_STAGE_LABEL,
+  canBuildPackage,
+} from "@/lib/packageStages";
 
 interface OpportunityScore {
   id: string;
@@ -52,8 +59,10 @@ export function SendPackageDialog({ open, onOpenChange }: SendPackageDialogProps
   const [opportunityScores, setOpportunityScores] = useState<OpportunityScore[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [packageBuilderOpen, setPackageBuilderOpen] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   const selectedScore = opportunityScores.find((o) => o.id === selectedId);
+  const readyCount = opportunityScores.filter((o) => canBuildPackage(o.pipeline_stage)).length;
 
   useEffect(() => {
     if (open) {
@@ -64,11 +73,14 @@ export function SendPackageDialog({ open, onOpenChange }: SendPackageDialogProps
 
   const loadOpportunities = async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const { data } = await supabase
+      // Only gigs the speaker has engaged with. Untouched "New" rows are every
+      // scored lead in the system, and would bury the ones that matter.
+      const { data, error } = await supabase
         .from("opportunity_scores")
         .select(`
           id,
@@ -92,13 +104,22 @@ export function SendPackageDialog({ open, onOpenChange }: SendPackageDialogProps
           )
         `)
         .eq("user_id", session.user.id)
-        .not("pipeline_stage", "in", '("rejected","completed")')
-        .order("created_at", { ascending: false })
-        .limit(50);
+        .in("pipeline_stage", [...PACKAGE_UNLOCKED_STAGES, ...PACKAGE_LOCKED_STAGES])
+        // opportunity_scores has no created_at. Ordering by it made this query
+        // fail on every open, and the swallowed error showed as an empty list.
+        .order("calculated_at", { ascending: false })
+        .limit(200);
 
-      if (data) {
-        setOpportunityScores(data.filter((d) => d.opportunities) as OpportunityScore[]);
+      if (error) {
+        console.error("Error loading package opportunities:", error);
+        setLoadError(true);
+        return;
       }
+
+      // Ready-to-package gigs first, then the locked ones beneath them.
+      const rows = (data || []).filter((d) => d.opportunities) as OpportunityScore[];
+      rows.sort((a, b) => Number(canBuildPackage(b.pipeline_stage)) - Number(canBuildPackage(a.pipeline_stage)));
+      setOpportunityScores(rows);
     } catch (error) {
       console.error("Error loading opportunities:", error);
     } finally {
@@ -107,7 +128,7 @@ export function SendPackageDialog({ open, onOpenChange }: SendPackageDialogProps
   };
 
   const handleCreatePackage = () => {
-    if (selectedScore) {
+    if (selectedScore && canBuildPackage(selectedScore.pipeline_stage)) {
       setPackageBuilderOpen(true);
     }
   };
@@ -147,7 +168,9 @@ export function SendPackageDialog({ open, onOpenChange }: SendPackageDialogProps
               Create Speaker Package
             </DialogTitle>
             <DialogDescription>
-              Pick an opportunity to build a speaker package for. We\u2019ll email it to the organizer if we have their address \u2014 otherwise you\u2019ll get a link to share yourself.
+              Your package is your pricing, contract and terms in one place, sent while you're
+              negotiating. We'll email it to the organizer if we have their address, or give you a
+              link to share yourself.
             </DialogDescription>
           </DialogHeader>
 
@@ -156,14 +179,27 @@ export function SendPackageDialog({ open, onOpenChange }: SendPackageDialogProps
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
+            ) : loadError ? (
+              <div className="text-center py-8">
+                <p className="text-sm text-muted-foreground">
+                  We couldn't load your pipeline just now.
+                </p>
+                <Button variant="outline" size="sm" className="mt-3" onClick={loadOpportunities}>
+                  Try again
+                </Button>
+              </div>
             ) : opportunityScores.length === 0 ? (
               <div className="text-center py-8">
                 <Package className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
                 <p className="text-sm text-muted-foreground">
-                  No opportunities in your pipeline yet.
+                  Nothing in your pipeline is ready for a package yet.
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Add opportunities from the Find page first.
+                  Packages unlock at {PACKAGE_UNLOCK_STAGE_LABEL}. Move a gig there in your{" "}
+                  <Link to="/pipeline" className="underline" onClick={() => onOpenChange(false)}>
+                    Pipeline
+                  </Link>
+                  , or add your own gig.
                 </p>
               </div>
             ) : (
@@ -178,13 +214,24 @@ export function SendPackageDialog({ open, onOpenChange }: SendPackageDialogProps
                       <SelectValue placeholder="Choose an opportunity" />
                     </SelectTrigger>
                     <SelectContent>
-                      {opportunityScores.map((opp) => (
-                        <SelectItem key={opp.id} value={opp.id}>
-                          {opp.opportunities?.event_name}
-                        </SelectItem>
-                      ))}
+                      {opportunityScores.map((opp) => {
+                        const ready = canBuildPackage(opp.pipeline_stage);
+                        return (
+                          <SelectItem key={opp.id} value={opp.id} disabled={!ready}>
+                            <span className={ready ? "" : "text-muted-foreground"}>
+                              {!ready && <Lock className="inline h-3 w-3 mr-1 -mt-0.5" />}
+                              {opp.opportunities?.event_name}
+                            </span>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
+                  {readyCount < opportunityScores.length && (
+                    <p className="text-xs text-muted-foreground">
+                      Greyed-out gigs unlock once you move them to {PACKAGE_UNLOCK_STAGE_LABEL}.
+                    </p>
+                  )}
                 </div>
 
                 {selectedScore && selectedScore.opportunities && (
