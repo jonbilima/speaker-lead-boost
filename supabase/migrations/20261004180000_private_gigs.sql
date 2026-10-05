@@ -369,3 +369,10 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.add_private_gig(text, text, text, timestamptz, text, boolean, text, numeric, text, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.add_private_gig(text, text, text, timestamptz, text, boolean, text, numeric, text, text) TO authenticated;
+
+-- Same hardening as 20260818214901 applied to the scoring triggers: trigger
+-- functions are never callable by clients. Triggers still fire, since EXECUTE
+-- is not checked at fire time. CREATE OR REPLACE above keeps that migration's
+-- revokes on score_opportunity_matches intact.
+REVOKE ALL ON FUNCTION public.trg_guard_private_opportunity() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.trg_guard_private_score() FROM PUBLIC, anon, authenticated;
