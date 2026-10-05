@@ -57,7 +57,7 @@ serve(async (req) => {
       throw new Error("Missing packageId or eventType");
     }
 
-    const validEventTypes = ['opened', 'bio_viewed', 'headshot_downloaded', 'one_sheet_downloaded', 'video_played', 'contact_clicked'];
+    const validEventTypes = ['opened', 'bio_viewed', 'headshot_downloaded', 'one_sheet_downloaded', 'video_played', 'contact_clicked', 'document_downloaded'];
     if (!validEventTypes.includes(eventType)) {
       throw new Error("Invalid event type");
     }

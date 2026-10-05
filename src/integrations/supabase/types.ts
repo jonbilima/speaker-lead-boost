@@ -40,6 +40,7 @@ export type Database = {
       }
       application_packages: {
         Row: {
+          document_ids: string[]
           cover_message: string | null
           created_at: string
           custom_note: string | null
@@ -61,6 +62,7 @@ export type Database = {
           tracking_code: string
         }
         Insert: {
+          document_ids?: string[]
           cover_message?: string | null
           created_at?: string
           custom_note?: string | null
@@ -82,6 +84,7 @@ export type Database = {
           tracking_code: string
         }
         Update: {
+          document_ids?: string[]
           cover_message?: string | null
           created_at?: string
           custom_note?: string | null
@@ -997,6 +1000,9 @@ export type Database = {
       }
       invoices: {
         Row: {
+          deposit_percent: number | null
+          invoice_kind: string
+          parent_invoice_id: string | null
           booking_id: string | null
           contact_id: string | null
           created_at: string
@@ -1018,6 +1024,9 @@ export type Database = {
           total: number
         }
         Insert: {
+          deposit_percent?: number | null
+          invoice_kind?: string
+          parent_invoice_id?: string | null
           booking_id?: string | null
           contact_id?: string | null
           created_at?: string
@@ -1039,6 +1048,9 @@ export type Database = {
           total?: number
         }
         Update: {
+          deposit_percent?: number | null
+          invoice_kind?: string
+          parent_invoice_id?: string | null
           booking_id?: string | null
           contact_id?: string | null
           created_at?: string
@@ -3926,6 +3938,63 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      speaker_documents: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          kind: string
+          match_id: string | null
+          mime_type: string | null
+          speaker_id: string
+          title: string
+          topic_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          kind: string
+          match_id?: string | null
+          mime_type?: string | null
+          speaker_id: string
+          title: string
+          topic_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          kind?: string
+          match_id?: string | null
+          mime_type?: string | null
+          speaker_id?: string
+          title?: string
+          topic_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speaker_documents_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_scores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speaker_documents_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       speaker_assets: {
         Row: {

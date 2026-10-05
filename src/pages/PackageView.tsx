@@ -22,6 +22,14 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
+interface PackageDocument {
+  id: string;
+  kind: string;
+  title: string;
+  file_name: string;
+  url: string;
+}
+
 interface PackageData {
   id: string;
   package_title: string;
@@ -50,7 +58,14 @@ interface PackageData {
     event_name: string;
     organizer_name: string | null;
   } | null;
+  documents: PackageDocument[];
 }
+
+const DOCUMENT_LABELS: Record<string, string> = {
+  contract: "Contract",
+  av_requirements: "AV and tech requirements",
+  other: "Document",
+};
 
 export default function PackageView() {
   const { trackingCode } = useParams<{ trackingCode: string }>();
@@ -81,100 +96,39 @@ export default function PackageView() {
     setError(null);
 
     try {
-      // Get package data
-      const { data: pkg, error: pkgError } = await supabase
-        .from("application_packages")
-        .select(`
-          id,
-          package_title,
-          cover_message,
-          include_bio,
-          include_headshot,
-          include_one_sheet,
-          include_video,
-          custom_note,
-          speaker_id,
-          event_id
-        `)
-        .eq("tracking_code", trackingCode)
-        .maybeSingle();
+      // Organizers aren't signed in, so the package comes from the
+      // package-view function: the tracking code unlocks this one package
+      // and signed links to the documents the speaker attached.
+      const { data, error: fnError } = await supabase.functions.invoke("package-view", {
+        body: { tracking_code: trackingCode },
+      });
 
-      if (pkgError) throw pkgError;
-      if (!pkg) {
-        setError("Package not found or has expired");
-        setLoading(false);
+      if (fnError || !data || data.error) {
+        let message = data?.error as string | undefined;
+        const ctx = (fnError as { context?: Response } | null)?.context;
+        if (!message && ctx && typeof ctx.json === "function") {
+          message = (await ctx.json().catch(() => null))?.error;
+        }
+        setError(message || "This package may have expired or doesn't exist.");
         return;
       }
 
-      // Get speaker profile
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("name, headline, bio, location_city, location_country, linkedin_url, twitter_url, youtube_url")
-        .eq("id", pkg.speaker_id)
-        .single();
+      setPackageData({ ...(data as PackageData), documents: data.documents ?? [] });
 
-      // Get speaker assets
-      const { data: assets } = await supabase
-        .from("speaker_assets")
-        .select("asset_type, file_url")
-        .eq("speaker_id", pkg.speaker_id);
-
-      const assetMap: PackageData["assets"] = {
-        headshot: null,
-        one_sheet: null,
-        video: null,
-      };
-
-      assets?.forEach((a) => {
-        if (a.asset_type === "headshot") assetMap.headshot = a.file_url;
-        if (a.asset_type === "one_sheet") assetMap.one_sheet = a.file_url;
-        if (a.asset_type === "speaker_reel" || a.asset_type === "video") assetMap.video = a.file_url;
-      });
-
-      // Get event info if linked
-      let eventData = null;
-      if (pkg.event_id) {
-        const { data: event } = await supabase
-          .from("opportunities")
-          .select("event_name, organizer_name")
-          .eq("id", pkg.event_id)
-          .single();
-        eventData = event;
-      }
-
-      setPackageData({
-        id: pkg.id,
-        package_title: pkg.package_title,
-        cover_message: pkg.cover_message,
-        include_bio: pkg.include_bio,
-        include_headshot: pkg.include_headshot,
-        include_one_sheet: pkg.include_one_sheet,
-        include_video: pkg.include_video,
-        custom_note: pkg.custom_note,
-        speaker: profile || {
-          name: null,
-          headline: null,
-          bio: null,
-          location_city: null,
-          location_country: null,
-          linkedin_url: null,
-          twitter_url: null,
-          youtube_url: null,
-        },
-        assets: assetMap,
-        event: eventData,
-      });
-
-      // Track page open
-      await supabase.functions.invoke("track-package-view", {
-        body: { packageId: pkg.id, eventType: "opened" },
-      });
+      supabase.functions
+        .invoke("track-package-view", { body: { packageId: data.id, eventType: "opened" } })
+        .catch((e) => console.error("Failed to track open:", e));
     } catch (e) {
       console.error("Error loading package:", e);
       setError("Failed to load package");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDownloadDocument = (doc: PackageDocument) => {
+    trackEvent("document_downloaded");
+    window.open(doc.url, "_blank", "noopener,noreferrer");
   };
 
   const handleContactClick = () => {
@@ -358,6 +312,35 @@ export default function PackageView() {
             <p className="text-sm text-foreground italic">
               "{packageData.custom_note}"
             </p>
+          </Card>
+        )}
+
+        {/* Documents */}
+        {packageData.documents.length > 0 && (
+          <Card className="p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
+              <FileText className="h-5 w-5 text-violet-600" />
+              Documents
+            </h2>
+            <div className="space-y-2">
+              {packageData.documents.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border p-3"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{doc.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {DOCUMENT_LABELS[doc.kind] ?? "Document"} · {doc.file_name}
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => handleDownloadDocument(doc)}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+                </div>
+              ))}
+            </div>
           </Card>
         )}
 

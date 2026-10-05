@@ -14,12 +14,36 @@ import { useEmailSender } from "@/hooks/useEmailSender";
 import { generateInvoicePDF, downloadPDF } from "@/lib/invoicePdfGenerator";
 import { InvoicePDFPreview } from "./InvoicePDFPreview";
 
+export type InvoiceKind = "standard" | "deposit" | "balance";
+
 interface CreateInvoiceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   userId: string;
   onSuccess: () => void;
+  /** Pre-select an engagement and invoice type, e.g. "Create balance invoice" */
+  initialBookingId?: string | null;
+  initialKind?: InvoiceKind;
 }
+
+interface BookingOption {
+  id: string;
+  event_name: string;
+  event_date: string | null;
+  confirmed_fee: number;
+}
+
+interface BookingInvoice {
+  id: string;
+  invoice_kind: string;
+  subtotal: number;
+  status: string;
+  created_at: string;
+}
+
+const NO_BOOKING = "none";
+const DEPOSIT_NOTE =
+  "This deposit secures the date and is due when the contract is signed. Travel is booked once the deposit is received. The balance will be invoiced separately.";
 
 interface LineItem {
   id: string;
@@ -45,7 +69,14 @@ const PRESET_ITEMS = [
   { description: "Virtual Session Add-on", rate: 500 },
 ];
 
-export function CreateInvoiceDialog({ open, onOpenChange, userId, onSuccess }: CreateInvoiceDialogProps) {
+export function CreateInvoiceDialog({
+  open,
+  onOpenChange,
+  userId,
+  onSuccess,
+  initialBookingId,
+  initialKind,
+}: CreateInvoiceDialogProps) {
   const { sendEmail, isSending: emailSending } = useEmailSender();
   const [saving, setSaving] = useState(false);
   const [lineItems, setLineItems] = useState<LineItem[]>([
@@ -62,13 +93,110 @@ export function CreateInvoiceDialog({ open, onOpenChange, userId, onSuccess }: C
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
   const [previewPdfBlob, setPreviewPdfBlob] = useState<Blob | null>(null);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [bookings, setBookings] = useState<BookingOption[]>([]);
+  const [bookingId, setBookingId] = useState<string>(NO_BOOKING);
+  const [invoiceKind, setInvoiceKind] = useState<InvoiceKind>("standard");
+  const [depositPercent, setDepositPercent] = useState(50);
+  const [bookingInvoices, setBookingInvoices] = useState<BookingInvoice[]>([]);
 
   useEffect(() => {
     if (open) {
       loadContacts();
       loadProfileSettings();
+      loadBookings();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  const loadBookings = async () => {
+    const { data } = await supabase
+      .from("confirmed_bookings")
+      .select("id, event_name, event_date, confirmed_fee")
+      .eq("speaker_id", userId)
+      .neq("payment_status", "cancelled")
+      .order("event_date", { ascending: true, nullsFirst: false });
+    const list = (data || []) as BookingOption[];
+    setBookings(list);
+
+    if (initialBookingId && list.some((b) => b.id === initialBookingId)) {
+      const kind = initialKind || "standard";
+      setInvoiceKind(kind);
+      await selectBooking(initialBookingId, kind, list);
+    } else if (initialKind) {
+      // "Bill a Deposit": the type is set, the speaker picks the engagement.
+      setInvoiceKind(initialKind);
+    }
+  };
+
+  const selectedBooking = bookings.find((b) => b.id === bookingId);
+  const depositInvoices = bookingInvoices.filter((i) => i.invoice_kind === "deposit");
+  const depositsInvoiced = depositInvoices.reduce((sum, i) => sum + Number(i.subtotal || 0), 0);
+
+  // Fill the fee line from the engagement. Runs only when the speaker changes
+  // the engagement, type or deposit %, so hand edits to the lines stick.
+  const applyEngagement = (
+    booking: BookingOption | undefined,
+    kind: InvoiceKind,
+    pct: number,
+    priorDeposits: number,
+  ) => {
+    if (!booking) return;
+    const fee = Number(booking.confirmed_fee || 0);
+    let description = `Speaking fee: ${booking.event_name}`;
+    let rate = fee;
+    if (kind === "deposit") {
+      description = `Deposit (${pct}%): ${booking.event_name}`;
+      rate = Math.round(fee * pct) / 100;
+    } else if (kind === "balance") {
+      description = `Balance due: ${booking.event_name}`;
+      rate = Math.max(0, fee - priorDeposits);
+    }
+    setLineItems([{ id: crypto.randomUUID(), description, quantity: 1, rate, amount: rate }]);
+
+    if (kind === "deposit") {
+      setNotes((n) => (n.trim() ? n : DEPOSIT_NOTE));
+      setDueDate(format(addDays(new Date(), 7), "yyyy-MM-dd"));
+    } else {
+      setNotes((n) => (n === DEPOSIT_NOTE ? "" : n));
+      if (kind === "balance" && booking.event_date) {
+        setDueDate(booking.event_date.slice(0, 10));
+      }
+    }
+  };
+
+  const selectBooking = async (id: string, kind = invoiceKind, list = bookings) => {
+    setBookingId(id);
+    if (id === NO_BOOKING) {
+      setBookingInvoices([]);
+      setInvoiceKind("standard");
+      return;
+    }
+    const { data } = await supabase
+      .from("invoices")
+      .select("id, invoice_kind, subtotal, status, created_at")
+      .eq("speaker_id", userId)
+      .eq("booking_id", id)
+      .order("created_at", { ascending: false });
+    const existing = (data || []) as BookingInvoice[];
+    setBookingInvoices(existing);
+    const prior = existing
+      .filter((i) => i.invoice_kind === "deposit")
+      .reduce((sum, i) => sum + Number(i.subtotal || 0), 0);
+    applyEngagement(list.find((b) => b.id === id), kind, depositPercent, prior);
+  };
+
+  const changeKind = (kind: InvoiceKind) => {
+    setInvoiceKind(kind);
+    applyEngagement(selectedBooking, kind, depositPercent, depositsInvoiced);
+  };
+
+  const changeDepositPercent = (pct: number) => {
+    setDepositPercent(pct);
+    if (pct > 0 && pct <= 100) applyEngagement(selectedBooking, "deposit", pct, depositsInvoiced);
+  };
+
+  const invoiceTitle =
+    invoiceKind === "deposit" ? "DEPOSIT INVOICE" : invoiceKind === "balance" ? "BALANCE INVOICE" : undefined;
 
   const loadProfileSettings = async () => {
     const { data } = await supabase
@@ -169,6 +297,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, userId, onSuccess }: C
       terms,
       notes,
       logoUrl: profileSettings?.invoice_logo_url,
+      title: invoiceTitle,
     };
   };
 
@@ -208,6 +337,14 @@ export function CreateInvoiceDialog({ open, onOpenChange, userId, onSuccess }: C
   const handleSave = async (send: boolean = false) => {
     if (lineItems.every(item => !item.description || item.amount === 0)) {
       toast.error("Please add at least one line item");
+      return;
+    }
+    if (invoiceKind !== "standard" && bookingId === NO_BOOKING) {
+      toast.error("Pick the engagement this invoice is for");
+      return;
+    }
+    if (invoiceKind === "deposit" && !(depositPercent > 0 && depositPercent <= 100)) {
+      toast.error("Deposit must be between 1% and 100%");
       return;
     }
 
@@ -267,6 +404,10 @@ export function CreateInvoiceDialog({ open, onOpenChange, userId, onSuccess }: C
         payment_instructions: paymentInstructions,
         sent_at: send ? new Date().toISOString() : null,
         pdf_url: pdfUrl,
+        booking_id: bookingId === NO_BOOKING ? null : bookingId,
+        invoice_kind: invoiceKind,
+        deposit_percent: invoiceKind === "deposit" ? depositPercent : null,
+        parent_invoice_id: invoiceKind === "balance" ? depositInvoices[0]?.id ?? null : null,
       };
 
       const { data: newInvoice, error } = await supabase
@@ -289,7 +430,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, userId, onSuccess }: C
         
         await sendEmail({
           to: contactEmail,
-          subject: `Invoice ${invoiceNumber} from ${profileSettings?.name || "Speaker"}`,
+          subject: `${invoiceKind === "deposit" ? "Deposit invoice" : invoiceKind === "balance" ? "Balance invoice" : "Invoice"} ${invoiceNumber} from ${profileSettings?.name || "Speaker"}`,
           body: invoiceHtml,
           relatedType: "invoice",
           relatedId: newInvoice?.id,
@@ -323,12 +464,16 @@ export function CreateInvoiceDialog({ open, onOpenChange, userId, onSuccess }: C
     setPaymentInstructions(profileSettings?.default_payment_instructions || "");
     setTerms(profileSettings?.default_invoice_terms || "");
     setSelectedContactId("");
+    setBookingId(NO_BOOKING);
+    setInvoiceKind("standard");
+    setDepositPercent(50);
+    setBookingInvoices([]);
   };
 
   const generateInvoiceEmailBody = (invoiceNum: string, clientName: string, amount: number, due: string) => {
     return `Dear ${clientName},
 
-Please find attached Invoice ${invoiceNum} for ${formatCurrency(amount)}.
+Please find attached ${invoiceKind === "deposit" ? "the deposit invoice" : invoiceKind === "balance" ? "the balance invoice" : "Invoice"} ${invoiceNum} for ${formatCurrency(amount)}${selectedBooking ? ` (${selectedBooking.event_name})` : ""}.
 
 Payment is due by ${format(new Date(due), "MMMM d, yyyy")}.
 
@@ -345,7 +490,11 @@ ${paymentInstructions ? `Payment Instructions:\n${paymentInstructions}\n\n` : ""
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Create Invoice
+            {invoiceKind === "deposit"
+              ? "Create Deposit Invoice"
+              : invoiceKind === "balance"
+                ? "Create Balance Invoice"
+                : "Create Invoice"}
           </DialogTitle>
         </DialogHeader>
 
@@ -376,6 +525,77 @@ ${paymentInstructions ? `Payment Instructions:\n${paymentInstructions}\n\n` : ""
               />
             </div>
           </div>
+
+          {/* Engagement & invoice type */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Engagement</Label>
+              <Select value={bookingId} onValueChange={(v) => selectBooking(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Not tied to an engagement" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_BOOKING}>Not tied to an engagement</SelectItem>
+                  {bookings.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.event_name}
+                      {b.event_date ? ` (${format(new Date(b.event_date), "MMM d, yyyy")})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {bookings.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Add a confirmed booking to bill a deposit against it.
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Invoice type</Label>
+              <div className="flex gap-2">
+                <Select
+                  value={invoiceKind}
+                  onValueChange={(v) => changeKind(v as InvoiceKind)}
+                  disabled={bookingId === NO_BOOKING}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standard">Full fee</SelectItem>
+                    <SelectItem value="deposit">Deposit</SelectItem>
+                    <SelectItem value="balance">Balance after deposit</SelectItem>
+                  </SelectContent>
+                </Select>
+                {invoiceKind === "deposit" && (
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      className="w-20"
+                      min="1"
+                      max="100"
+                      value={depositPercent}
+                      onChange={(e) => changeDepositPercent(parseFloat(e.target.value) || 0)}
+                    />
+                    <span className="text-sm text-muted-foreground">%</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {selectedBooking && invoiceKind !== "standard" && (
+            <p className="text-xs text-muted-foreground -mt-3">
+              Fee {formatCurrency(Number(selectedBooking.confirmed_fee || 0))}
+              {depositInvoices.length > 0
+                ? `. Deposits already invoiced: ${formatCurrency(depositsInvoiced)}.`
+                : "."}
+              {invoiceKind === "deposit" &&
+                " Send this when the contract is signed. Book travel once it's paid."}
+              {invoiceKind === "balance" && depositInvoices.length === 0 &&
+                " No deposit invoice found for this engagement, so the balance is the full fee."}
+            </p>
+          )}
 
           {/* Preset Items */}
           <div className="space-y-2">

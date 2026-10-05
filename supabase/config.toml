@@ -88,3 +88,8 @@ verify_jwt = false
 # Next-cycle date discovery. Admin/service only; authorized in-code.
 [functions.discover-event-cycles]
 verify_jwt = false
+
+# Organizer-facing package page. Organizers have no account; the tracking code
+# is the credential. Rate-limited in-code. Serves signed links to private docs.
+[functions.package-view]
+verify_jwt = false

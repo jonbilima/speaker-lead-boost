@@ -5,11 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, MoreHorizontal, Eye, Edit, Send, Bell, CheckCircle, Trash2, FileText } from "lucide-react";
+import { Plus, MoreHorizontal, Eye, Edit, Send, Bell, CheckCircle, Trash2, FileText, Receipt } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { CreateInvoiceDialog } from "./CreateInvoiceDialog";
+import { CreateInvoiceDialog, InvoiceKind } from "./CreateInvoiceDialog";
 
 interface Invoice {
   id: string;
@@ -23,6 +23,9 @@ interface Invoice {
   tax_amount: number;
   total: number;
   created_at: string;
+  invoice_kind: string;
+  deposit_percent: number | null;
+  parent_invoice_id: string | null;
 }
 
 interface InvoicesTabProps {
@@ -41,6 +44,17 @@ export function InvoicesTab({ userId }: InvoicesTabProps) {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  // Remount the dialog per open so a cancelled balance invoice doesn't linger.
+  const [dialogKey, setDialogKey] = useState(0);
+  const [dialogPreset, setDialogPreset] = useState<{ bookingId: string; kind: InvoiceKind } | null>(null);
+  const [bookingNames, setBookingNames] = useState<Record<string, string>>({});
+  const [contactNames, setContactNames] = useState<Record<string, string>>({});
+
+  const openCreate = (preset: { bookingId: string; kind: InvoiceKind } | null = null) => {
+    setDialogPreset(preset);
+    setDialogKey((k) => k + 1);
+    setCreateDialogOpen(true);
+  };
 
   const loadInvoices = useCallback(async () => {
     setLoading(true);
@@ -57,7 +71,21 @@ export function InvoicesTab({ userId }: InvoicesTabProps) {
 
       const { data, error } = await query;
       if (error) throw error;
-      setInvoices(data || []);
+      const list = (data || []) as Invoice[];
+      setInvoices(list);
+
+      const bookingIds = Array.from(new Set(list.map((i) => i.booking_id).filter(Boolean))) as string[];
+      const contactIds = Array.from(new Set(list.map((i) => i.contact_id).filter(Boolean))) as string[];
+      const [bookingsRes, contactsRes] = await Promise.all([
+        bookingIds.length
+          ? supabase.from("confirmed_bookings").select("id, event_name").in("id", bookingIds)
+          : Promise.resolve({ data: [] as { id: string; event_name: string }[] }),
+        contactIds.length
+          ? supabase.from("contacts").select("id, name").in("id", contactIds)
+          : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+      ]);
+      setBookingNames(Object.fromEntries((bookingsRes.data || []).map((b) => [b.id, b.event_name])));
+      setContactNames(Object.fromEntries((contactsRes.data || []).map((c) => [c.id, c.name])));
     } catch (error) {
       console.error("Error loading invoices:", error);
     } finally {
@@ -69,23 +97,67 @@ export function InvoicesTab({ userId }: InvoicesTabProps) {
     loadInvoices();
   }, [loadInvoices]);
 
-  const updateInvoiceStatus = async (invoiceId: string, newStatus: string) => {
+  // Keep the booking's "amount paid" in step with paid invoices. Speakers also
+  // type amount_paid by hand on the booking, so this only ever raises it.
+  const syncBookingPayment = async (bookingId: string) => {
+    const [{ data: booking }, { data: paid }] = await Promise.all([
+      supabase
+        .from("confirmed_bookings")
+        .select("confirmed_fee, amount_paid, payment_status, payment_date")
+        .eq("id", bookingId)
+        .maybeSingle(),
+      supabase.from("invoices").select("subtotal").eq("booking_id", bookingId).eq("status", "paid"),
+    ]);
+    if (!booking || booking.payment_status === "cancelled") return;
+
+    const invoicedPaid = (paid || []).reduce((sum, i) => sum + Number(i.subtotal || 0), 0);
+    const amountPaid = Math.max(Number(booking.amount_paid || 0), invoicedPaid);
+    const fee = Number(booking.confirmed_fee || 0);
+    const status = fee > 0 && amountPaid >= fee ? "paid" : amountPaid > 0 ? "partial" : "pending";
+
+    const { error } = await supabase
+      .from("confirmed_bookings")
+      .update({
+        amount_paid: amountPaid,
+        payment_status: status,
+        payment_date:
+          status === "paid" && !booking.payment_date
+            ? new Date().toISOString().split("T")[0]
+            : booking.payment_date,
+      })
+      .eq("id", bookingId);
+    if (error) console.error("Couldn't update booking payment:", error);
+  };
+
+  const updateInvoiceStatus = async (invoice: Invoice, newStatus: string) => {
     try {
-      const updates: any = { status: newStatus };
+      const updates: { status: string; sent_at?: string; paid_at?: string } = { status: newStatus };
       if (newStatus === "sent") updates.sent_at = new Date().toISOString();
       if (newStatus === "paid") updates.paid_at = new Date().toISOString();
 
-      await supabase
+      const { error } = await supabase
         .from("invoices")
         .update(updates)
-        .eq("id", invoiceId);
+        .eq("id", invoice.id);
+      if (error) throw error;
 
-      toast.success(`Invoice marked as ${newStatus}`);
+      if (newStatus === "paid" && invoice.booking_id) {
+        await syncBookingPayment(invoice.booking_id);
+      }
+
+      toast.success(
+        newStatus === "paid" && invoice.invoice_kind === "deposit"
+          ? "Deposit marked paid. You're clear to book travel."
+          : `Invoice marked as ${newStatus}`,
+      );
       loadInvoices();
     } catch (error) {
       toast.error("Failed to update invoice");
     }
   };
+
+  const hasBalanceInvoice = (depositId: string) =>
+    invoices.some((i) => i.invoice_kind === "balance" && i.parent_invoice_id === depositId);
 
   const deleteInvoice = async (invoiceId: string) => {
     try {
@@ -126,10 +198,16 @@ export function InvoicesTab({ userId }: InvoicesTabProps) {
           </TabsList>
         </Tabs>
         
-        <Button onClick={() => setCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Invoice
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => openCreate({ bookingId: "", kind: "deposit" })}>
+            <Receipt className="h-4 w-4 mr-2" />
+            Bill a Deposit
+          </Button>
+          <Button onClick={() => openCreate()}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Invoice
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -141,7 +219,7 @@ export function InvoicesTab({ userId }: InvoicesTabProps) {
               <p className="text-sm text-muted-foreground mb-4">
                 Create your first invoice to get started
               </p>
-              <Button onClick={() => setCreateDialogOpen(true)}>
+              <Button onClick={() => openCreate()}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Invoice
               </Button>
@@ -151,7 +229,7 @@ export function InvoicesTab({ userId }: InvoicesTabProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Invoice #</TableHead>
-                  <TableHead>Client</TableHead>
+                  <TableHead>For</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Due Date</TableHead>
@@ -161,8 +239,27 @@ export function InvoicesTab({ userId }: InvoicesTabProps) {
               <TableBody>
                 {invoices.map(invoice => (
                   <TableRow key={invoice.id}>
-                    <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
-                    <TableCell>—</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {invoice.invoice_number}
+                        {invoice.invoice_kind === "deposit" && (
+                          <Badge variant="outline">
+                            Deposit{invoice.deposit_percent ? ` ${Number(invoice.deposit_percent)}%` : ""}
+                          </Badge>
+                        )}
+                        {invoice.invoice_kind === "balance" && <Badge variant="outline">Balance</Badge>}
+                      </div>
+                      {invoice.invoice_kind === "deposit" && invoice.status !== "paid" && invoice.status !== "draft" && (
+                        <p className="text-xs font-normal text-amber-600 dark:text-amber-400 mt-1">
+                          Hold travel until paid
+                        </p>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {(invoice.booking_id && bookingNames[invoice.booking_id]) ||
+                        (invoice.contact_id && contactNames[invoice.contact_id]) ||
+                        "Not linked"}
+                    </TableCell>
                     <TableCell>{formatCurrency(invoice.total)}</TableCell>
                     <TableCell>
                       <Badge className={STATUS_COLORS[invoice.status] || ""}>
@@ -187,22 +284,30 @@ export function InvoicesTab({ userId }: InvoicesTabProps) {
                             Edit
                           </DropdownMenuItem>
                           {invoice.status === "draft" && (
-                            <DropdownMenuItem onClick={() => updateInvoiceStatus(invoice.id, "sent")}>
+                            <DropdownMenuItem onClick={() => updateInvoiceStatus(invoice, "sent")}>
                               <Send className="h-4 w-4 mr-2" />
                               Send
                             </DropdownMenuItem>
                           )}
                           {(invoice.status === "sent" || invoice.status === "overdue") && (
                             <>
-                              <DropdownMenuItem onClick={() => updateInvoiceStatus(invoice.id, "sent")}>
+                              <DropdownMenuItem onClick={() => updateInvoiceStatus(invoice, "sent")}>
                                 <Bell className="h-4 w-4 mr-2" />
                                 Send Reminder
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => updateInvoiceStatus(invoice.id, "paid")}>
+                              <DropdownMenuItem onClick={() => updateInvoiceStatus(invoice, "paid")}>
                                 <CheckCircle className="h-4 w-4 mr-2" />
                                 Mark Paid
                               </DropdownMenuItem>
                             </>
+                          )}
+                          {invoice.invoice_kind === "deposit" && invoice.booking_id && !hasBalanceInvoice(invoice.id) && (
+                            <DropdownMenuItem
+                              onClick={() => openCreate({ bookingId: invoice.booking_id!, kind: "balance" })}
+                            >
+                              <Receipt className="h-4 w-4 mr-2" />
+                              Create Balance Invoice
+                            </DropdownMenuItem>
                           )}
                           <DropdownMenuItem 
                             className="text-destructive" 
@@ -223,10 +328,13 @@ export function InvoicesTab({ userId }: InvoicesTabProps) {
       </Card>
 
       <CreateInvoiceDialog
+        key={dialogKey}
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         userId={userId}
         onSuccess={loadInvoices}
+        initialBookingId={dialogPreset?.bookingId || null}
+        initialKind={dialogPreset?.kind}
       />
     </div>
   );

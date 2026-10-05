@@ -4,7 +4,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FolderOpen, Upload, ExternalLink, RefreshCw, Quote, Code } from "lucide-react";
+import { FolderOpen, Upload, ExternalLink, RefreshCw, Quote, Code, FileSignature } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AssetTypeSummary } from "@/components/assets/AssetTypeSummary";
@@ -13,6 +13,9 @@ import { AssetCard } from "@/components/assets/AssetCard";
 import { ASSET_TYPES, SpeakerAsset } from "@/components/assets/AssetTypes";
 import { TestimonialsTab } from "@/components/testimonials/TestimonialsTab";
 import { EmbedWidgetSection } from "@/components/widget/EmbedWidgetSection";
+import { DocumentsLibrary } from "@/components/documents/DocumentsLibrary";
+
+type AssetsTab = "assets" | "documents" | "testimonials" | "widget";
 
 const Assets = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -20,7 +23,9 @@ const Assets = () => {
   const [loading, setLoading] = useState(true);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState<"assets" | "testimonials" | "widget">("assets");
+  const [activeTab, setActiveTab] = useState<AssetsTab>(
+    searchParams.get("tab") === "documents" ? "documents" : "assets",
+  );
   const [profile, setProfile] = useState<{ slug: string | null; is_public: boolean; id: string } | null>(null);
 
   // Deep link: /assets?upload=headshot opens the upload dialog pre-set to that type
@@ -131,11 +136,15 @@ const Assets = () => {
         </div>
 
         {/* Main Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "assets" | "testimonials" | "widget")}>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AssetsTab)}>
           <TabsList>
             <TabsTrigger value="assets">
               <FolderOpen className="h-4 w-4 mr-2" />
               Assets ({totalAssets})
+            </TabsTrigger>
+            <TabsTrigger value="documents">
+              <FileSignature className="h-4 w-4 mr-2" />
+              Contracts & documents
             </TabsTrigger>
             <TabsTrigger value="testimonials">
               <Quote className="h-4 w-4 mr-2" />
@@ -213,6 +222,10 @@ const Assets = () => {
                 )}
               </TabsContent>
             </Tabs>
+          </TabsContent>
+
+          <TabsContent value="documents" className="mt-6">
+            <DocumentsLibrary />
           </TabsContent>
 
           <TabsContent value="testimonials" className="mt-6">

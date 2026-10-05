@@ -28,6 +28,8 @@ interface InvoiceData {
   terms?: string;
   notes?: string;
   logoUrl?: string;
+  /** Defaults to "INVOICE"; deposit and balance invoices say so. */
+  title?: string;
 }
 
 export async function generateInvoicePDF(data: InvoiceData): Promise<Blob> {
@@ -59,10 +61,11 @@ export async function generateInvoicePDF(data: InvoiceData): Promise<Blob> {
   }
 
   // INVOICE title (right side)
-  doc.setFontSize(32);
+  const title = data.title || "INVOICE";
+  doc.setFontSize(title.length > 8 ? 22 : 32);
   doc.setTextColor(...primaryColor);
   doc.setFont("helvetica", "bold");
-  doc.text("INVOICE", pageWidth - 14, 25, { align: "right" });
+  doc.text(title, pageWidth - 14, 25, { align: "right" });
 
   // Invoice details (right side)
   doc.setFontSize(10);

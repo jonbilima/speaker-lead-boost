@@ -31,6 +31,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useEmailSender } from "@/hooks/useEmailSender";
 import { PipelineOpportunity } from "./PipelineCard";
+import { PackageDocumentsSection } from "@/components/documents/PackageDocumentsSection";
+import { DOCUMENT_KIND_LABELS, SpeakerDocument } from "@/lib/engagementDocs";
 
 
 interface PackageBuilderDialogProps {
@@ -73,11 +75,14 @@ export function PackageBuilderDialog({
   const [includeVideo, setIncludeVideo] = useState(false);
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
   const [customNote, setCustomNote] = useState("");
+  const [documentIds, setDocumentIds] = useState<string[]>([]);
+  const [availableDocs, setAvailableDocs] = useState<SpeakerDocument[]>([]);
 
   useEffect(() => {
     if (open && opportunity) {
       loadData();
-      setPackageTitle(`Application Package for ${opportunity.event_name}`);
+      setPackageTitle(`Speaker Package for ${opportunity.event_name}`);
+      setDocumentIds([]);
     }
   }, [open, opportunity]);
 
@@ -171,13 +176,13 @@ ${speaker}`;
   const oneSheetAsset = assets.find(a => a.asset_type === "one_sheet");
   const videoAsset = assets.find(a => a.asset_type === "speaker_reel" || a.asset_type === "video");
 
+  // The tracking code is the only thing protecting the package page (and any
+  // contract on it), so it comes from the crypto RNG and is long enough that
+  // links can't be guessed.
   const generateTrackingCode = () => {
     const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-    let code = "";
-    for (let i = 0; i < 8; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return code;
+    const bytes = crypto.getRandomValues(new Uint8Array(12));
+    return Array.from(bytes, (b) => chars[b % chars.length]).join("");
   };
 
   const createPackage = async () => {
@@ -212,6 +217,7 @@ ${speaker}`;
           include_one_sheet: includeOneSheet,
           include_video: includeVideo,
           custom_note: customNote || null,
+          document_ids: documentIds,
           status: "created",
         })
         .select("id")
@@ -224,8 +230,8 @@ ${speaker}`;
       if (organizerEmail && emailToOrganizer) {
         const result = await sendEmail({
           to: organizerEmail,
-          subject: packageTitle || `Speaker package — ${opportunity.event_name}`,
-          body: `${coverMessage}\n\nYou can view my full speaker package here:\n${packageUrl}\n\n— ${profile?.name || ""}`,
+          subject: packageTitle || `Speaker package for ${opportunity.event_name}`,
+          body: `${coverMessage}\n\nYou can view my full speaker package${documentIds.length ? ", including the documents for this engagement," : ""} here:\n${packageUrl}\n\n${profile?.name || ""}`,
           fromName: profile?.name || undefined,
           relatedType: "other",
           relatedId: inserted?.id,
@@ -263,7 +269,7 @@ ${speaker}`;
       toast.success(
         <div className="flex flex-col gap-2">
           <span>
-            Package created. Nothing was emailed — share this link with the organizer yourself
+            Package created. Nothing was emailed. Share this link with the organizer yourself
             (it's been copied to your clipboard).
           </span>
           <a
@@ -308,7 +314,7 @@ ${speaker}`;
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5 text-violet-600" />
-            Create Application Package
+            Create Speaker Package
           </DialogTitle>
         </DialogHeader>
 
@@ -326,10 +332,17 @@ ${speaker}`;
             <ScrollArea className="flex-1 mt-4">
               <TabsContent value="build" className="mt-0 space-y-4">
                 <Card className="p-3 bg-muted/40 text-xs text-muted-foreground space-y-2">
+                  <p className="font-medium text-foreground">What goes in a speaker package</p>
                   <p>
-                    A package is a private web page holding your cover message, bio and
-                    materials. It gets its own link, so you can see when the organizer opens
-                    it, plays your reel or downloads your one-sheet.
+                    Your cover message, bio, headshot, one-sheet and reel, plus the contract for
+                    this engagement and any supporting documents like your AV requirements.
+                  </p>
+                  <p className="font-medium text-foreground">What happens when you send it</p>
+                  <p>
+                    The package becomes a private web page with its own link. The organizer can
+                    read it and download the documents you attached without creating an account.
+                    You'll see when they open it, play your reel or download a file. Nobody else
+                    can find it, and documents you don't attach stay private.
                   </p>
                   {organizerEmail ? (
                     <div className="flex items-start gap-2 text-foreground">
@@ -346,7 +359,7 @@ ${speaker}`;
                   ) : (
                     <p className="text-foreground">
                       We don't have an email for this organizer, so nothing can be sent
-                      automatically. You'll get the link on the next screen — share it with
+                      automatically. You'll get the link on the next screen. Share it with
                       them yourself, then mark the package as shared.
                     </p>
                   )}
@@ -459,7 +472,7 @@ ${speaker}`;
                                   className="mt-1 inline-flex items-center gap-1 text-xs text-violet-600 hover:underline"
                                 >
                                   <ExternalLink className="h-3 w-3" />
-                                  Not uploaded — add it on Speaker Assets
+                                  Not uploaded yet. Add it on Speaker Assets
                                 </a>
                               )}
                             </div>
@@ -468,6 +481,17 @@ ${speaker}`;
                       );
                     })}
                   </div>
+                </div>
+
+                <div className="space-y-3">
+                  <Label>Contract and documents</Label>
+                  <PackageDocumentsSection
+                    matchId={opportunity.score_id}
+                    eventName={opportunity.event_name}
+                    selectedIds={documentIds}
+                    onChange={setDocumentIds}
+                    onDocumentsLoaded={setAvailableDocs}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -514,7 +538,7 @@ ${speaker}`;
 
                   <Card className="p-4 bg-white/50 dark:bg-background/50">
                     <p className="text-sm whitespace-pre-wrap">
-                      {coverMessage || "No cover message yet — write one or generate it with AI on the Build tab."}
+                      {coverMessage || "No cover message yet. Write one or generate it with AI on the Build tab."}
                     </p>
                   </Card>
 
@@ -558,10 +582,28 @@ ${speaker}`;
                     )}
                     {!headshotAsset && !oneSheetAsset && !videoAsset && (
                       <p className="text-xs text-muted-foreground">
-                        No media uploaded yet — add a headshot, one-sheet or reel from the Assets page to enrich this package.
+                        No media uploaded yet. Add a headshot, one-sheet or reel from the Assets page to enrich this package.
                       </p>
                     )}
                   </div>
+
+                  {documentIds.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold mb-2 flex items-center gap-2">
+                        <FileText className="h-4 w-4" /> Documents
+                      </h3>
+                      <ul className="space-y-1">
+                        {availableDocs
+                          .filter((d) => documentIds.includes(d.id))
+                          .map((d) => (
+                            <li key={d.id} className="text-sm text-muted-foreground">
+                              {d.title}{" "}
+                              <span className="text-xs">({DOCUMENT_KIND_LABELS[d.kind]})</span>
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                  )}
 
                   <div className="text-center pt-4 border-t">
                     <Button className="bg-violet-600 hover:bg-violet-700">
