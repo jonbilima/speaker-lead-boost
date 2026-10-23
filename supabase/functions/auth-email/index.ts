@@ -48,11 +48,12 @@ function json(body: unknown, status = 200) {
 }
 
 function shell(heading: string, lead: string, cta: string, link: string,
-               footer: string) {
+               footer: string, extra = "") {
   return `<div style="font-family:-apple-system,Segoe UI,sans-serif;max-width:520px;margin:0 auto;color:#17141F">
     <h2 style="font-size:20px">${heading}</h2>
     <p>${lead}</p>
     <p style="margin:28px 0"><a href="${link}" style="background:#E8A33D;color:#0F0D15;font-weight:700;padding:14px 26px;border-radius:8px;text-decoration:none">${cta}</a></p>
+    ${extra}
     <p style="font-size:13px;color:#6D6879">${footer}</p>
     <p style="font-size:13px;color:#6D6879">— The NextMIC team &middot; <a href="mailto:support@nextmic.ai" style="color:#6D6879">support@nextmic.ai</a></p>
   </div>`;
@@ -180,11 +181,22 @@ Deno.serve(async (req: Request) => {
         ? `${APP_URL}/reset-password?token_hash=${encodeURIComponent(hashed)}&type=recovery`
         : data.properties.action_link;
 
+      // The code is the path a mail scanner can't spend: Microsoft 365 opens
+      // every link before delivery, but nothing can use a code except the
+      // person typing it. The page link it points at carries no token.
+      const otp = (data.properties as { email_otp?: string }).email_otp;
+      const codeUrl = `${APP_URL}/reset-password?code=1&email=${encodeURIComponent(addr)}`;
+      const codeBlock = otp
+        ? `<p style="margin-top:28px">Button not working? Go to <a href="${codeUrl}">${APP_URL.replace(/^https?:\/\//, "")}/reset-password</a> and enter this code:</p>
+           <p style="font-size:28px;font-weight:700;letter-spacing:4px;margin:12px 0">${otp}</p>`
+        : "";
+
       await send(addr, "Reset your NextMIC password",
         shell("Reset your password",
               "Click below to choose a new password for your NextMIC account:",
               "Set a new password &rarr;", link,
-              "This link expires in 1 hour. If you didn't ask for it, you can safely ignore this email — your password won't change."));
+              "The button and code work once and expire in 1 hour. If you didn't ask for this, you can ignore this email and your password won't change.",
+              codeBlock));
       return json({ ok: true });
     }
 

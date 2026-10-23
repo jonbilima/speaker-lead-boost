@@ -9,7 +9,9 @@ import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 import { Loader2 } from "lucide-react";
 
-type Phase = "verifying" | "ready" | "invalid";
+/* "confirm": a reset link arrived and we are waiting for a person to press the
+ * button. "code": the customer is typing the 6-digit code from the email. */
+type Phase = "verifying" | "confirm" | "code" | "ready" | "invalid";
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
@@ -20,6 +22,9 @@ const ResetPassword = () => {
   const [resendEmail, setResendEmail] = useState("");
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
+  const [tokenHash, setTokenHash] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [checking, setChecking] = useState(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const ready = phase === "ready";
@@ -59,13 +64,56 @@ const ResetPassword = () => {
     if (prefill) setResendEmail(prefill);
   }, [searchParams]);
 
+  /* Spend the link's one-time token only when a person presses the button.
+   * Microsoft 365 and other corporate mail filters open every link in a
+   * headless browser that runs our JavaScript. When this page verified on
+   * load, the scanner used the token up before the email was even delivered,
+   * so customers on business domains got "link no longer valid" on every
+   * fresh link, in every browser. Scanners load pages; they don't press
+   * buttons. */
+  const handleConfirmLink = async () => {
+    if (!tokenHash) return;
+    setChecking(true);
+    const { data, error } = await supabase.auth.verifyOtp({ type: "recovery", token_hash: tokenHash });
+    setChecking(false);
+    if (error || !data.session) {
+      setProblem(error?.message || "This reset link is no longer valid.");
+      setPhase("invalid");
+      return;
+    }
+    window.history.replaceState({}, "", "/reset-password");
+    setPhase("ready");
+  };
+
+  // The 6-digit code in the email is the scanner-proof path: nothing can use
+  // it up except the person typing it.
+  const handleCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const addr = resendEmail.trim();
+    const token = code.replace(/\s+/g, "");
+    if (!addr || !token) {
+      toast.error("Enter your email and the code from the email.");
+      return;
+    }
+    setChecking(true);
+    const { data, error } = await supabase.auth.verifyOtp({ type: "recovery", email: addr, token });
+    setChecking(false);
+    if (error || !data.session) {
+      toast.error(/banned/i.test(error?.message ?? "")
+        ? error!.message
+        : "That code didn't work. Check it matches your most recent email, or send yourself a new one.");
+      if (/banned/i.test(error?.message ?? "")) { setProblem(error!.message); setPhase("invalid"); }
+      return;
+    }
+    window.history.replaceState({}, "", "/reset-password");
+    setPhase("ready");
+  };
+
   useEffect(() => {
     let cancelled = false;
 
-    // New-style links carry the one-time token hash; we exchange it here so
-    // mail scanners pre-fetching the URL can't burn the token first.
     const url = new URL(window.location.href);
-    const tokenHash = url.searchParams.get("token_hash");
+    const linkToken = url.searchParams.get("token_hash");
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     const urlError = hash.get("error_description") || hash.get("error") ||
       url.searchParams.get("error_description");
@@ -81,18 +129,15 @@ const ResetPassword = () => {
       return;
     }
 
-    if (tokenHash) {
-      supabase.auth
-        .verifyOtp({ type: "recovery", token_hash: tokenHash })
-        .then(({ data, error }) => {
-          if (cancelled) return;
-          if (error || !data.session) {
-            fail(error?.message || "This reset link is no longer valid.");
-            return;
-          }
-          window.history.replaceState({}, "", "/reset-password");
-          setPhase("ready");
-        });
+    if (linkToken) {
+      setTokenHash(linkToken);
+      setPhase("confirm");
+      return;
+    }
+
+    // Arrived from the "enter your code" link in the email (no token in it).
+    if (url.searchParams.get("code") === "1") {
+      setPhase("code");
       return;
     }
 
@@ -142,6 +187,39 @@ const ResetPassword = () => {
     }
   };
 
+  const codeForm = (
+    <form onSubmit={handleCode} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="code-email">Your email</Label>
+        <Input
+          id="code-email"
+          type="email"
+          autoComplete="email"
+          value={resendEmail}
+          onChange={(e) => setResendEmail(e.target.value)}
+          required
+          disabled={checking}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="reset-code">Code from the email</Label>
+        <Input
+          id="reset-code"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          placeholder="123456"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          required
+          disabled={checking}
+        />
+      </div>
+      <Button type="submit" className="w-full bg-gradient-to-r from-accent to-primary" disabled={checking}>
+        {checking ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Checking…</>) : "Continue"}
+      </Button>
+    </form>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -152,7 +230,7 @@ const ResetPassword = () => {
           <p className="text-muted-foreground">
             {phase !== "invalid"
               ? "Set a new password"
-              : membershipEnded ? "Your membership has ended" : "Let's get you a fresh link"}
+              : membershipEnded ? "Your membership has ended" : "Let's get you back in"}
           </p>
         </div>
 
@@ -164,11 +242,15 @@ const ResetPassword = () => {
                 ? "Enter a new password for your account."
                 : phase === "verifying"
                   ? "Checking your reset link…"
-                  : membershipEnded
+                  : phase === "confirm"
+                    ? "Press the button to choose your new password."
+                    : phase === "code"
+                      ? "Enter your email and the 6-digit code from your reset email."
+                      : membershipEnded
                     ? "Your NextMIC membership has ended, so sign-in is switched off for this account. A new password won't reopen it — restarting your membership will, and everything you bought outright is still here waiting."
                     : resent
                       ? "We've sent a new link. Open it as soon as it arrives — for your security it's only good for about an hour."
-                      : `${problem} Reset links are single-use and last about an hour. Enter your email and we'll send a fresh one.`}
+                      : `${problem} If you have the 6-digit code from your reset email, enter it below. Otherwise we'll send you a fresh one.`}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -200,6 +282,9 @@ const ResetPassword = () => {
                   </Button>
                 </div>
               ) : (
+                <div className="space-y-6">
+                {codeForm}
+                <div className="border-t pt-6">
                 <form onSubmit={handleResend} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="resend-email">Your email</Label>
@@ -230,7 +315,19 @@ const ResetPassword = () => {
                     ) : "Send me a new link"}
                   </Button>
                 </form>
+                </div>
+                </div>
               )
+            ) : phase === "confirm" ? (
+              <Button
+                className="w-full bg-gradient-to-r from-accent to-primary"
+                onClick={handleConfirmLink}
+                disabled={checking}
+              >
+                {checking ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Checking…</>) : "Set my password"}
+              </Button>
+            ) : phase === "code" ? (
+              codeForm
             ) : phase === "verifying" ? (
               <div className="flex items-center justify-center py-6 text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin mr-2" /> Verifying reset link…
