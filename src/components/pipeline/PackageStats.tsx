@@ -34,6 +34,7 @@ interface PackageData {
     bio_viewed: number;
     headshot_downloaded: number;
     one_sheet_downloaded: number;
+    document_downloaded: number;
     video_played: number;
     contact_clicked: number;
   };
@@ -75,6 +76,7 @@ export function PackageStats({ matchId, eventName }: PackageStatsProps) {
       one_sheet_downloaded: 0,
       video_played: 0,
       contact_clicked: 0,
+      document_downloaded: 0,
     };
 
     views?.forEach((v) => {
@@ -122,6 +124,8 @@ export function PackageStats({ matchId, eventName }: PackageStatsProps) {
   }
 
   const totalViews = packageData.views.opened;
+  // Everything the organizer took away: one-sheet, headshot, contract and other documents.
+  const downloads = packageData.views.one_sheet_downloaded + packageData.views.headshot_downloaded + packageData.views.document_downloaded;
   const hasEngagement = totalViews > 0;
 
   return (
@@ -139,7 +143,7 @@ export function PackageStats({ matchId, eventName }: PackageStatsProps) {
             ? `Emailed ${formatDistanceToNow(new Date(packageData.emailed_at || packageData.created_at), { addSuffix: true })}`
             : packageData.status === "shared"
               ? `Shared by you ${formatDistanceToNow(new Date(packageData.shared_at || packageData.created_at), { addSuffix: true })}`
-              : "Created — not sent yet"}
+              : "Created, not sent yet"}
         </Badge>
       </div>
 
@@ -154,9 +158,9 @@ export function PackageStats({ matchId, eventName }: PackageStatsProps) {
           <p className="text-lg font-bold">{packageData.views.video_played}</p>
           <p className="text-xs text-muted-foreground">Video Played</p>
         </div>
-        <div className={`p-2 rounded ${packageData.views.one_sheet_downloaded > 0 ? "bg-purple-100 dark:bg-purple-900/30" : "bg-muted"}`}>
+        <div className={`p-2 rounded ${downloads > 0 ? "bg-purple-100 dark:bg-purple-900/30" : "bg-muted"}`}>
           <Download className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-          <p className="text-lg font-bold">{packageData.views.one_sheet_downloaded}</p>
+          <p className="text-lg font-bold">{downloads}</p>
           <p className="text-xs text-muted-foreground">Downloads</p>
         </div>
       </div>

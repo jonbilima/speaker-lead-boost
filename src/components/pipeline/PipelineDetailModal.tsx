@@ -392,7 +392,7 @@ export function PipelineDetailModal({
                             {activity.activity_type === "pitch_drafted" && (
                               <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
                                 <p className="text-xs text-amber-700 dark:text-amber-500">
-                                  Drafted only — no email was sent to the organizer.
+                                  Drafted only. No email was sent to the organizer.
                                 </p>
                                 <Button
                                   size="sm"

@@ -204,7 +204,7 @@ const NextCycle = () => {
             Next Cycle
           </h1>
           <p className="text-muted-foreground mt-1">
-            Calls that already closed. The organizer runs the event again — reach out early,
+            Calls that already closed. The organizer runs the event again, so reach out early,
             before the next call opens.
           </p>
         </div>
@@ -306,7 +306,7 @@ const NextCycle = () => {
                               {event.event_name}
                             </p>
                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-1">
-                              <span>Call closed {closed ?? "—"}</span>
+                              <span>Call closed {closed ?? "date unknown"}</span>
                               <span>{runs ? `Event runs ${runs}` : "Event date not stated"}</span>
                               {event.location && (
                                 <span className="flex items-center gap-1">

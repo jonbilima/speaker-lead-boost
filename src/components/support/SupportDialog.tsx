@@ -65,7 +65,7 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
         throw new Error(data?.error || error?.message || "Failed to send");
       }
 
-      toast.success("Support request sent — we'll reply by email shortly.");
+      toast.success("Support request sent. We'll reply by email shortly.");
       reset();
       onOpenChange(false);
     } catch (err) {

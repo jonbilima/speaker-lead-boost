@@ -66,7 +66,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <AppSidebar />
         </div>
         
-        <SidebarInset className="flex-1">
+        <SidebarInset className="flex-1 min-w-0">
           {/* Desktop Header - hidden on mobile */}
           <header className="hidden md:flex h-14 items-center justify-end gap-4 border-b border-border px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             

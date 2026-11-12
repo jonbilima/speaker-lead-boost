@@ -211,7 +211,7 @@ export function PackagesTab() {
         </Badge>
       );
     }
-    return <Badge variant="outline">Created — not sent yet</Badge>;
+    return <Badge variant="outline">Created, not sent yet</Badge>;
   };
 
 
@@ -234,7 +234,7 @@ export function PackagesTab() {
         <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
         <h3 className="font-medium mb-2">No packages yet</h3>
         <p className="text-sm text-muted-foreground">
-          Build one from an opportunity in your pipeline. A package is a private page with your bio and materials — we email it to the organizer when we have their address, otherwise you share the link yourself.
+          Build one from an opportunity in your pipeline. A package is a private page with your bio and materials. We email it to the organizer when we have their address, otherwise you share the link yourself.
         </p>
       </Card>
     );

@@ -456,9 +456,9 @@ const Find = () => {
             </p>
             {expiredCount > 0 && (
               <p className="text-sm text-muted-foreground mt-1">
-                {expiredCount} call{expiredCount === 1 ? " has" : "s have"} closed —{" "}
+                {expiredCount} call{expiredCount === 1 ? " has" : "s have"} closed.{" "}
                 <Link to="/next-cycle" className="text-primary underline underline-offset-2">
-                  pitch them for next cycle
+                  Pitch them for next cycle
                 </Link>
               </p>
             )}

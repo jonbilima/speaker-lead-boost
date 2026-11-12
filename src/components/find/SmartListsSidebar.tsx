@@ -46,7 +46,8 @@ export function SmartListsSidebar({
 
   // Calculate counts for smart lists
   const closingSoonCount = opportunities.filter(opp => {
-    if (!opp.deadline || opp.pipeline_stage) return false;
+    // Every matched gig starts in stage "new", so only gigs already being worked are excluded.
+    if (!opp.deadline || (opp.pipeline_stage && opp.pipeline_stage !== "new")) return false;
     const days = Math.ceil((new Date(opp.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
     return days >= 0 && days <= 14;
   }).length;

@@ -26,12 +26,12 @@ import { isDeadlinePassed } from "@/lib/eventDates";
 
 
 const PIPELINE_STAGES = [
-  { id: "new", label: "New", color: "border-gray-400", bgColor: "bg-gray-100" },
-  { id: "interested", label: "Interested", color: "border-blue-400", bgColor: "bg-blue-100" },
-  { id: "pitched", label: "Applied", color: "border-yellow-400", bgColor: "bg-yellow-100" },
-  { id: "negotiating", label: "In Conversation", color: "border-purple-400", bgColor: "bg-purple-100" },
-  { id: "accepted", label: "Accepted", color: "border-green-400", bgColor: "bg-green-100" },
-  { id: "rejected", label: "Rejected", color: "border-red-400", bgColor: "bg-red-100" },
+  { id: "new", label: "New", color: "border-gray-400", bgColor: "bg-gray-100 dark:bg-gray-500/15" },
+  { id: "interested", label: "Interested", color: "border-blue-400", bgColor: "bg-blue-100 dark:bg-blue-500/15" },
+  { id: "pitched", label: "Applied", color: "border-yellow-400", bgColor: "bg-yellow-100 dark:bg-yellow-500/15" },
+  { id: "negotiating", label: "In Conversation", color: "border-purple-400", bgColor: "bg-purple-100 dark:bg-purple-500/15" },
+  { id: "accepted", label: "Accepted", color: "border-green-400", bgColor: "bg-green-100 dark:bg-green-500/15" },
+  { id: "rejected", label: "Rejected", color: "border-red-400", bgColor: "bg-red-100 dark:bg-red-500/15" },
 ];
 
 const Pipeline = () => {
@@ -276,7 +276,7 @@ const Pipeline = () => {
 
     if (error) {
       console.error("Error dismissing opportunity:", error);
-      toast.error("Couldn't hide that one — please try again");
+      toast.error("Couldn't hide that one. Please try again");
       loadOpportunities();
       return;
     }

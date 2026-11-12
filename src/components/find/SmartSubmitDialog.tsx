@@ -114,7 +114,7 @@ export function SmartSubmitDialog({ onSuccess }: SmartSubmitDialogProps) {
       setMatchScore(typeof data?.ai_score === "number" ? Math.round(data.ai_score) : null);
 
       if (existed) {
-        toast.info("Already tracked — we scored the existing listing for you.");
+        toast.info("Already tracked. We scored the existing listing for you.");
       } else {
         // Award karma points for a genuinely new contribution
         const { error: karmaError } = await supabase

@@ -260,7 +260,7 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
             <div className="flex items-start gap-2 pt-1">
               <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
               <p className="text-sm text-muted-foreground">
-                No direct email for this organizer — use the contact path above and paste your pitch there.
+                No direct email for this organizer. Use the contact path above and paste your pitch there.
               </p>
             </div>
           )}
@@ -268,7 +268,7 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
             <div className="flex items-start gap-2 pt-1">
               <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
               <p className="text-sm text-muted-foreground">
-                No contact path found yet. Use the source listing above to find one — your pitch is saved either way.
+                No contact path found yet. Use the source listing above to find one. Your pitch is saved either way.
               </p>
             </div>
           )}
@@ -368,7 +368,7 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
           ) : (
             <p>
               No email is available for this organizer, so nothing will be sent. Your pitch will be
-              saved and added to your Pipeline as "Applied" — submit it yourself through the contact
+              saved and added to your Pipeline as "Applied". Submit it yourself through the contact
               path above.
             </p>
           )}

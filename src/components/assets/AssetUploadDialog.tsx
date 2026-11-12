@@ -76,7 +76,7 @@ export function AssetUploadDialog({
       const droppedFile = e.dataTransfer.files[0];
       if (droppedFile) {
         if (droppedFile.size > 50 * 1024 * 1024) {
-          toast.error(`That file is ${formatFileSize(droppedFile.size)} — uploads max out at 50MB. For demo reels, paste a YouTube/Vimeo/Drive link instead (it's also what organizers prefer to click).`);
+          toast.error(`That file is ${formatFileSize(droppedFile.size)}. Uploads max out at 50MB. For demo reels, paste a YouTube/Vimeo/Drive link instead (it's also what organizers prefer to click).`);
           return;
         }
         setFile(droppedFile);
@@ -92,7 +92,7 @@ export function AssetUploadDialog({
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       if (selectedFile.size > MAX_UPLOAD_BYTES) {
-        toast.error(`That file is ${formatFileSize(selectedFile.size)} — uploads max out at 50MB. For demo reels, paste a YouTube/Vimeo/Drive link instead (it's also what organizers prefer to click).`);
+        toast.error(`That file is ${formatFileSize(selectedFile.size)}. Uploads max out at 50MB. For demo reels, paste a YouTube/Vimeo/Drive link instead (it's also what organizers prefer to click).`);
         e.target.value = "";
         return;
       }
@@ -142,7 +142,7 @@ export function AssetUploadDialog({
       return;
     }
     if (file.size > MAX_UPLOAD_BYTES) {
-      toast.error(`That file is ${formatFileSize(file.size)} — uploads max out at 50MB. Paste a hosted link instead.`);
+      toast.error(`That file is ${formatFileSize(file.size)}. Uploads max out at 50MB. Paste a hosted link instead.`);
       return;
     }
 
