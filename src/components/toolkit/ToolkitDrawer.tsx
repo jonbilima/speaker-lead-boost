@@ -19,6 +19,7 @@ import {
   Target,
   PenTool,
   BarChart3,
+  PlayCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { PitchGeneratorDialog } from "./PitchGeneratorDialog";
@@ -84,6 +85,14 @@ const toolkitItems = [
     icon: Mic,
     action: "navigate",
     url: "/coach",
+  },
+  {
+    id: "tutorials",
+    title: "Tutorials",
+    description: "How-to videos and the Quick Start Guide",
+    icon: PlayCircle,
+    action: "navigate",
+    url: "/tutorials",
   },
   {
     id: "my-assets",

@@ -13,6 +13,7 @@ import {
   CreditCard,
   RotateCcw,
   CalendarClock,
+  PlayCircle,
 } from "lucide-react";
 import {
   Sidebar,
@@ -182,6 +183,14 @@ export function AppSidebar() {
 
       <SidebarFooter className="p-2">
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton tooltip="How-to videos and the Quick Start Guide"
+              isActive={location.pathname === "/tutorials"}
+              onClick={() => navigate("/tutorials")}>
+              <PlayCircle className="h-4 w-4" />
+              <span>Tutorials</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton tooltip="Contact support"
               onClick={() => setSupportOpen(true)}>
