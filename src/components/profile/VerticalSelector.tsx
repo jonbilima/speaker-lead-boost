@@ -29,7 +29,7 @@ export const VerticalSelector = ({ verticals, selected, onToggle, disabled }: Ve
           Which audiences do you speak to? *
         </Label>
         <p className="text-sm text-muted-foreground">
-          Select at least one. We recommend picking two or three — speakers who choose a single
+          Select at least one. We recommend picking two or three. Speakers who choose a single
           audience see a much thinner opportunity feed.
         </p>
       </div>

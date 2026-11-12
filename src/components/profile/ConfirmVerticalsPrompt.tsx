@@ -109,7 +109,7 @@ export const ConfirmVerticalsPrompt = () => {
               You haven't told us which audiences you speak to yet.
             </p>
             <p className="text-sm text-muted-foreground">
-              Without audiences we can't match you to incoming leads — your opportunity feed will
+              Without audiences we can't match you to incoming leads, and your opportunity feed will
               stay empty. It takes about 30 seconds to pick two or three.
             </p>
             <div className="pt-1">
@@ -141,7 +141,7 @@ export const ConfirmVerticalsPrompt = () => {
           {narrowing ? (
             <>
               <p className="text-sm font-medium">
-                We inferred {labels.length} audiences from your topics — that's probably too many.
+                We inferred {labels.length} audiences from your topics. That's probably too many.
               </p>
               <p className="text-sm text-muted-foreground">
                 Broad topics like Leadership or Communication map to a lot of audiences. Narrowing

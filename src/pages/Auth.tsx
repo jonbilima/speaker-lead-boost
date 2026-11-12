@@ -104,7 +104,7 @@ const Auth = () => {
       });
       if (error) throw error;
       if (data?.error) toast.error(data.error);
-      else if (data?.existing) toast.info("That email already has an account — try signing in, or use 'Forgot password?'");
+      else if (data?.existing) toast.info("That email already has an account. Try signing in, or use 'Forgot password?'");
       else toast.success("Check your email to confirm your account!");
     } catch (err: any) {
       toast.error(err?.message || "Sign-up failed. Email support@nextmic.ai if it keeps happening.");

@@ -179,14 +179,14 @@ async function sendWelcomeEmail(email: string, name: string | null, link: string
       from: "NextMIC <receipts@nextmic.ai>",
       reply_to: "support@nextmic.ai",
       to: email,
-      subject: "Your NextMIC login — set your password",
+      subject: "Your NextMIC login: set your password",
       html: `<div style="font-family:-apple-system,Segoe UI,sans-serif;max-width:520px;margin:0 auto;color:#17141F">
         <h2 style="font-size:20px">Welcome to NextMIC, ${first}!</h2>
-        <p>Your account is ready. One step left — set your password and you're in:</p>
+        <p>Your account is ready. One step left: set your password and you're in.</p>
         <p style="margin:28px 0"><a href="${link}" style="background:#E8A33D;color:#0F0D15;font-weight:700;padding:14px 26px;border-radius:8px;text-decoration:none">Set my password &rarr;</a></p>
         <p>That opens your sign-in page with your email already filled in. Click <strong>&ldquo;Forgot password?&rdquo;</strong> underneath it and we'll send you a link to choose your password.</p>
-        <p style="font-size:13px;color:#6D6879">This email doesn't expire &mdash; come back to it whenever you're ready. If you didn't buy the Booked in 5 Challenge, reply and let us know.</p>
-        <p style="font-size:13px;color:#6D6879">— The NextMIC team &middot; support@nextmic.ai</p>
+        <p style="font-size:13px;color:#6D6879">This email doesn't expire, so come back to it whenever you're ready. If you didn't buy the Booked in 5 Challenge, reply and let us know.</p>
+        <p style="font-size:13px;color:#6D6879">The NextMIC team &middot; support@nextmic.ai</p>
       </div>`,
     }),
   });
@@ -240,13 +240,13 @@ async function handleClaim(req: Request): Promise<Response> {
     });
     if (r.status === 409) {
       return json({
-        error: "This link was already used. Your account exists — sign in, or use “Forgot password” to set a new one.",
+        error: "This link was already used. Your account exists, so sign in or use “Forgot password” to set a new one.",
         recovery: `${APP_URL}/auth`,
       }, 409);
     }
     if (!r.ok) {
       return json({
-        error: "We couldn't verify your purchase from this link — your login email is on its way instead.",
+        error: "We couldn't verify your purchase from this link. Your login email is on its way instead.",
         recovery: `${APP_URL}/auth`,
       }, 400);
     }
@@ -254,7 +254,7 @@ async function handleClaim(req: Request): Promise<Response> {
   } catch (ex) {
     console.error("claim: engine verification failed:", ex);
     return json({
-      error: "We couldn't reach our purchase system just now. Your login email is on its way — or use “Forgot password” with your purchase email.",
+      error: "We couldn't reach our purchase system just now. Your login email is on its way, or use “Forgot password” with your purchase email.",
       recovery: `${APP_URL}/auth`,
     }, 503);
   }
@@ -279,7 +279,7 @@ async function handleClaim(req: Request): Promise<Response> {
     }
     return json({
       error: existing
-        ? `You already have a NextMIC account for ${claim.email}. We've emailed you a link to set a new password — or sign in if you already know it.`
+        ? `You already have a NextMIC account for ${claim.email}. We've emailed you a link to set a new password, or sign in if you already know it.`
         : `We couldn't finish setting your password. We've emailed a set-password link to ${claim.email}. Your purchase is safe.`,
       account_exists: existing,
       email: claim.email,
@@ -320,7 +320,7 @@ Deno.serve(async (req: Request) => {
     } catch (ex) {
       console.error("claim: unhandled failure:", ex);
       return json({
-        error: "Something went wrong setting your password. Your purchase is safe — use “Forgot password” with your purchase email to get in.",
+        error: "Something went wrong setting your password. Your purchase is safe. Use “Forgot password” with your purchase email to get in.",
         recovery: `${APP_URL}/auth`,
       }, 500);
     }

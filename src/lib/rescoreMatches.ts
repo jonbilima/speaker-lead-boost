@@ -20,7 +20,7 @@ export async function rescoreMatches(options?: { silent?: boolean }): Promise<nu
   const count = typeof data?.scored_count === 'number' ? data.scored_count : 0;
 
   if (!options?.silent) {
-    toast.success(`Matches updated — ${count} opportunities rescored`);
+    toast.success(`Matches updated: ${count} opportunities rescored`);
   }
 
   return count;

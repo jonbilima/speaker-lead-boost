@@ -242,7 +242,7 @@ const Profile = () => {
       if (scored === null) {
         toast.error("Profile saved, but we couldn't update your matches. Try saving again.");
       } else {
-        toast.success(`Matches updated — ${scored} opportunities rescored`);
+        toast.success(`Matches updated: ${scored} opportunities rescored`);
       }
 
       navigate("/dashboard");

@@ -149,7 +149,7 @@ export function RecentActivityFeed({ userId }: RecentActivityFeedProps) {
               id: `draft-${activity.id}`,
               type: "pitch_drafted",
               title: "Pitch drafted (not sent)",
-              subtitle: activity.subject || "Draft saved — send it yourself",
+              subtitle: activity.subject || "Draft saved. Send it yourself",
               timestamp: activity.created_at,
               link: "/pipeline",
             });

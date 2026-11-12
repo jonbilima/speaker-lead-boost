@@ -55,7 +55,7 @@ function shell(heading: string, lead: string, cta: string, link: string,
     <p style="margin:28px 0"><a href="${link}" style="background:#E8A33D;color:#0F0D15;font-weight:700;padding:14px 26px;border-radius:8px;text-decoration:none">${cta}</a></p>
     ${extra}
     <p style="font-size:13px;color:#6D6879">${footer}</p>
-    <p style="font-size:13px;color:#6D6879">— The NextMIC team &middot; <a href="mailto:support@nextmic.ai" style="color:#6D6879">support@nextmic.ai</a></p>
+    <p style="font-size:13px;color:#6D6879">The NextMIC team &middot; <a href="mailto:support@nextmic.ai" style="color:#6D6879">support@nextmic.ai</a></p>
   </div>`;
 }
 
@@ -131,7 +131,7 @@ Deno.serve(async (req: Request) => {
       if (!bearer) return json({ error: "You must be signed in to change your email." }, 401);
       const { data: caller, error: callerErr } = await admin.auth.getUser(bearer);
       if (callerErr || !caller?.user) {
-        return json({ error: "Your session has expired — sign in again and retry." }, 401);
+        return json({ error: "Your session has expired. Sign in again and retry." }, 401);
       }
       const current = (caller.user.email ?? "").toLowerCase();
       if (addr.toLowerCase() === current) {
@@ -153,7 +153,7 @@ Deno.serve(async (req: Request) => {
       }
       await send(addr, "Confirm your new NextMIC email",
         shell("Confirm your new email address",
-              `You asked to change your NextMIC sign-in email to <strong>${addr}</strong>. Click below to confirm — until you do, keep signing in with your current address.`,
+              `You asked to change your NextMIC sign-in email to <strong>${addr}</strong>. Click below to confirm. Until you do, keep signing in with your current address.`,
               "Confirm this address &rarr;", data.properties.action_link,
               "If you didn't request this, ignore this email and nothing will change."));
       return json({ ok: true });

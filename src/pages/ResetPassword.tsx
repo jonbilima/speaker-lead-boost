@@ -247,9 +247,9 @@ const ResetPassword = () => {
                     : phase === "code"
                       ? "Enter your email and the 6-digit code from your reset email."
                       : membershipEnded
-                    ? "Your NextMIC membership has ended, so sign-in is switched off for this account. A new password won't reopen it — restarting your membership will, and everything you bought outright is still here waiting."
+                    ? "Your NextMIC membership has ended, so sign-in is switched off for this account. A new password won't reopen it, but restarting your membership will, and everything you bought outright is still here waiting."
                     : resent
-                      ? "We've sent a new link. Open it as soon as it arrives — for your security it's only good for about an hour."
+                      ? "We've sent a new link. Open it as soon as it arrives. For your security it's only good for about an hour."
                       : `${problem} If you have the 6-digit code from your reset email, enter it below. Otherwise we'll send you a fresh one.`}
             </CardDescription>
           </CardHeader>
