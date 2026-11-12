@@ -213,7 +213,7 @@ const Pipeline = () => {
               new Date(),
               intervals
             );
-            toast.success("Follow-up reminders created for 7, 14, and 21 days");
+            toast.success(`Follow-up reminders created for ${intervals.interval1}, ${intervals.interval2} and ${intervals.interval3} days`);
           } catch (reminderError) {
             console.error("Error creating follow-up reminders:", reminderError);
           }

@@ -15,6 +15,7 @@ import { useEmailSender } from "@/hooks/useEmailSender";
 import { useOrganizerContact } from "@/hooks/useOrganizerContact";
 import { ContactPathPanel } from "@/components/find/ContactPathPanel";
 import { formatEventDate } from "@/lib/eventDates";
+import { createFollowUpReminders, getUserFollowUpIntervals } from "@/hooks/useFollowUpReminders";
 
 interface QuickApplyModalProps {
   open: boolean;
@@ -166,22 +167,36 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
           email_sent_at: emailWasSent ? now : null,
         });
 
-      // Create follow-up reminder for 7 days — only when something was actually sent
-      if (scoreId && emailWasSent) {
-        await supabase
-          .from("follow_up_reminders")
-          .insert({
-            speaker_id: session.user.id,
-            match_id: scoreId,
-            due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            reminder_type: "follow_up_1",
-          });
+      // The same three reminders as dragging a card to Applied, on the speaker's
+      // own intervals. (This used to insert reminder_type "follow_up_1", which the
+      // table's check constraint rejects, so Quick Apply never set any reminder.)
+      let reminderDays: number[] = [];
+      if (scoreId) {
+        try {
+          // Skip if this gig already has open reminders (e.g. it was dragged to Applied earlier).
+          const { count: openReminders } = await supabase
+            .from("follow_up_reminders")
+            .select("id", { count: "exact", head: true })
+            .eq("match_id", scoreId)
+            .eq("is_completed", false);
+          if (openReminders) throw new Error("reminders already set");
+          const intervals = await getUserFollowUpIntervals(session.user.id);
+          await createFollowUpReminders(session.user.id, scoreId, new Date(), intervals);
+          reminderDays = [intervals.interval1, intervals.interval2, intervals.interval3];
+        } catch (reminderError) {
+          if ((reminderError as Error)?.message !== "reminders already set") {
+            console.error("Error creating follow-up reminders:", reminderError);
+          }
+        }
       }
+      const reminderNote = reminderDays.length
+        ? ` Follow-up reminders set for ${reminderDays[0]}, ${reminderDays[1]} and ${reminderDays[2]} days.`
+        : "";
 
       toast.success(
         emailWasSent
-          ? `Pitch emailed to ${opportunity.organizer_email}. Added to your pipeline with a 7-day follow-up.`
-          : "Pitch saved and logged. Send it yourself through the contact path shown above."
+          ? `Pitch emailed to ${opportunity.organizer_email} and added to your pipeline.${reminderNote}`
+          : `Pitch saved and logged. Send it yourself through the contact path shown above.${reminderNote}`
       );
 
       onSuccess();
@@ -363,13 +378,13 @@ export function QuickApplyModal({ open, onOpenChange, opportunity, onSuccess }: 
                 <span className="font-medium text-foreground">{opportunity.organizer_email}</span> and
                 added to your Pipeline as "Applied"
               </p>
-              <p>A follow-up reminder will be set for 7 days from now</p>
+              <p>Your follow-up reminders will be set (7, 14 and 21 days unless you changed them in your profile)</p>
             </>
           ) : (
             <p>
               No email is available for this organizer, so nothing will be sent. Your pitch will be
-              saved and added to your Pipeline as "Applied". Submit it yourself through the contact
-              path above.
+              saved and added to your Pipeline as "Applied" with your follow-up reminders. Submit it
+              yourself through the contact path above.
             </p>
           )}
         </div>
